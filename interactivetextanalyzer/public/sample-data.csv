@@ -1,16 +1,91 @@
 id,category,review,notes,date,rating,customer_region
-1,Books,"This book provides clear examples and great exercises","User loved the structure",2024-01-01,5,NA
-2,Books,"The storyline was dull and predictable","Might not recommend",2024-01-02,2,EU
-3,Electronics,"Battery life is amazing and the screen is bright","Comparison with previous model is positive",2024-01-03,5,APAC
-4,Electronics,"Overheats after 30 minutes of intensive use","Thermal issues reported",2024-01-04,2,NA
-5,Home,"Sturdy build and elegant finish","Arrived earlier than expected",2024-01-05,4,EU
-6,Home,"Instructions were confusing and parts missing","Requested replacement screws",2024-01-06,2,NA
-7,Toys,"Kids loved the interactive lights and sounds","Great gift idea",2024-01-07,5,APAC
-8,Toys,"Paint started chipping within a week","Quality concern",2024-01-08,1,EU
-9,Grocery,"Fresh taste and rich aroma—high quality","Would purchase again",2024-01-09,5,NA
-10,Grocery,"Packaging was damaged and product was stale","Disappointed with shipment",2024-01-10,1,APAC
-11,Clothing,"Fabric feels premium and fits perfectly","True to size",2024-01-11,5,EU
-12,Clothing,"Color faded quickly after one wash","Not colorfast",2024-01-12,2,NA
-13,Tools,"Powerful motor and low vibration","Exceeded expectations",2024-01-13,5,NA
-14,Tools,"Handle cracked under light pressure","Manufacturing defect?",2024-01-14,1,EU
-15,Pets,"My dog enjoys it and it's durable so far","Would recommend to friends",2024-01-15,4,APAC
+1,Books,"Exceptional pacing and layered mystery kept me hooked","Strong narrative momentum",2024-01-01,5,NA
+2,Books,"Exceptional pacing and layered mystery kept me hooked","Repeat praise for emphasis",2024-01-01,5,NA
+3,Books,"Exceptional pacing and layered mystery kept me hooked","Another similar enthusiastic review",2024-01-01,5,NA
+4,Books,"Exceptional pacing and layered mystery kept me hooked","Pattern reinforcement",2024-01-01,5,NA
+5,Books,"Exceptional pacing and layered mystery kept me hooked","Duplicated sentiment",2024-01-01,5,NA
+6,Books,"Predictable plot with shallow character arcs","Did not meet expectations",2024-01-02,2,EU
+7,Books,"Predictable plot with shallow character arcs","Repeat critique for clustering",2024-01-02,2,EU
+8,Books,"Predictable plot with shallow character arcs","Further repetition",2024-01-02,2,EU
+9,Books,"Predictable plot with shallow character arcs","Critical echo",2024-01-02,2,EU
+10,Books,"Predictable plot with shallow character arcs","Reinforced negative theme",2024-01-02,2,EU
+11,Electronics,"Battery life outstanding; display vibrant under sunlight","Positive durability mention",2024-01-03,5,APAC
+12,Electronics,"Battery life outstanding; display vibrant under sunlight","Repeat satisfaction",2024-01-03,5,APAC
+13,Electronics,"Battery life outstanding; display vibrant under sunlight","Consistent praise entry",2024-01-03,5,APAC
+14,Electronics,"Battery life outstanding; display vibrant under sunlight","Endurance highlighted",2024-01-03,5,APAC
+15,Electronics,"Battery life outstanding; display vibrant under sunlight","User reinforcement",2024-01-03,5,APAC
+16,Electronics,"Overheats rapidly during moderate video rendering","Thermal throttling observed",2024-01-04,2,NA
+17,Electronics,"Overheats rapidly during moderate video rendering","Heat accumulation complaint",2024-01-04,2,NA
+18,Electronics,"Overheats rapidly during moderate video rendering","Thermal issue repeat",2024-01-04,2,NA
+19,Electronics,"Overheats rapidly during moderate video rendering","Performance degradation note",2024-01-04,2,NA
+20,Electronics,"Overheats rapidly during moderate video rendering","User frustration",2024-01-04,2,NA
+21,Home,"Assembly intuitive; materials feel premium and dense","Smooth edges and finish",2024-01-05,5,EU
+22,Home,"Assembly intuitive; materials feel premium and dense","Repeat acknowledgement",2024-01-05,5,EU
+23,Home,"Assembly intuitive; materials feel premium and dense","Quality echo",2024-01-05,5,EU
+24,Home,"Assembly intuitive; materials feel premium and dense","Material satisfaction",2024-01-05,5,EU
+25,Home,"Assembly intuitive; materials feel premium and dense","Positive reinforcement",2024-01-05,5,EU
+26,Home,"Warped panel and misaligned pre-drilled holes","Manufacturing defect complaint",2024-01-06,1,NA
+27,Home,"Warped panel and misaligned pre-drilled holes","Repeat structural issue",2024-01-06,1,NA
+28,Home,"Warped panel and misaligned pre-drilled holes","Assembly trouble reiterated",2024-01-06,1,NA
+29,Home,"Warped panel and misaligned pre-drilled holes","Poor QA remark",2024-01-06,1,NA
+30,Home,"Warped panel and misaligned pre-drilled holes","Negative cluster entry",2024-01-06,1,NA
+31,Toys,"STEM kit engaged kids collaboratively for hours","Educational benefit noted",2024-01-07,5,APAC
+32,Toys,"STEM kit engaged kids collaboratively for hours","Enthusiastic repetition",2024-01-07,5,APAC
+33,Toys,"STEM kit engaged kids collaboratively for hours","STEM praise replicate",2024-01-07,5,APAC
+34,Toys,"STEM kit engaged kids collaboratively for hours","Learning outcome highlight",2024-01-07,5,APAC
+35,Toys,"STEM kit engaged kids collaboratively for hours","Retention cluster",2024-01-07,5,APAC
+36,Toys,"Magnets detached within minutes of first use","Safety risk noted",2024-01-08,1,EU
+37,Toys,"Magnets detached within minutes of first use","Hazard repetition",2024-01-08,1,EU
+38,Toys,"Magnets detached within minutes of first use","Durability concern replicate",2024-01-08,1,EU
+39,Toys,"Magnets detached within minutes of first use","Quality failure echo",2024-01-08,1,EU
+40,Toys,"Magnets detached within minutes of first use","Critical durability cluster",2024-01-08,1,EU
+41,Grocery,"Cold brew smooth; balanced acidity and chocolate finish","Fresh profile",2024-01-09,5,NA
+42,Grocery,"Cold brew smooth; balanced acidity and chocolate finish","Flavor profile repeat",2024-01-09,5,NA
+43,Grocery,"Cold brew smooth; balanced acidity and chocolate finish","Taste reinforcement",2024-01-09,5,NA
+44,Grocery,"Cold brew smooth; balanced acidity and chocolate finish","Mouthfeel echo",2024-01-09,5,NA
+45,Grocery,"Cold brew smooth; balanced acidity and chocolate finish","Balanced sweetness note",2024-01-09,5,NA
+46,Grocery,"Packaging crushed; contents stale and flavorless","Logistics failure entry",2024-01-10,1,APAC
+47,Grocery,"Packaging crushed; contents stale and flavorless","Staleness complaint repeat",2024-01-10,1,APAC
+48,Grocery,"Packaging crushed; contents stale and flavorless","Negative shipping replicate",2024-01-10,1,APAC
+49,Grocery,"Packaging crushed; contents stale and flavorless","User disappointment echo",2024-01-10,1,APAC
+50,Grocery,"Packaging crushed; contents stale and flavorless","Severe dissatisfaction",2024-01-10,1,APAC
+51,Clothing,"Breathable fabric with consistent color retention","True-fit confirmation",2024-01-11,5,EU
+52,Clothing,"Breathable fabric with consistent color retention","Color integrity repeat",2024-01-11,5,EU
+53,Clothing,"Breathable fabric with consistent color retention","Retention affirmation",2024-01-11,5,EU
+54,Clothing,"Breathable fabric with consistent color retention","Material praise echo",2024-01-11,5,EU
+55,Clothing,"Breathable fabric with consistent color retention","Durability cluster",2024-01-11,5,EU
+56,Clothing,"Color blotched and faded after single wash","Pigment instability note",2024-01-12,2,NA
+57,Clothing,"Color blotched and faded after single wash","Dye failure repeat",2024-01-12,2,NA
+58,Clothing,"Color blotched and faded after single wash","Colorfastness issue echo",2024-01-12,2,NA
+59,Clothing,"Color blotched and faded after single wash","Wash durability concern",2024-01-12,2,NA
+60,Clothing,"Color blotched and faded after single wash","Unsatisfied cluster",2024-01-12,2,NA
+61,Tools,"High torque with balanced vibration control","Professional grade feel",2024-01-13,5,NA
+62,Tools,"High torque with balanced vibration control","Performance reinforcement",2024-01-13,5,NA
+63,Tools,"High torque with balanced vibration control","Torque praise repeat",2024-01-13,5,NA
+64,Tools,"High torque with balanced vibration control","User satisfaction echo",2024-01-13,5,NA
+65,Tools,"High torque with balanced vibration control","Consistent reliability",2024-01-13,5,NA
+66,Tools,"Handle cracked under light rotational stress","Material brittleness noted",2024-01-14,1,EU
+67,Tools,"Handle cracked under light rotational stress","Breakage replication",2024-01-14,1,EU
+68,Tools,"Handle cracked under light rotational stress","Fracture echo",2024-01-14,1,EU
+69,Tools,"Handle cracked under light rotational stress","Structural flaw repeat",2024-01-14,1,EU
+70,Tools,"Handle cracked under light rotational stress","Failure cluster",2024-01-14,1,EU
+71,Pets,"Dogs consistently engage; durable exterior after weeks","Longevity confirmed",2024-01-15,4,APAC
+72,Pets,"Dogs consistently engage; durable exterior after weeks","Play resilience repeat",2024-01-15,4,APAC
+73,Pets,"Dogs consistently engage; durable exterior after weeks","Durability echo",2024-01-15,4,APAC
+74,Pets,"Dogs consistently engage; durable exterior after weeks","Chew persistence noted",2024-01-15,4,APAC
+75,Pets,"Dogs consistently engage; durable exterior after weeks","Retention cluster",2024-01-15,4,APAC
+76,Pets,"Fabric seam frayed and stuffing escaped rapidly","Weak stitching report",2024-01-16,2,NA
+77,Pets,"Fabric seam frayed and stuffing escaped rapidly","Durability failure repeat",2024-01-16,2,NA
+78,Pets,"Fabric seam frayed and stuffing escaped rapidly","Structural issue echo",2024-01-16,2,NA
+79,Pets,"Fabric seam frayed and stuffing escaped rapidly","Material failure pattern",2024-01-16,2,NA
+80,Pets,"Fabric seam frayed and stuffing escaped rapidly","Fray cluster",2024-01-16,2,NA
+81,Books,"Sparse experimental haiku about quantum states","Very unique poetic minimalism",2024-01-17,5,EU
+82,Books,"Monochrome index of obsolete agricultural tools","Extremely niche archival reference",2024-01-18,3,EU
+83,Electronics,"Device emitted lavender scent unexpectedly","Unusual aromatic anomaly",2024-01-19,4,NA
+84,Home,"Chair whispers soft static when moonlight enters","Eccentric atmospheric artifact",2024-01-20,4,EU
+85,Toys,"Puzzle gradually reveals phosphorescent star map","Novel luminous layering",2024-01-21,5,APAC
+86,Grocery,"Sauce tastes like smoked cinnamon lightning","Surreal flavor metaphor",2024-01-22,5,NA
+87,Clothing,"Scarf warms selectively on poetic phrases","Adaptive thermal weave?",2024-01-23,5,EU
+88,Tools,"Wrench resonates faint harmonic at even torque","Precision machining resonance",2024-01-24,5,EU
+89,Pets,"Parrot mimics startup chime with uncanny accuracy","Cognitive enrichment",2024-01-25,5,APAC
+90,Books,"Exceptional pacing and layered mystery kept me hooked","Density echo ext",2024-01-26,5,NA
