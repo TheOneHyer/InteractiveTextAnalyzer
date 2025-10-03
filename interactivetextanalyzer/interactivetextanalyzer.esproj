@@ -8,4 +8,10 @@
     <!-- Folder where production build objects will be placed -->
     <BuildOutputFolder>$(MSBuildProjectDirectory)\dist</BuildOutputFolder>
   </PropertyGroup>
+  <ItemGroup>
+    <Folder Include="example_data\" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include=".github\workflows\deploy-gh-pages.yml" />
+  </ItemGroup>
 </Project>
