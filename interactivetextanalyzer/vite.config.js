@@ -1,15 +1,15 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// Configure base path for project GitHub Pages. For user/org root site set base: '/' instead.
-// Output directed to 'docs' so a Jekyll (Pages) build from /docs works without an action.
+// gh-pages deployment: base must match repo name when publishing to <user>.github.io/<repo>
+// If deploying to a user/org root page, set BASE env: USER_SITE=1 vite build
 const isUserSite = process.env.USER_SITE === '1'
 export default defineConfig({
   base: isUserSite ? '/' : '/InteractiveTextAnalyzer/',
   plugins: [react()],
   server: { port: 61201 },
   build: {
-    outDir: 'docs',          // GitHub Pages (Jekyll) picks up /docs
+    outDir: 'dist', // revert to dist for gh-pages -d dist
     emptyOutDir: true,
     assetsDir: 'assets',
     rollupOptions: {
@@ -17,7 +17,7 @@ export default defineConfig({
         manualChunks: {
           'nlp-compromise': ['compromise'],
           'd3-core': ['d3'],
-          'xlsx-lib': ['xlsx']
+            'xlsx-lib': ['xlsx']
         }
       }
     },
