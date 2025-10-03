@@ -1,25 +1,25 @@
 {
   "name": "interactivetextanalyzer",
   "private": true,
-  "version": "0.0.1",
+  "version": "0.0.2",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "postbuild": "echo > dist/.nojekyll && copy public\\sample-data.csv dist\\sample-data.csv 2>NUL || cp public/sample-data.csv dist/sample-data.csv || true",
+    "postbuild": "node scripts/generate-sample-data.mjs && (cp dist/index.html dist/404.html 2>/dev/null || copy dist\\index.html dist\\404.html) && echo > dist/.nojekyll",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist",
     "lint": "eslint .",
     "preview": "vite preview"
   },
   "dependencies": {
-    "react": "^19.1.1",
-    "react-dom": "^19.1.1",
-    "xlsx": "^0.18.5",
     "compromise": "^14.14.4",
     "d3": "^7.9.0",
     "d3-cloud": "^1.2.7",
-    "recharts": "^2.12.7"
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "recharts": "^2.12.7",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",
@@ -30,7 +30,7 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.22",
     "globals": "^16.4.0",
-    "vite": "^7.1.7",
-    "gh-pages": "^6.3.0"
+    "gh-pages": "^6.3.0",
+    "vite": "^7.1.7"
   }
 }
