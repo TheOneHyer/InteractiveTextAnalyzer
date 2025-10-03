@@ -9,9 +9,6 @@
     <BuildOutputFolder>$(MSBuildProjectDirectory)\dist</BuildOutputFolder>
   </PropertyGroup>
   <ItemGroup>
-    <Folder Include="example_data\" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include=".github\workflows\deploy-gh-pages.yml" />
+    <Folder Include=".github\workflows\" />
   </ItemGroup>
 </Project>
