@@ -2,18 +2,25 @@
 
 Browser-based exploratory text analytics tool. Upload Excel (.xlsx/.xls) or CSV files containing multiple text columns, perform preprocessing, and run interactive analyses (N-Grams, TF?IDF, Association Rules, NER) with visualizations (Word Cloud, Network Graph, Heatmap) – all client-side.
 
+## Live Demo (GitHub Pages)
+After the first successful GitHub Actions run, the app will be available at:
+```
+https://THE_USERNAME.github.io/InteractiveTextAnalyzer/
+```
+Replace `THE_USERNAME` with your GitHub handle.
+
 ## Features
 - Multi-sheet Excel ingestion + All Sheets merge
 - CSV upload support
 - Column rename / hide (PowerPivot-like munging)
 - Select multiple text columns for analysis
 - Preprocessing: custom stopwords + optional stemming
-- Analytic modules: N-Gram, TF?IDF, Association Rules (support / confidence / lift), Named Entity Recognition
-- Visualizations: Word Cloud, Network Graph (lift weighting), TF?IDF Heatmap, configurable dashboard (bar, cloud, network, heatmap panels)
+- Analytic modules: N-Gram, TF?IDF, Association Rules (support / confidence / lift), Named Entity Recognition (lazy)
+- Configurable dashboard (bar / word cloud / network / heatmap panels)
 - Export transformed dataset (.xlsx) & analysis results (JSON)
-- Local persistence of settings in `localStorage`
-- Lazy loading of NLP libraries for performance
-- Virtualized data preview for large files
+- Local persistence (`localStorage`)
+- Virtualized data preview
+- Network edge lift threshold + bar label toggles
 
 ## Quick Start (Local)
 ```bash
@@ -23,60 +30,60 @@ npm run dev
 Open http://localhost:61201
 
 ## Run in GitHub Codespaces
-Click: https://codespaces.new/TheOneHyer/InteractiveTextAnalyzer
+Open in browser (replace with your user if you fork):
+https://codespaces.new/THE_USERNAME/InteractiveTextAnalyzer
 
-The devcontainer automatically:
-- Installs dependencies (`npm install`)
-- Forwards port 61201
-- Opens the Vite dev server when you run:
+Then:
 ```bash
 npm run dev
 ```
-If port forwarding tab does not open automatically, open the Ports panel and click the 61201 link.
+The dev container forwards port 61201.
 
 ## Sample Data
-A sample CSV is provided at `public/sample-data.csv`.
-1. Click the file input and choose `sample-data.csv`.
-2. Select columns (e.g. `review`, `notes`) as text sources (TXT toggles).
-3. Choose an analysis type and configure dashboard layout/visuals.
+Located at `public/sample-data.csv`. Use the Load button in the UI.
+
+## GitHub Pages Deployment
+Already configured:
+- `vite.config.js` includes `base: '/InteractiveTextAnalyzer/'`.
+- Workflow: `.github/workflows/deploy-pages.yml` builds & deploys on pushes to `master`.
+
+First-time setup:
+1. Push to `master` (triggers workflow).
+2. In Repo Settings ? Pages ensure Source = GitHub Actions (auto after deploy).
+3. Visit the published URL (see above).  
+
+If you fork: update the README demo URL and optionally adjust branch name in the workflow if not `master`.
 
 ## File Formats
-- Excel: `.xlsx` / `.xls` (all sheets imported)
-- CSV: Comma delimited UTF-8; header row required.
+- Excel: `.xlsx` / `.xls`
+- CSV: Comma delimited UTF?8; header row required.
 
-## Recommended Workflow
-1. Upload file (Excel or CSV)
-2. Hide / rename columns as needed
-3. Mark text columns (TXT buttons)
-4. Adjust preprocessing (stopwords, stemming, support / thresholds)
-5. Switch analysis type & visuals (dashboard layout)
-6. Export data / results if desired
+## Workflow
+1. Upload file
+2. Hide / rename columns
+3. Mark text columns (TXT)
+4. Adjust preprocessing / thresholds
+5. Choose analysis + dashboard layout
+6. Export if desired
 
-## Dashboard Visualizations
-- Bar Chart (context-aware metric: TF-IDF / Frequency / Lift / Count)
+## Visualizations
+- Bar Chart (metric varies by analysis)
 - Word Cloud
-- Association Network Graph (filter edges by lift threshold)
-- TF-IDF Heatmap (when in TF-IDF mode)
+- Association Network Graph (lift weighting & filter)
+- TF?IDF Heatmap (TF?IDF mode only)
 
 ## Roadmap Ideas
 - Stopword frequency suggestions
 - Phrase-based entity grouping
-- Advanced association rule mining (k>2 itemsets)
-- Sentiment & topic modeling
-- Export/import of dashboard layout presets
+- k>2 association itemsets
+- Sentiment / topic modeling
+- Dashboard presets import/export
 
 ## Tech Stack
-- React + Vite
-- XLSX (SheetJS) for parsing & export
-- compromise for NER (lazy loaded)
-- d3 for network + custom visuals
-- recharts for charts
-
-All logic executes in the browser—no server required.
+React + Vite, XLSX (SheetJS), compromise (NER), d3, recharts.
 
 ## Dev Notes
-- To deploy to GitHub Pages, add `base` to `vite.config.js` and use a Pages workflow.
-- Large libraries (xlsx, compromise) dominate bundle size—consider conditional builds if needed.
+Large bundles mainly from `xlsx` & `compromise`. Consider conditional builds or dynamic import gating for production variants.
 
 ## License
-MIT (add a LICENSE file if not present).
+MIT (add LICENSE file if absent).

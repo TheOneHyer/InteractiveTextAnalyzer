@@ -161,7 +161,7 @@ export default function App(){
                 <h4>Data Source</h4>
                 <input type='file' accept='.xlsx,.xls,.csv' onChange={handleFile} />
                 <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
-                  <button className='btn secondary' style={{background:'#e2e8f0'}} onClick={()=>fetch('/sample-data.csv').then(r=>r.text()).then(txt=>{const p=parseCsv(txt); setWorkbookData({'Sample CSV':p}); setActiveSheet('Sample CSV'); setSelectedColumns([]); setHiddenColumns([]); setRenames({}) })}>Load CSV Sample</button>
+                  <button className='btn secondary' style={{background:'#e2e8f0'}} onClick={()=>fetch(new URL('sample-data.csv', import.meta.env.BASE_URL)).then(r=>r.text()).then(txt=>{const p=parseCsv(txt); setWorkbookData({'Sample CSV':p}); setActiveSheet('Sample CSV'); setSelectedColumns([]); setHiddenColumns([]); setRenames({}) })}>Load CSV Sample</button>
                   <button className='btn secondary' style={{background:'#e2e8f0'}} onClick={loadSampleExcel}>Load Excel Sample</button>
                 </div>
                 {Object.keys(workbookData).length>0 && <SheetSelector sheets={Object.keys(workbookData)} activeSheet={activeSheet} setActiveSheet={setActiveSheet} />}

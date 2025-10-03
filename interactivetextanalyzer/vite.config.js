@@ -1,7 +1,9 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
+// NOTE: "base" is set so the app works under GitHub Pages at /InteractiveTextAnalyzer/
 export default defineConfig({
+  base: '/InteractiveTextAnalyzer/',
   plugins: [react()],
   server: { port: 61201 },
   build: {
