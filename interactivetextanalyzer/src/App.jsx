@@ -25,6 +25,7 @@ const loadNlpLibs = async () => {
 const DEFAULT_STOPWORDS = new Set(['the','a','an','and','or','but','if','then','else','of','to','in','on','for','with','this','that','it','is','are','was','were','be','as','by','at','from'])
 const useDebounced = (value, delay=400) => { const [v,setV]=useState(value); useEffect(()=>{const t=setTimeout(()=>setV(value),delay); return()=>clearTimeout(t)},[value,delay]); return v }
 
+
 // TF-IDF (simplified)
 const computeTfIdf = (docs, { stopwords, stem, stemmer }) => {
   const termFreqs = []
@@ -256,7 +257,7 @@ export default function App(){
                 <h4>Data Source</h4>
                 <input type='file' accept='.xlsx,.xls,.csv' onChange={handleFile} />
                 <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
-                  <button className='btn secondary' style={{background:'#e2e8f0'}} onClick={()=>fetch('/sample-data.csv').then(r=>r.text()).then(txt=>{const p=parseCsv(txt); setWorkbookData({'Sample CSV':p}); setActiveSheet('Sample CSV'); setSelectedColumns([]); setHiddenColumns([]); setRenames({}) })}>Load CSV Sample</button>
+                  <button className='btn secondary' style={{background:'#e2e8f0'}} onClick={()=>fetch(new URL('sample-data.csv', import.meta.env.BASE_URL)).then(r=>r.text()).then(txt=>{const p=parseCsv(txt); setWorkbookData({'Sample CSV':p}); setActiveSheet('Sample CSV'); setSelectedColumns([]); setHiddenColumns([]); setRenames({}) })}>Load CSV Sample</button>
                   <button className='btn secondary' style={{background:'#e2e8f0'}} onClick={loadSampleExcel}>Load Excel Sample</button>
                 </div>
                 {Object.keys(workbookData).length>0 && <SheetSelector sheets={Object.keys(workbookData)} activeSheet={activeSheet} setActiveSheet={setActiveSheet} />}
