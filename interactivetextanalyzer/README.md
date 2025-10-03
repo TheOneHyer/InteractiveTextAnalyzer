@@ -1,16 +1,55 @@
-# React + Vite
+# Interactive Text Analyzer
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Browser-based exploratory text analytics tool. Upload Excel (.xlsx/.xls) or CSV files containing multiple text columns, perform preprocessing, and run interactive analyses (N-Grams, TF?IDF, Association Rules, NER) with visualizations (Word Cloud, Network Graph, Heatmap) – all client-side.
 
-Currently, two official plugins are available:
+## Features
+- Multi-sheet Excel ingestion + All Sheets merge
+- CSV upload support
+- Column rename / hide (PowerPivot-like munging)
+- Select multiple text columns for analysis
+- Preprocessing: custom stopwords + optional stemming
+- Analytic modules: N-Gram, TF?IDF, Association Rules (support / confidence / lift), Named Entity Recognition
+- Visualizations: Word Cloud, Network Graph (lift weighting), TF?IDF Heatmap
+- Export transformed dataset (.xlsx) & analysis results (JSON)
+- Local persistence of settings in `localStorage`
+- Lazy loading of NLP libraries for performance
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Quick Start
+```bash
+npm install
+npm run dev
+```
+Open http://localhost:61201
 
-## React Compiler
+## Sample Data
+A sample CSV is provided at `public/sample-data.csv`. Use it to quickly test:
+1. Click the file input and choose `sample-data.csv`.
+2. Select columns `review` and/or `notes` as text sources (press the TXT toggle buttons).
+3. Choose an analysis type and visualization mode.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## File Formats
+- Excel: `.xlsx` / `.xls` (all sheets imported)
+- CSV: Comma delimited UTF-8; header row required.
 
-## Expanding the ESLint configuration
+## Recommended Workflow
+1. Upload file (Excel or CSV)
+2. Hide / rename columns as needed
+3. Mark text columns (TXT buttons)
+4. Adjust preprocessing (stopwords, stemming)
+5. Run analyses & switch visual views
+6. Export data / results if desired
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Roadmap Ideas
+- Stopword frequency suggestions
+- Phrase-based entity grouping
+- Dynamic code-splitting of heavy modules
+- Advanced association rule mining (k>2 itemsets)
+- Sentiment & topic modeling
+
+## Tech Stack
+- React + Vite
+- XLSX (SheetJS) for parsing & export
+- natural / compromise for NLP
+- d3 & custom components for visuals
+
+All logic executes in the browser—no server required.

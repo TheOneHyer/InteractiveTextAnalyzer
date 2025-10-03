@@ -1,0 +1,16 @@
+id,category,review,notes,date,rating,customer_region
+1,Books,"This book provides clear examples and great exercises","User loved the structure",2024-01-01,5,NA
+2,Books,"The storyline was dull and predictable","Might not recommend",2024-01-02,2,EU
+3,Electronics,"Battery life is amazing and the screen is bright","Comparison with previous model is positive",2024-01-03,5,APAC
+4,Electronics,"Overheats after 30 minutes of intensive use","Thermal issues reported",2024-01-04,2,NA
+5,Home,"Sturdy build and elegant finish","Arrived earlier than expected",2024-01-05,4,EU
+6,Home,"Instructions were confusing and parts missing","Requested replacement screws",2024-01-06,2,NA
+7,Toys,"Kids loved the interactive lights and sounds","Great gift idea",2024-01-07,5,APAC
+8,Toys,"Paint started chipping within a week","Quality concern",2024-01-08,1,EU
+9,Grocery,"Fresh taste and rich aroma—high quality","Would purchase again",2024-01-09,5,NA
+10,Grocery,"Packaging was damaged and product was stale","Disappointed with shipment",2024-01-10,1,APAC
+11,Clothing,"Fabric feels premium and fits perfectly","True to size",2024-01-11,5,EU
+12,Clothing,"Color faded quickly after one wash","Not colorfast",2024-01-12,2,NA
+13,Tools,"Powerful motor and low vibration","Exceeded expectations",2024-01-13,5,NA
+14,Tools,"Handle cracked under light pressure","Manufacturing defect?",2024-01-14,1,EU
+15,Pets,"My dog enjoys it and it's durable so far","Would recommend to friends",2024-01-15,4,APAC
