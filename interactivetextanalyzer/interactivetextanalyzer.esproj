@@ -10,6 +10,8 @@
   </PropertyGroup>
   <ItemGroup>
     <None Include=".devcontainer\devcontainer.json" />
-    <None Include=".github\workflows\deploy-pages.yml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include=".github\workflows\" />
   </ItemGroup>
 </Project>
