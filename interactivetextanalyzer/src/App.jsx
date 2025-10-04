@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useCallback, lazy, Suspense } from 'react
 import './App.css'
 import ExcelJS from 'exceljs'
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts'
+import ImportPreviewModal from './components/ImportPreviewModal'
 
 // Code-split heavy visualization pieces
 const WordCloud = lazy(()=>import('./components/WordCloud'))
@@ -149,6 +150,12 @@ export default function App(){
   const [nlpLibs,setNlpLibs]=useState({nlp:null})
   const [minSupport,setMinSupport]=useState(0.05)
   const [theme,setTheme]=useState(()=> localStorage.getItem('ita_theme')||'light')
+  
+  // Import preview modal state
+  const [showImportModal, setShowImportModal] = useState(false)
+  const [pendingImportData, setPendingImportData] = useState(null)
+  const [pendingFileName, setPendingFileName] = useState('')
+  const [pendingFileType, setPendingFileType] = useState('')
 
   // Restore settings (no eval)
   useEffect(()=>{ try { const s=JSON.parse(localStorage.getItem(LOCAL_KEY)||'{}');
@@ -291,30 +298,60 @@ export default function App(){
     const reader=new FileReader()
     
     reader.onload=async(evt)=>{ 
+      let parsedData = {}
       if(ext==='csv'){ 
         const text=evt.target.result
         const parsed=parseCsv(text)
-        setWorkbookData({'CSV':parsed})
-        setActiveSheet('CSV')
+        parsedData = {'CSV': parsed}
       } else { 
         const data=evt.target.result
         const workbook = new ExcelJS.Workbook()
         await workbook.xlsx.load(data)
         
-        const obj={}
         workbook.worksheets.forEach(ws => {
-          obj[ws.name] = parseWorksheet(ws)
+          parsedData[ws.name] = parseWorksheet(ws)
         })
-        
-        setWorkbookData(obj)
-        setActiveSheet(workbook.worksheets[0]?.name || null)
       }
-      setSelectedColumns([])
-      setHiddenColumns([])
-      setRenames({})
+      
+      // Show import modal instead of directly loading
+      setPendingImportData(parsedData)
+      setPendingFileName(file.name)
+      setPendingFileType(ext)
+      setShowImportModal(true)
     }
     
     ext==='csv'? reader.readAsText(file): reader.readAsArrayBuffer(file)
+  }
+
+  const handleImportConfirm = (config) => {
+    // Apply the configuration and load the data
+    const { processedData, hiddenColumns: importHiddenColumns, markedColumns, columnTypes } = config
+    
+    // Reconstruct workbook data with processed data
+    const finalData = {}
+    Object.keys(pendingImportData).forEach(sheetName => {
+      const original = pendingImportData[sheetName]
+      const processed = processedData
+      
+      // Apply the transformations from the modal
+      finalData[sheetName] = {
+        rows: processed.rows,
+        columns: processed.columns
+      }
+    })
+    
+    setWorkbookData(finalData)
+    setActiveSheet(Object.keys(finalData)[0] || null)
+    setSelectedColumns(markedColumns)
+    setHiddenColumns(importHiddenColumns)
+    setRenames({})
+    setShowImportModal(false)
+    setPendingImportData(null)
+  }
+
+  const handleImportCancel = () => {
+    setShowImportModal(false)
+    setPendingImportData(null)
   }
 
   const currentRows=useMemo(()=> activeSheet==='__ALL__'? Object.values(workbookData).flatMap(s=>s.rows): (activeSheet && workbookData[activeSheet]?.rows)||[],[activeSheet,workbookData])
@@ -388,6 +425,16 @@ export default function App(){
 
   return (
     <div id='app-shell' style={{display:'flex',width:'100%'}}>
+      {showImportModal && pendingImportData && (
+        <ImportPreviewModal
+          isOpen={showImportModal}
+          onClose={handleImportCancel}
+          onConfirm={handleImportConfirm}
+          workbookData={pendingImportData}
+          fileName={pendingFileName}
+          detectedFileType={pendingFileType}
+        />
+      )}
       <aside className='sidebar'>
         <div className='sidebar-header'>?? Analyzer</div>
         <div className='nav'>
