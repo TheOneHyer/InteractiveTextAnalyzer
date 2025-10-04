@@ -125,7 +125,7 @@ export const sanitizeFilename = (filename) => {
   }
   
   // Remove path separators and null bytes
-  let sanitized = filename.replace(/[\/\\.\0]/g, '_')
+  let sanitized = filename.replace(/[/\\.\0]/g, '_')
   
   // Remove any non-alphanumeric characters except underscore and hyphen
   sanitized = sanitized.replace(/[^a-zA-Z0-9_-]/g, '')
@@ -215,8 +215,9 @@ export const sanitizeLocalStorageData = (jsonString) => {
     }
     
     return sanitized
-  } catch (e) {
+  } catch (err) {
     // Invalid JSON, return null
+    console.warn('Failed to parse localStorage data:', err)
     return null
   }
 }

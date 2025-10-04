@@ -171,7 +171,10 @@ export default function App(){
       if(Array.isArray(s.stopwords)) setCustomStopwords(new Set(s.stopwords))
       if(typeof s.enableStemming==='boolean') setEnableStemming(s.enableStemming)
       if(typeof s.minSupport==='number') setMinSupport(s.minSupport)
-    } catch{} 
+    } catch(err) {
+      // Failed to restore settings, continue with defaults
+      console.warn('Failed to restore settings:', err)
+    } 
   }, [])
 
   // Persist settings

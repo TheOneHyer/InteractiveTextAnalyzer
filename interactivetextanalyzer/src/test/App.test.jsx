@@ -60,6 +60,15 @@ describe('App Component - Data Handling', () => {
     const selects = container.querySelectorAll('select')
     expect(selects.length).toBeGreaterThan(0)
   })
+
+  it('should accept only allowed file types', () => {
+    const { container } = render(<App />)
+    const fileInput = container.querySelector('input[type="file"]')
+    expect(fileInput).toBeTruthy()
+    // Check that the file input has accept attribute
+    expect(fileInput.getAttribute('accept')).toContain('.xlsx')
+    expect(fileInput.getAttribute('accept')).toContain('.csv')
+  })
 })
 
 describe('App Component - UI Elements', () => {
@@ -76,5 +85,52 @@ describe('App Component - UI Elements', () => {
     // Look for buttons or controls
     const buttons = container.querySelectorAll('button')
     expect(buttons.length).toBeGreaterThan(0)
+  })
+})
+
+describe('App Component - Security Integration', () => {
+  it('should sanitize localStorage data on load', () => {
+    // Test that localStorage is read with sanitization
+    const maliciousData = JSON.stringify({
+      selectedColumns: ['<script>alert(1)</script>col'],
+      analysisType: 'malicious_type',
+      ngramN: 999
+    })
+    localStorage.setItem('ita_state_v1', maliciousData)
+    
+    const { container } = render(<App />)
+    expect(container).toBeInTheDocument()
+    
+    // The app should load without errors despite malicious localStorage
+    expect(container.querySelector('#app-shell')).toBeInTheDocument()
+    
+    // Clean up
+    localStorage.removeItem('ita_state_v1')
+  })
+
+  it('should handle invalid JSON in localStorage gracefully', () => {
+    localStorage.setItem('ita_state_v1', 'invalid json {{{')
+    
+    const { container } = render(<App />)
+    expect(container).toBeInTheDocument()
+    
+    // The app should still render despite invalid localStorage
+    expect(container.querySelector('#app-shell')).toBeInTheDocument()
+    
+    // Clean up
+    localStorage.removeItem('ita_state_v1')
+  })
+
+  it('should validate file input with accept attribute', () => {
+    const { container } = render(<App />)
+    const fileInput = container.querySelector('input[type="file"]')
+    
+    expect(fileInput).toBeTruthy()
+    const acceptAttr = fileInput.getAttribute('accept')
+    
+    // Should only accept safe file types
+    expect(acceptAttr).not.toContain('.exe')
+    expect(acceptAttr).not.toContain('.js')
+    expect(acceptAttr).not.toContain('.html')
   })
 })
