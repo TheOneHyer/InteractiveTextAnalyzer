@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useCallback, lazy, Suspense } from 'react'
 import './App.css'
-import * as XLSX from 'xlsx'
+import ExcelJS from 'exceljs'
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts'
 
 // Code-split heavy visualization pieces
@@ -174,11 +174,148 @@ export default function App(){
   const loadNERIfNeeded=useCallback(async()=>{ if(libsLoaded || analysisType!=='ner') return; const libs=await loadNlpLibs(); setNlpLibs(libs); setLibsLoaded(true)},[libsLoaded,analysisType])
   useEffect(()=>{ loadNERIfNeeded() },[analysisType,workbookData,loadNERIfNeeded])
 
-  const parseCsv=text=>{ const wb=XLSX.read(text,{type:'string',raw:false}); const sn=wb.SheetNames[0]; const ws=wb.Sheets[sn]; const json=XLSX.utils.sheet_to_json(ws,{defval:''}); const columns=[...new Set(json.flatMap(r=>Object.keys(r)))]; return {rows:json,columns} }
+  const parseCsv=text=>{ 
+    const lines = text.trim().split('\n')
+    if (lines.length === 0) return { rows: [], columns: [] }
+    
+    // Parse CSV header
+    const parseCSVLine = (line) => {
+      const result = []
+      let current = ''
+      let inQuotes = false
+      
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i]
+        if (char === '"') {
+          inQuotes = !inQuotes
+        } else if (char === ',' && !inQuotes) {
+          result.push(current.trim())
+          current = ''
+        } else {
+          current += char
+        }
+      }
+      result.push(current.trim())
+      return result
+    }
+    
+    const columns = parseCSVLine(lines[0])
+    const rows = lines.slice(1).filter(line => line.trim()).map(line => {
+      const values = parseCSVLine(line)
+      const row = {}
+      columns.forEach((col, i) => {
+        row[col] = values[i] || ''
+      })
+      return row
+    })
+    
+    return { rows, columns }
+  }
 
-  const loadSampleExcel=()=>{ const s1=[{id:1,category:'Books',review:'Great narrative and engaging characters',sentiment:'positive'},{id:2,category:'Books',review:'Predictable plot and slow middle section',sentiment:'negative'},{id:3,category:'Books',review:'Informative reference with clear diagrams',sentiment:'positive'}]; const s2=[{id:1,product:'Headphones',notes:'Crisp sound quality but fragile hinges',rating:4},{id:2,product:'Headphones',notes:'Muffled bass and short battery life',rating:2},{id:3,product:'Monitor',notes:'Sharp resolution; colors accurate out of box',rating:5}]; const s3=[{ticket:101,channel:'Email',message:'Cannot reset password after multiple attempts'},{ticket:102,channel:'Chat',message:'Payment failed although card is valid'},{ticket:103,channel:'Email',message:'Requesting refund due to defective item'}]; const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(s1),'Reviews'); XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(s2),'Products'); XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(s3),'Support'); const out=XLSX.write(wb,{bookType:'xlsx',type:'array'}); const parsed=XLSX.read(out,{type:'array'}); const obj={}; parsed.SheetNames.forEach(n=>{const ws=parsed.Sheets[n]; const json=XLSX.utils.sheet_to_json(ws,{defval:''}); const columns=[...new Set(json.flatMap(r=>Object.keys(r)))]; obj[n]={rows:json,columns}}); setWorkbookData(obj); setActiveSheet(parsed.SheetNames[0]); setSelectedColumns([]); setHiddenColumns([]); setRenames({}) }
+  // Helper function to parse ExcelJS worksheet into rows and columns
+  const parseWorksheet = (ws) => {
+    const rows = []
+    const columns = []
+    
+    // Get column headers from first row
+    const headerRow = ws.getRow(1)
+    headerRow.eachCell((cell, colNumber) => {
+      const header = cell.value || `Column${colNumber}`
+      columns.push(String(header))
+    })
+    
+    // Get data rows (skip header row)
+    ws.eachRow((row, rowNumber) => {
+      if (rowNumber === 1) return // Skip header
+      const rowData = {}
+      columns.forEach((col, i) => {
+        const cellValue = row.getCell(i + 1).value
+        // Handle rich text and formula values
+        if (cellValue && typeof cellValue === 'object' && cellValue.richText) {
+          rowData[col] = cellValue.richText.map(t => t.text).join('')
+        } else if (cellValue && typeof cellValue === 'object' && cellValue.result !== undefined) {
+          rowData[col] = cellValue.result
+        } else {
+          rowData[col] = cellValue || ''
+        }
+      })
+      rows.push(rowData)
+    })
+    
+    return { rows, columns }
+  }
 
-  const handleFile=e=>{ const file=e.target.files?.[0]; if(!file) return; const ext=file.name.split('.').pop().toLowerCase(); const reader=new FileReader(); reader.onload=evt=>{ if(ext==='csv'){ const text=evt.target.result; const parsed=parseCsv(text); setWorkbookData({'CSV':parsed}); setActiveSheet('CSV') } else { const data=new Uint8Array(evt.target.result); const wb=XLSX.read(data,{type:'array'}); const obj={}; wb.SheetNames.forEach(n=>{const ws=wb.Sheets[n]; const json=XLSX.utils.sheet_to_json(ws,{defval:''}); const columns=[...new Set(json.flatMap(r=>Object.keys(r)))]; obj[n]={rows:json,columns}}); setWorkbookData(obj); setActiveSheet(wb.SheetNames[0]||null) } setSelectedColumns([]); setHiddenColumns([]); setRenames({}) }; ext==='csv'? reader.readAsText(file): reader.readAsArrayBuffer(file) }
+  const loadSampleExcel=async()=>{ 
+    const s1=[{id:1,category:'Books',review:'Great narrative and engaging characters',sentiment:'positive'},{id:2,category:'Books',review:'Predictable plot and slow middle section',sentiment:'negative'},{id:3,category:'Books',review:'Informative reference with clear diagrams',sentiment:'positive'}]
+    const s2=[{id:1,product:'Headphones',notes:'Crisp sound quality but fragile hinges',rating:4},{id:2,product:'Headphones',notes:'Muffled bass and short battery life',rating:2},{id:3,product:'Monitor',notes:'Sharp resolution; colors accurate out of box',rating:5}]
+    const s3=[{ticket:101,channel:'Email',message:'Cannot reset password after multiple attempts'},{ticket:102,channel:'Chat',message:'Payment failed although card is valid'},{ticket:103,channel:'Email',message:'Requesting refund due to defective item'}]
+    
+    const workbook = new ExcelJS.Workbook()
+    
+    // Add Reviews sheet
+    const sheet1 = workbook.addWorksheet('Reviews')
+    sheet1.columns = Object.keys(s1[0]).map(key => ({ header: key, key }))
+    s1.forEach(row => sheet1.addRow(row))
+    
+    // Add Products sheet
+    const sheet2 = workbook.addWorksheet('Products')
+    sheet2.columns = Object.keys(s2[0]).map(key => ({ header: key, key }))
+    s2.forEach(row => sheet2.addRow(row))
+    
+    // Add Support sheet
+    const sheet3 = workbook.addWorksheet('Support')
+    sheet3.columns = Object.keys(s3[0]).map(key => ({ header: key, key }))
+    s3.forEach(row => sheet3.addRow(row))
+    
+    // Convert to buffer and parse
+    const buffer = await workbook.xlsx.writeBuffer()
+    const parsed = new ExcelJS.Workbook()
+    await parsed.xlsx.load(buffer)
+    
+    const obj = {}
+    parsed.worksheets.forEach(ws => {
+      obj[ws.name] = parseWorksheet(ws)
+    })
+    
+    setWorkbookData(obj)
+    setActiveSheet(parsed.worksheets[0]?.name || null)
+    setSelectedColumns([])
+    setHiddenColumns([])
+    setRenames({})
+  }
+
+  const handleFile=e=>{ 
+    const file=e.target.files?.[0]
+    if(!file) return
+    const ext=file.name.split('.').pop().toLowerCase()
+    const reader=new FileReader()
+    
+    reader.onload=async(evt)=>{ 
+      if(ext==='csv'){ 
+        const text=evt.target.result
+        const parsed=parseCsv(text)
+        setWorkbookData({'CSV':parsed})
+        setActiveSheet('CSV')
+      } else { 
+        const data=evt.target.result
+        const workbook = new ExcelJS.Workbook()
+        await workbook.xlsx.load(data)
+        
+        const obj={}
+        workbook.worksheets.forEach(ws => {
+          obj[ws.name] = parseWorksheet(ws)
+        })
+        
+        setWorkbookData(obj)
+        setActiveSheet(workbook.worksheets[0]?.name || null)
+      }
+      setSelectedColumns([])
+      setHiddenColumns([])
+      setRenames({})
+    }
+    
+    ext==='csv'? reader.readAsText(file): reader.readAsArrayBuffer(file)
+  }
 
   const currentRows=useMemo(()=> activeSheet==='__ALL__'? Object.values(workbookData).flatMap(s=>s.rows): (activeSheet && workbookData[activeSheet]?.rows)||[],[activeSheet,workbookData])
   const currentColumns=useMemo(()=> activeSheet==='__ALL__'? [...new Set(Object.values(workbookData).flatMap(s=>s.columns))] : (activeSheet && workbookData[activeSheet]?.columns)||[],[activeSheet,workbookData])
@@ -210,7 +347,34 @@ export default function App(){
   const setRename=(col,name)=>setRenames(r=>({...r,[col]:name}))
   const selectColumnForText=col=>setSelectedColumns(p=>p.includes(col)? p.filter(c=>c!==col):[...p,col])
 
-  const exportTransformed=()=>{ const cols=displayedColumns; const data=currentRows.map(r=>{const o={}; cols.forEach(c=>o[renames[c]||c]=r[c]); return o}); const ws=XLSX.utils.json_to_sheet(data); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Transformed'); XLSX.writeFile(wb,'transformed.xlsx') }
+  const exportTransformed=async()=>{ 
+    const cols=displayedColumns
+    const data=currentRows.map(r=>{
+      const o={}
+      cols.forEach(c=>o[renames[c]||c]=r[c])
+      return o
+    })
+    
+    const workbook = new ExcelJS.Workbook()
+    const worksheet = workbook.addWorksheet('Transformed')
+    
+    if (data.length > 0) {
+      worksheet.columns = cols.map(col => ({ 
+        header: renames[col] || col, 
+        key: renames[col] || col 
+      }))
+      data.forEach(row => worksheet.addRow(row))
+    }
+    
+    const buffer = await workbook.xlsx.writeBuffer()
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'transformed.xlsx'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
   const exportAnalysis=()=>{ const payload={analysisType,timestamp:new Date().toISOString(), tfidf:analysisType==='tfidf'?tfidf:undefined, ngrams:analysisType==='ngram'?ngrams:undefined, associations:analysisType==='assoc'?associations:undefined, entities:analysisType==='ner'?entities:undefined}; const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`analysis_${analysisType}.json`; a.click() }
 
   // Virtualized table calc
@@ -335,7 +499,7 @@ export default function App(){
               )}
             </div>
           </div>
-          <footer>Interactive Text Analyzer · {libsLoaded? 'NER Ready':'NER Lazy'} · Theme: {theme}</footer>
+          <footer>Interactive Text Analyzer ï¿½ {libsLoaded? 'NER Ready':'NER Lazy'} ï¿½ Theme: {theme}</footer>
         </div>
       </div>
     </div>

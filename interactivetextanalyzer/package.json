@@ -11,12 +11,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "react": "^19.1.1",
-    "react-dom": "^19.1.1",
-    "xlsx": "^0.18.5",
     "compromise": "^14.14.4",
     "d3": "^7.9.0",
     "d3-cloud": "^1.2.7",
+    "exceljs": "^4.4.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
     "recharts": "^2.12.7"
   },
   "devDependencies": {

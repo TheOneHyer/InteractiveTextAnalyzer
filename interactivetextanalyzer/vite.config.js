@@ -16,7 +16,7 @@ export default defineConfig({
         manualChunks: {
           'nlp-compromise': ['compromise'],
           'd3-core': ['d3'],
-          'xlsx-lib': ['xlsx'],
+          'exceljs-lib': ['exceljs'],
         },
       },
     },
