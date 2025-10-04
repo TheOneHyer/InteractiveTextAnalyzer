@@ -37,6 +37,41 @@ npm run build
 
 The built files will be in the `interactivetextanalyzer/dist` directory.
 
+## Testing
+
+The project includes comprehensive unit tests for utility functions and components.
+
+To run tests:
+
+```bash
+cd interactivetextanalyzer
+npm test
+```
+
+Additional test commands:
+
+```bash
+# Run tests in watch mode
+npm test
+
+# Run tests once
+npm run test:run
+
+# Run tests with UI
+npm run test:ui
+
+# Run tests with coverage report
+npm run test:coverage
+```
+
+Test coverage includes:
+- Tokenization and text processing utilities
+- TF-IDF calculation
+- N-gram generation
+- Association rule mining
+- React components (Heatmap, NetworkGraph, WordCloud)
+- Main App component integration tests
+
 ## Deployment
 
 The application is automatically deployed to GitHub Pages when changes are pushed to the `master` branch. The deployment workflow:
