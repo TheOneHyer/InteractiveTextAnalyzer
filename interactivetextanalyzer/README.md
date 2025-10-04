@@ -1,6 +1,6 @@
 # Interactive Text Analyzer
 
-Browser-based exploratory text analytics tool. Upload Excel (.xlsx/.xls) or CSV files containing multiple text columns, perform preprocessing, and run interactive analyses (N-Grams, TF?IDF, Association Rules, NER) with visualizations (Word Cloud, Network Graph, Heatmap) � all client-side.
+Browser-based exploratory text analytics tool. Upload Excel (.xlsx/.xls) or CSV files containing multiple text columns, perform preprocessing, and run interactive analyses (N-Grams, TF?IDF, Association Rules, NER) with visualizations (Word Cloud, Network Graph, Heatmap) � all client-side.
 
 ## Features
 - Multi-sheet Excel ingestion + All Sheets merge
@@ -13,6 +13,33 @@ Browser-based exploratory text analytics tool. Upload Excel (.xlsx/.xls) or CSV 
 - Export transformed dataset (.xlsx) & analysis results (JSON)
 - Local persistence of settings in `localStorage`
 - Lazy loading of NLP libraries for performance
+- **Built-in security protections (see Security section below)**
+
+## Security Features
+
+The Interactive Text Analyzer implements multiple layers of security to protect users from malicious content in uploaded files. All security measures run automatically in the background:
+
+### Input Sanitization
+- **XSS Protection**: Removes HTML tags and script content from all user inputs
+- **Formula Injection Prevention**: Prefixes potentially dangerous formulas (=, +, -, @) with a space to prevent CSV injection attacks
+- **Column Name Sanitization**: Strips dangerous characters from column headers
+- **Cell Value Sanitization**: Limits content length and removes malicious patterns
+
+### File Validation
+- **File Size Limit**: Maximum 10MB to prevent denial-of-service attacks
+- **Extension Whitelist**: Only accepts .csv, .xlsx, and .xls files
+- **Content Validation**: Sanitizes all parsed data before display
+
+### Data Protection
+- **localStorage Sanitization**: Validates and sanitizes all data restored from browser storage
+- **Type Checking**: Ensures data types match expected formats
+- **Range Validation**: Enforces numeric ranges for configuration values
+
+All security features are:
+- ✅ **Automatic**: No user intervention required
+- ✅ **Transparent**: Security runs in the background without impacting UX
+- ✅ **Comprehensive**: 50+ unit tests ensure robust protection
+- ✅ **Client-side**: All processing happens locally in the browser
 
 ## Quick Start
 ```bash
@@ -52,4 +79,4 @@ A sample CSV is provided at `public/sample-data.csv`. Use it to quickly test:
 - natural / compromise for NLP
 - d3 & custom components for visuals
 
-All logic executes in the browser�no server required.
+All logic executes in the browser�no server required.
