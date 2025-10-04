@@ -8,7 +8,7 @@ export default function WordCloud({ data = [], width = 500, height = 350 }) {
   useEffect(() => {
     if (!data.length) return
     const el = ref.current
-    el.innerHTML = ''
+    el.textContent = ''
     const max = d3.max(data, d => d.value) || 1
     const scale = d3.scaleLinear().domain([0, max]).range([12, 64])
     const layout = cloud()
