@@ -10,7 +10,7 @@ The app is automatically deployed to GitHub Pages: [https://theonehyer.github.io
 
 - Text analysis with natural language processing
 - Multiple visualization types (Word Cloud, Network Graph, Heatmap)
-- CSV data import and export
+- CSV and XLSX data import and export
 - Dark/Light theme support
 - Responsive design
 

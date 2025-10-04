@@ -212,6 +212,39 @@ export default function App(){
     return { rows, columns }
   }
 
+  // Helper function to parse ExcelJS worksheet into rows and columns
+  const parseWorksheet = (ws) => {
+    const rows = []
+    const columns = []
+    
+    // Get column headers from first row
+    const headerRow = ws.getRow(1)
+    headerRow.eachCell((cell, colNumber) => {
+      const header = cell.value || `Column${colNumber}`
+      columns.push(String(header))
+    })
+    
+    // Get data rows (skip header row)
+    ws.eachRow((row, rowNumber) => {
+      if (rowNumber === 1) return // Skip header
+      const rowData = {}
+      columns.forEach((col, i) => {
+        const cellValue = row.getCell(i + 1).value
+        // Handle rich text and formula values
+        if (cellValue && typeof cellValue === 'object' && cellValue.richText) {
+          rowData[col] = cellValue.richText.map(t => t.text).join('')
+        } else if (cellValue && typeof cellValue === 'object' && cellValue.result !== undefined) {
+          rowData[col] = cellValue.result
+        } else {
+          rowData[col] = cellValue || ''
+        }
+      })
+      rows.push(rowData)
+    })
+    
+    return { rows, columns }
+  }
+
   const loadSampleExcel=async()=>{ 
     const s1=[{id:1,category:'Books',review:'Great narrative and engaging characters',sentiment:'positive'},{id:2,category:'Books',review:'Predictable plot and slow middle section',sentiment:'negative'},{id:3,category:'Books',review:'Informative reference with clear diagrams',sentiment:'positive'}]
     const s2=[{id:1,product:'Headphones',notes:'Crisp sound quality but fragile hinges',rating:4},{id:2,product:'Headphones',notes:'Muffled bass and short battery life',rating:2},{id:3,product:'Monitor',notes:'Sharp resolution; colors accurate out of box',rating:5}]
@@ -241,19 +274,7 @@ export default function App(){
     
     const obj = {}
     parsed.worksheets.forEach(ws => {
-      const rows = []
-      const columns = ws.columns.map(col => col.header || col.key || '')
-      
-      ws.eachRow((row, rowNumber) => {
-        if (rowNumber === 1) return // Skip header
-        const rowData = {}
-        columns.forEach((col, i) => {
-          rowData[col] = row.getCell(i + 1).value || ''
-        })
-        rows.push(rowData)
-      })
-      
-      obj[ws.name] = { rows, columns }
+      obj[ws.name] = parseWorksheet(ws)
     })
     
     setWorkbookData(obj)
@@ -282,35 +303,7 @@ export default function App(){
         
         const obj={}
         workbook.worksheets.forEach(ws => {
-          const rows = []
-          const columns = ws.columns.map(col => col.header || col.key || '').filter(Boolean)
-          
-          // If columns is empty, get columns from first row
-          if (columns.length === 0) {
-            const firstRow = ws.getRow(1)
-            firstRow.eachCell((cell, colNumber) => {
-              columns.push(cell.value || `Column${colNumber}`)
-            })
-          }
-          
-          ws.eachRow((row, rowNumber) => {
-            if (rowNumber === 1) return // Skip header
-            const rowData = {}
-            columns.forEach((col, i) => {
-              const cellValue = row.getCell(i + 1).value
-              // Handle rich text and formula values
-              if (cellValue && typeof cellValue === 'object' && cellValue.richText) {
-                rowData[col] = cellValue.richText.map(t => t.text).join('')
-              } else if (cellValue && typeof cellValue === 'object' && cellValue.result !== undefined) {
-                rowData[col] = cellValue.result
-              } else {
-                rowData[col] = cellValue || ''
-              }
-            })
-            rows.push(rowData)
-          })
-          
-          obj[ws.name] = { rows, columns }
+          obj[ws.name] = parseWorksheet(ws)
         })
         
         setWorkbookData(obj)
