@@ -2,6 +2,13 @@ import { useState, useMemo, useEffect, useCallback, lazy, Suspense } from 'react
 import './App.css'
 import ExcelJS from 'exceljs'
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts'
+import { 
+  sanitizeWorksheetData, 
+  sanitizeLocalStorageData, 
+  validateFileSize, 
+  validateFileExtension,
+  sanitizeColumnName 
+} from './utils/security'
 
 // Code-split heavy visualization pieces
 const WordCloud = lazy(()=>import('./components/WordCloud'))
@@ -150,18 +157,22 @@ export default function App(){
   const [minSupport,setMinSupport]=useState(0.05)
   const [theme,setTheme]=useState(()=> localStorage.getItem('ita_theme')||'light')
 
-  // Restore settings (no eval)
-  useEffect(()=>{ try { const s=JSON.parse(localStorage.getItem(LOCAL_KEY)||'{}');
-    if(Array.isArray(s.selectedColumns)) setSelectedColumns(s.selectedColumns)
-    if(typeof s.analysisType==='string') setAnalysisType(s.analysisType)
-    if(typeof s.ngramN==='number') setNgramN(s.ngramN)
-    if(Array.isArray(s.hiddenColumns)) setHiddenColumns(s.hiddenColumns)
-    if(s.renames && typeof s.renames==='object') setRenames(s.renames)
-    if(typeof s.viewMode==='string') setViewMode(s.viewMode)
-    if(Array.isArray(s.stopwords)) setCustomStopwords(new Set(s.stopwords))
-    if(typeof s.enableStemming==='boolean') setEnableStemming(s.enableStemming)
-    if(typeof s.minSupport==='number') setMinSupport(s.minSupport)
-  } catch{} }, [])
+  // Restore settings (with sanitization)
+  useEffect(()=>{ 
+    try { 
+      const rawData = localStorage.getItem(LOCAL_KEY)
+      const s = sanitizeLocalStorageData(rawData) || {}
+      if(Array.isArray(s.selectedColumns)) setSelectedColumns(s.selectedColumns)
+      if(typeof s.analysisType==='string') setAnalysisType(s.analysisType)
+      if(typeof s.ngramN==='number') setNgramN(s.ngramN)
+      if(Array.isArray(s.hiddenColumns)) setHiddenColumns(s.hiddenColumns)
+      if(s.renames && typeof s.renames==='object') setRenames(s.renames)
+      if(typeof s.viewMode==='string') setViewMode(s.viewMode)
+      if(Array.isArray(s.stopwords)) setCustomStopwords(new Set(s.stopwords))
+      if(typeof s.enableStemming==='boolean') setEnableStemming(s.enableStemming)
+      if(typeof s.minSupport==='number') setMinSupport(s.minSupport)
+    } catch{} 
+  }, [])
 
   // Persist settings
   useEffect(()=>{ localStorage.setItem(LOCAL_KEY, JSON.stringify({ selectedColumns, analysisType, ngramN, hiddenColumns, renames, viewMode, stopwords:[...customStopwords], enableStemming, minSupport })) }, [selectedColumns,analysisType,ngramN,hiddenColumns,renames,viewMode,customStopwords,enableStemming,minSupport])
@@ -199,7 +210,7 @@ export default function App(){
       return result
     }
     
-    const columns = parseCSVLine(lines[0])
+    const columns = parseCSVLine(lines[0]).map(sanitizeColumnName)
     const rows = lines.slice(1).filter(line => line.trim()).map(line => {
       const values = parseCSVLine(line)
       const row = {}
@@ -209,7 +220,8 @@ export default function App(){
       return row
     })
     
-    return { rows, columns }
+    // Apply security sanitization
+    return sanitizeWorksheetData({ rows, columns })
   }
 
   // Helper function to parse ExcelJS worksheet into rows and columns
@@ -221,7 +233,7 @@ export default function App(){
     const headerRow = ws.getRow(1)
     headerRow.eachCell((cell, colNumber) => {
       const header = cell.value || `Column${colNumber}`
-      columns.push(String(header))
+      columns.push(sanitizeColumnName(String(header)))
     })
     
     // Get data rows (skip header row)
@@ -242,7 +254,8 @@ export default function App(){
       rows.push(rowData)
     })
     
-    return { rows, columns }
+    // Apply security sanitization
+    return sanitizeWorksheetData({ rows, columns })
   }
 
   const loadSampleExcel=async()=>{ 
@@ -287,31 +300,57 @@ export default function App(){
   const handleFile=e=>{ 
     const file=e.target.files?.[0]
     if(!file) return
+    
+    // Validate file size (max 10MB)
+    if(!validateFileSize(file)) {
+      alert('File size exceeds 10MB limit. Please upload a smaller file.')
+      e.target.value = '' // Reset file input
+      return
+    }
+    
     const ext=file.name.split('.').pop().toLowerCase()
+    
+    // Validate file extension
+    if(!validateFileExtension(file.name)) {
+      alert('Invalid file type. Please upload CSV, XLS, or XLSX files only.')
+      e.target.value = '' // Reset file input
+      return
+    }
+    
     const reader=new FileReader()
     
     reader.onload=async(evt)=>{ 
-      if(ext==='csv'){ 
-        const text=evt.target.result
-        const parsed=parseCsv(text)
-        setWorkbookData({'CSV':parsed})
-        setActiveSheet('CSV')
-      } else { 
-        const data=evt.target.result
-        const workbook = new ExcelJS.Workbook()
-        await workbook.xlsx.load(data)
-        
-        const obj={}
-        workbook.worksheets.forEach(ws => {
-          obj[ws.name] = parseWorksheet(ws)
-        })
-        
-        setWorkbookData(obj)
-        setActiveSheet(workbook.worksheets[0]?.name || null)
+      try {
+        if(ext==='csv'){ 
+          const text=evt.target.result
+          const parsed=parseCsv(text)
+          setWorkbookData({'CSV':parsed})
+          setActiveSheet('CSV')
+        } else { 
+          const data=evt.target.result
+          const workbook = new ExcelJS.Workbook()
+          await workbook.xlsx.load(data)
+          
+          const obj={}
+          workbook.worksheets.forEach(ws => {
+            obj[ws.name] = parseWorksheet(ws)
+          })
+          
+          setWorkbookData(obj)
+          setActiveSheet(workbook.worksheets[0]?.name || null)
+        }
+        setSelectedColumns([])
+        setHiddenColumns([])
+        setRenames({})
+      } catch(error) {
+        alert('Error reading file. The file may be corrupted or invalid.')
+        console.error('File reading error:', error)
       }
-      setSelectedColumns([])
-      setHiddenColumns([])
-      setRenames({})
+    }
+    
+    reader.onerror = () => {
+      alert('Error reading file. Please try again.')
+      e.target.value = '' // Reset file input
     }
     
     ext==='csv'? reader.readAsText(file): reader.readAsArrayBuffer(file)
@@ -344,7 +383,10 @@ export default function App(){
 
   // Mutators
   const toggleHide=col=>setHiddenColumns(h=>h.includes(col)? h.filter(c=>c!==col):[...h,col])
-  const setRename=(col,name)=>setRenames(r=>({...r,[col]:name}))
+  const setRename=(col,name)=>{
+    const sanitized = sanitizeColumnName(name || col)
+    setRenames(r=>({...r,[col]:sanitized}))
+  }
   const selectColumnForText=col=>setSelectedColumns(p=>p.includes(col)? p.filter(c=>c!==col):[...p,col])
 
   const exportTransformed=async()=>{ 
