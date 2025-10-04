@@ -14,12 +14,13 @@ const MAX_CELL_LENGTH = 10000
 const MAX_COLUMN_NAME_LENGTH = 200
 
 // Regex patterns for detecting potential threats
-const SCRIPT_PATTERN = /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi
-const HTML_TAG_PATTERN = /<[^>]+>/g
+const HTML_TAG_PATTERN = /<[^>]*>/g
 const FORMULA_INJECTION_PATTERN = /^[=+\-@]/
 
 /**
  * Sanitizes a string by removing HTML tags and script content
+ * Uses a multi-pass approach to safely remove all HTML/script content
+ * without catastrophic backtracking vulnerabilities
  * @param {string} input - The input string to sanitize
  * @returns {string} - Sanitized string
  */
@@ -28,10 +29,20 @@ export const sanitizeString = (input) => {
     return String(input)
   }
   
-  // Remove script tags and their content
-  let sanitized = input.replace(SCRIPT_PATTERN, '')
+  let sanitized = input
   
-  // Remove HTML tags
+  // Remove script tags and their content using multiple passes
+  // This avoids catastrophic backtracking from complex nested regex
+  let previousLength = 0
+  while (sanitized.length !== previousLength && sanitized.length > 0) {
+    previousLength = sanitized.length
+    // Remove script tags (case insensitive, handles attributes and whitespace)
+    sanitized = sanitized.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
+    // Remove any remaining script opening tags without closing tags
+    sanitized = sanitized.replace(/<script\b[^>]*>/gi, '')
+  }
+  
+  // Remove all other HTML tags (single pass is safe for simple tag pattern)
   sanitized = sanitized.replace(HTML_TAG_PATTERN, '')
   
   // Trim and limit length

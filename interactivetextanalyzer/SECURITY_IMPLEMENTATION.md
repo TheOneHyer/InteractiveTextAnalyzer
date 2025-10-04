@@ -9,14 +9,23 @@ This document describes the comprehensive security measures implemented in the I
 ### Core Functions
 
 #### 1. String Sanitization (`sanitizeString`)
-- Removes script tags and their content using regex pattern matching
+- Uses multi-pass approach to safely remove script tags and content
+- Avoids catastrophic backtracking vulnerabilities (ReDoS prevention)
+- Handles script tags with attributes, newlines, and case variations
 - Strips all HTML tags to prevent XSS attacks
 - Limits string length to 10,000 characters to prevent DoS
 - Handles non-string inputs safely
 
+**Security Improvements**:
+- Replaced vulnerable nested quantifier regex with safe multi-pass approach
+- Prevents ReDoS (Regular Expression Denial of Service) attacks
+- Better handles malformed and nested script tags
+- Case-insensitive matching for all script tag variations
+
 **Example**:
 ```javascript
 sanitizeString('<script>alert("XSS")</script>Hello') // Returns: 'Hello'
+sanitizeString('<SCRIPT type="text/javascript">alert(1)</SCRIPT>') // Returns: ''
 ```
 
 #### 2. Cell Value Sanitization (`sanitizeCellValue`)
@@ -115,15 +124,20 @@ try {
 
 ### Security Test Suite
 **Location**: `src/test/security.test.js`
-**Test Count**: 50 unit tests
+**Test Count**: 54 unit tests (updated from 50)
 
 #### Test Categories:
-1. **String Sanitization Tests** (6 tests)
+1. **String Sanitization Tests** (10 tests - expanded coverage)
    - Script tag removal
    - HTML tag removal
    - Nested tags
    - Length limits
    - Non-string inputs
+   - **NEW**: Script tags with attributes
+   - **NEW**: Script tags with newlines
+   - **NEW**: Malformed script tags
+   - **NEW**: Case variations (SCRIPT, ScRiPt, etc.)
+   - Multiple script tags
 
 2. **Cell Value Tests** (7 tests)
    - Formula injection prevention (=, +, -, @)

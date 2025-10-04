@@ -49,6 +49,30 @@ describe('Security Utilities', () => {
       expect(result).not.toContain('<script>')
       expect(result).not.toContain('<div>')
     })
+
+    it('should handle script tags with attributes', () => {
+      const input = '<script type="text/javascript">alert("XSS")</script>'
+      const result = sanitizeString(input)
+      expect(result).toBe('')
+    })
+
+    it('should handle script tags with newlines', () => {
+      const input = '<script>\nalert("XSS")\n</script>'
+      const result = sanitizeString(input)
+      expect(result).toBe('')
+    })
+
+    it('should handle malformed script tags', () => {
+      const input = '<script>alert("test")<script>nested</script>'
+      const result = sanitizeString(input)
+      expect(result).not.toContain('<script>')
+    })
+
+    it('should handle case variations of script tags', () => {
+      const input = '<SCRIPT>alert("XSS")</SCRIPT><ScRiPt>test</ScRiPt>'
+      const result = sanitizeString(input)
+      expect(result).toBe('')
+    })
   })
 
   describe('sanitizeCellValue', () => {
