@@ -24,7 +24,10 @@ function ImportPreviewModal({
   const [removeEmptyRows, setRemoveEmptyRows] = useState(true)
 
   const sheets = Object.keys(workbookData)
-  const currentData = workbookData[activeSheet] || { rows: [], columns: [] }
+  const currentData = useMemo(() => 
+    workbookData[activeSheet] || { rows: [], columns: [] },
+    [workbookData, activeSheet]
+  )
   
   // Apply transformations to preview data
   const processedData = useMemo(() => {

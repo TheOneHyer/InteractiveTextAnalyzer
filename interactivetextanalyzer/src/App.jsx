@@ -168,14 +168,14 @@ export default function App(){
     if(Array.isArray(s.stopwords)) setCustomStopwords(new Set(s.stopwords))
     if(typeof s.enableStemming==='boolean') setEnableStemming(s.enableStemming)
     if(typeof s.minSupport==='number') setMinSupport(s.minSupport)
-  } catch{} }, [])
+  } catch{ /* Ignore invalid stored state */ } }, [])
 
   // Persist settings
   useEffect(()=>{ localStorage.setItem(LOCAL_KEY, JSON.stringify({ selectedColumns, analysisType, ngramN, hiddenColumns, renames, viewMode, stopwords:[...customStopwords], enableStemming, minSupport })) }, [selectedColumns,analysisType,ngramN,hiddenColumns,renames,viewMode,customStopwords,enableStemming,minSupport])
   useEffect(()=>{ localStorage.setItem('ita_theme', theme); document.documentElement.dataset.theme=theme },[theme])
 
   // Stopwords parse
-  useEffect(()=>{ if(debouncedStopwordInput){ const list=debouncedStopwordInput.split(/[\n,\s,]+/).map(x=>x.trim().toLowerCase()).filter(Boolean); setCustomStopwords(new Set(list)) }},[debouncedStopwordInput])
+  useEffect(()=>{ if(debouncedStopwordInput){ const list=debouncedStopwordInput.split(/[\n,\s,]+/).map(x=>x.trim().toLowerCase()).filter(Boolean); setCustomStopwords(new Set(list)) } },[debouncedStopwordInput])
   const effectiveStopwords=useMemo(()=> new Set([...DEFAULT_STOPWORDS,...customStopwords]),[customStopwords])
 
   const loadNERIfNeeded=useCallback(async()=>{ if(libsLoaded || analysisType!=='ner') return; const libs=await loadNlpLibs(); setNlpLibs(libs); setLibsLoaded(true)},[libsLoaded,analysisType])
@@ -325,12 +325,11 @@ export default function App(){
 
   const handleImportConfirm = (config) => {
     // Apply the configuration and load the data
-    const { processedData, hiddenColumns: importHiddenColumns, markedColumns, columnTypes } = config
+    const { processedData, hiddenColumns: importHiddenColumns, markedColumns } = config
     
     // Reconstruct workbook data with processed data
     const finalData = {}
     Object.keys(pendingImportData).forEach(sheetName => {
-      const original = pendingImportData[sheetName]
       const processed = processedData
       
       // Apply the transformations from the modal
