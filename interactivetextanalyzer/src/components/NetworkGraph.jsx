@@ -6,7 +6,7 @@ export default function NetworkGraph({ nodes=[], edges=[], width=600, height=400
   const ref = useRef(null)
   useEffect(() => {
     const el = ref.current
-    el.innerHTML = ''
+    el.textContent = ''
     if(!nodes.length) return
     const svg = d3.select(el).append('svg').attr('width', width).attr('height', height)
     const color = d3.scaleOrdinal(d3.schemeCategory10)
