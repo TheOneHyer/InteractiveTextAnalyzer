@@ -426,7 +426,27 @@ export default function App(){
 
   const wordCloudData=useMemo(()=>{ if(analysisType==='tfidf'&&tfidf) return tfidf.aggregate.map(t=>({text:t.term,value:t.score})); if(analysisType==='ngram') return ngrams.map(g=>({text:g.gram,value:g.count})); if(analysisType==='ner') return entities.map(e=>({text:e.value,value:e.count})); if(analysisType==='assoc'&&associations) return associations.items.map(i=>({text:i.item,value:i.support})); return []},[analysisType,tfidf,ngrams,entities,associations])
   const networkData=useMemo(()=> analysisType==='assoc'&&associations? {nodes:associations.items.slice(0,50).map(i=>({id:i.item,value:i.support})), edges:associations.pairs.filter(p=>p.lift>=1).map(p=>({source:p.a,target:p.b,value:p.lift}))}:{nodes:[],edges:[]},[analysisType,associations])
-  const heatmapData=useMemo(()=>{ if(analysisType==='tfidf'&&tfidf){ const top=tfidf.aggregate.slice(0,20).map(t=>t.term); const matrix=tfidf.perDoc.slice(0,25).map(doc=>top.map(term=>{const f=doc.find(x=>x.term===term); return f? Number(f.tfidf.toFixed(2)):0})); return {matrix,xLabels:top,yLabels:matrix.map((_,i)=>'Doc '+(i+1))}} return {matrix:[],xLabels:[],yLabels:[]} },[analysisType,tfidf])
+  const heatmapData=useMemo(()=>{ 
+    if(analysisType==='tfidf'&&tfidf){ 
+      const top=tfidf.aggregate.slice(0,20).map(t=>t.term); 
+      const matrix=tfidf.perDoc.slice(0,25).map(doc=>top.map(term=>{
+        const f=doc.find(x=>x.term===term); 
+        return f? Number(f.tfidf.toFixed(2)):0
+      })); 
+      // Create better document labels using text preview
+      const yLabels = matrix.map((_, i) => {
+        if (i < textSamples.length) {
+          const text = textSamples[i]
+          // Get first 40 chars or up to first sentence
+          const preview = text.slice(0, 40).replace(/\s+/g, ' ').trim()
+          return preview.length < text.length ? preview + '...' : preview
+        }
+        return 'Doc ' + (i+1)
+      })
+      return {matrix, xLabels:top, yLabels}
+    } 
+    return {matrix:[],xLabels:[],yLabels:[]} 
+  },[analysisType,tfidf,textSamples])
 
   // Chart data (live updating) - pie chart removed, keeping bar chart
   // const pieData=useMemo(()=>{ if(analysisType==='assoc'&&associations) return associations.items.slice(0,6).map(i=>({ name:i.item, value:+(i.support*100).toFixed(2) })); if(analysisType==='tfidf'&&tfidf) return tfidf.aggregate.slice(0,6).map(t=>({ name:t.term, value:+t.score.toFixed(2) })); if(analysisType==='ngram') return ngrams.slice(0,6).map(g=>({ name:g.gram, value:g.count })); if(analysisType==='ner') return entities.slice(0,6).map(e=>({ name:e.value, value:e.count })); return [] },[analysisType,associations,tfidf,ngrams,entities])
