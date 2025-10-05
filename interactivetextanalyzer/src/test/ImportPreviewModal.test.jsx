@@ -316,4 +316,214 @@ describe('ImportPreviewModal', () => {
       })
     )
   })
+
+  it('should display statistics for the current sheet', () => {
+    const onClose = vi.fn()
+    const onConfirm = vi.fn()
+    
+    render(
+      <ImportPreviewModal
+        isOpen={true}
+        onClose={onClose}
+        onConfirm={onConfirm}
+        workbookData={mockWorkbookData}
+        fileName="test.xlsx"
+        detectedFileType="xlsx"
+      />
+    )
+    
+    // Check that statistics are displayed
+    expect(screen.getByText(/Rows:/)).toBeInTheDocument()
+    expect(screen.getByText(/Cols:/)).toBeInTheDocument()
+    expect(screen.getByText(/Chars:/)).toBeInTheDocument()
+  })
+
+  it('should allow toggling row ignore status', async () => {
+    const onClose = vi.fn()
+    const onConfirm = vi.fn()
+    
+    render(
+      <ImportPreviewModal
+        isOpen={true}
+        onClose={onClose}
+        onConfirm={onConfirm}
+        workbookData={mockWorkbookData}
+        fileName="test.xlsx"
+        detectedFileType="xlsx"
+      />
+    )
+    
+    // Find all checkboxes in the preview table (row ignore checkboxes)
+    const checkboxes = screen.getAllByRole('checkbox')
+    const rowCheckboxes = checkboxes.filter(cb => cb.getAttribute('title') === 'Ignore this row')
+    
+    expect(rowCheckboxes.length).toBeGreaterThan(0)
+    
+    // Toggle first row to ignore
+    fireEvent.click(rowCheckboxes[0])
+    
+    await waitFor(() => {
+      expect(rowCheckboxes[0]).toBeChecked()
+    })
+  })
+
+  it('should protect header row from skip first rows option', async () => {
+    const dataWithHeader = {
+      'Sheet1': {
+        rows: [
+          { name: 'Name', age: 'Age', email: 'Email' }, // Header row
+          { name: 'John', age: '30', email: 'john@example.com' },
+          { name: 'Jane', age: '25', email: 'jane@example.com' },
+        ],
+        columns: ['name', 'age', 'email']
+      }
+    }
+    
+    const onClose = vi.fn()
+    const onConfirm = vi.fn()
+    
+    render(
+      <ImportPreviewModal
+        isOpen={true}
+        onClose={onClose}
+        onConfirm={onConfirm}
+        workbookData={dataWithHeader}
+        fileName="test.xlsx"
+        detectedFileType="xlsx"
+      />
+    )
+    
+    // Set skip first rows to 1
+    const skipInput = screen.getByDisplayValue('0')
+    fireEvent.change(skipInput, { target: { value: '1' } })
+    
+    await waitFor(() => {
+      expect(skipInput.value).toBe('1')
+    })
+    
+    // Header row should still be present (Name/Age/Email)
+    expect(screen.getByText('Name')).toBeInTheDocument()
+  })
+
+  it('should have entire visibility button clickable', () => {
+    const onClose = vi.fn()
+    const onConfirm = vi.fn()
+    
+    render(
+      <ImportPreviewModal
+        isOpen={true}
+        onClose={onClose}
+        onConfirm={onConfirm}
+        workbookData={mockWorkbookData}
+        fileName="test.xlsx"
+        detectedFileType="xlsx"
+      />
+    )
+    
+    // Find visibility buttons (they should be actual button elements)
+    const visibilityButtons = document.querySelectorAll('.visibility-btn')
+    expect(visibilityButtons.length).toBeGreaterThan(0)
+    
+    // Check that they are buttons (clickable)
+    visibilityButtons.forEach(btn => {
+      expect(btn.tagName).toBe('BUTTON')
+    })
+  })
+
+  it('should toggle removeAfterIncomplete option', async () => {
+    const onClose = vi.fn()
+    const onConfirm = vi.fn()
+    
+    render(
+      <ImportPreviewModal
+        isOpen={true}
+        onClose={onClose}
+        onConfirm={onConfirm}
+        workbookData={mockWorkbookData}
+        fileName="test.xlsx"
+        detectedFileType="xlsx"
+      />
+    )
+    
+    const incompleteCheckbox = screen.getByLabelText('Remove rows after first incomplete row')
+    expect(incompleteCheckbox).not.toBeChecked()
+    
+    fireEvent.click(incompleteCheckbox)
+    await waitFor(() => {
+      expect(incompleteCheckbox).toBeChecked()
+    })
+  })
+
+  it('should remove rows after first incomplete row when option is enabled', async () => {
+    const dataWithIncomplete = {
+      'Sheet1': {
+        rows: [
+          { name: 'John', age: '30', email: 'john@example.com' },
+          { name: 'Jane', age: '25', email: 'jane@example.com' },
+          { name: 'Bob', age: '', email: 'bob@example.com' }, // Incomplete
+          { name: 'Alice', age: '28', email: 'alice@example.com' }, // Should be removed
+        ],
+        columns: ['name', 'age', 'email']
+      }
+    }
+    
+    const onClose = vi.fn()
+    const onConfirm = vi.fn()
+    
+    render(
+      <ImportPreviewModal
+        isOpen={true}
+        onClose={onClose}
+        onConfirm={onConfirm}
+        workbookData={dataWithIncomplete}
+        fileName="test.xlsx"
+        detectedFileType="xlsx"
+      />
+    )
+    
+    // Enable removeAfterIncomplete
+    const incompleteCheckbox = screen.getByLabelText('Remove rows after first incomplete row')
+    fireEvent.click(incompleteCheckbox)
+    
+    await waitFor(() => {
+      expect(incompleteCheckbox).toBeChecked()
+    })
+    
+    // Alice should not be in the preview
+    expect(screen.queryByText('Alice')).not.toBeInTheDocument()
+  })
+
+  it('should pass ignoredRows and removeAfterIncomplete to onConfirm', async () => {
+    const onClose = vi.fn()
+    const onConfirm = vi.fn()
+    
+    render(
+      <ImportPreviewModal
+        isOpen={true}
+        onClose={onClose}
+        onConfirm={onConfirm}
+        workbookData={mockWorkbookData}
+        fileName="test.xlsx"
+        detectedFileType="xlsx"
+      />
+    )
+    
+    // Enable removeAfterIncomplete
+    const incompleteCheckbox = screen.getByLabelText('Remove rows after first incomplete row')
+    fireEvent.click(incompleteCheckbox)
+    
+    await waitFor(() => {
+      expect(incompleteCheckbox).toBeChecked()
+    })
+    
+    const importButton = screen.getByText('Import Data')
+    fireEvent.click(importButton)
+    
+    expect(onConfirm).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ignoredRows: expect.any(Array),
+        removeAfterIncomplete: true
+      })
+    )
+  })
 })
