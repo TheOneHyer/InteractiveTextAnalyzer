@@ -77,4 +77,38 @@ describe('App Component - UI Elements', () => {
     const buttons = container.querySelectorAll('button')
     expect(buttons.length).toBeGreaterThan(0)
   })
+
+  it('should have collapsible sidebar', () => {
+    const { container } = render(<App />)
+    
+    // Check for sidebar
+    const sidebar = container.querySelector('.sidebar')
+    expect(sidebar).toBeInTheDocument()
+    
+    // Check for sidebar toggle button
+    const toggleButton = container.querySelector('.sidebar-toggle')
+    expect(toggleButton).toBeInTheDocument()
+  })
+
+  it('should render chart layout options in dashboard', async () => {
+    render(<App />)
+    
+    // Wait for dashboard to render - look for the h1 heading
+    await waitFor(() => {
+      const heading = document.querySelector('h1')
+      expect(heading).toBeInTheDocument()
+      expect(heading.textContent).toBe('Dashboard')
+    })
+    
+    // Check for layout buttons (Single, Side-by-Side, 2x2 Grid)
+    await waitFor(() => {
+      const buttons = screen.getAllByRole('button')
+      const layoutButtons = buttons.filter(btn => 
+        btn.textContent.includes('Single') || 
+        btn.textContent.includes('Side-by-Side') || 
+        btn.textContent.includes('2x2 Grid')
+      )
+      expect(layoutButtons.length).toBeGreaterThan(0)
+    })
+  })
 })
