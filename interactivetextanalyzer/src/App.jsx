@@ -202,6 +202,7 @@ export default function App(){
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [chartLayout, setChartLayout] = useState('single') // 'single', 'side-by-side', 'grid'
   const [detailsExpanded, setDetailsExpanded] = useState(false)
+  const [weightedLines, setWeightedLines] = useState(false)
 
   // Restore settings (no eval)
   useEffect(()=>{ try { const s=JSON.parse(localStorage.getItem(LOCAL_KEY)||'{}');
@@ -730,7 +731,7 @@ export default function App(){
                       {chartLayout === 'grid' && (
                         <>
                           <div className='chart-box' style={{minHeight: 240}}>
-                            {networkData.nodes.length>0 ? <Suspense fallback={<div className='skel block' /> }><NetworkGraph nodes={networkData.nodes} edges={networkData.edges} /></Suspense> : <div className='skel block' />}
+                            {networkData.nodes.length>0 ? <Suspense fallback={<div className='skel block' /> }><NetworkGraph nodes={networkData.nodes} edges={networkData.edges} weightedLines={weightedLines} /></Suspense> : <div className='skel block' />}
                           </div>
                           <div className='chart-box' style={{minHeight: 240}}>
                             {heatmapData.matrix.length>0 ? <Suspense fallback={<div className='skel block' /> }><Heatmap matrix={heatmapData.matrix} xLabels={heatmapData.xLabels} yLabels={heatmapData.yLabels} /></Suspense> : <div className='skel block' />}
@@ -820,11 +821,12 @@ export default function App(){
                     {analysisType==='ner' && <div className='notice'>Aggregated entity counts shown.</div>}
                   </div>
                   <div style={{flex:'1 1 420px',minWidth:360}} className='result-section'>
-                    <div style={{marginBottom:12,display:'flex',gap:6,flexWrap:'wrap'}}>
+                    <div style={{marginBottom:12,display:'flex',gap:6,flexWrap:'wrap',alignItems:'center'}}>
                       {['list','wordcloud','network','heatmap'].map(m => <button key={m} className='btn secondary' style={{padding:'4px 10px',fontSize:11,background:viewMode===m?'var(--c-accent)':'#e2e8f0',color:viewMode===m?'#111':'#1e293b'}} onClick={()=>setViewMode(m)}>{m.charAt(0).toUpperCase()+m.slice(1)}</button>)}
+                      {viewMode==='network' && <label style={{fontSize:11,display:'flex',alignItems:'center',gap:4,marginLeft:8}}><input type='checkbox' checked={weightedLines} onChange={e=>setWeightedLines(e.target.checked)} />Weighted Lines</label>}
                     </div>
                     {viewMode==='wordcloud' && <Suspense fallback={<div className='skel block' style={{height:300}} /> }><WordCloud data={wordCloudData} /></Suspense>}
-                    {viewMode==='network' && <Suspense fallback={<div className='skel block' style={{height:300}} /> }><NetworkGraph nodes={networkData.nodes} edges={networkData.edges} /></Suspense>}
+                    {viewMode==='network' && <Suspense fallback={<div className='skel block' style={{height:300}} /> }><NetworkGraph nodes={networkData.nodes} edges={networkData.edges} weightedLines={weightedLines} /></Suspense>}
                     {viewMode==='heatmap' && <Suspense fallback={<div className='skel block' style={{height:300}} /> }><Heatmap matrix={heatmapData.matrix} xLabels={heatmapData.xLabels} yLabels={heatmapData.yLabels} /></Suspense>}
                     {viewMode==='list' && <div className='notice'>Choose a visualization mode.</div>}
                   </div>
