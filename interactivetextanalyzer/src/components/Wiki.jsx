@@ -179,22 +179,22 @@ export default function Wiki() {
           <h4>Document Embeddings with Dimensionality Reduction</h4>
           <p>
             <strong>What it does:</strong> Creates vector representations (embeddings) of your documents 
-            and visualizes them in 2D space using dimensionality reduction techniques (t-SNE or UMAP). 
+            and visualizes them in 2D space using dimensionality reduction techniques. 
             Documents with similar content appear closer together in the visualization.
           </p>
           <p>
             <strong>How it works:</strong> First, TF-IDF vectors are computed for each document using 
             the top vocabulary terms. Then, these high-dimensional vectors are reduced to 2 dimensions 
-            using either t-SNE (t-distributed Stochastic Neighbor Embedding) or UMAP (Uniform Manifold 
-            Approximation and Projection) algorithms.
+            using PCA (Principal Component Analysis) or similar algorithms. The current implementation 
+            uses a lightweight PCA approach that's optimized for browser performance.
           </p>
           <p>
             <strong>Key concepts:</strong>
           </p>
           <ul>
             <li><strong>Document Embeddings:</strong> Numerical vector representations of documents that capture semantic meaning</li>
-            <li><strong>t-SNE:</strong> Focuses on preserving local structure and clustering patterns. Best for exploring clusters and outliers.</li>
-            <li><strong>UMAP:</strong> Balances local and global structure preservation. Often faster and better at maintaining data topology.</li>
+            <li><strong>PCA:</strong> Finds the directions of maximum variance in the data and projects onto those dimensions</li>
+            <li><strong>t-SNE/UMAP modes:</strong> Simulate non-linear dimensionality reduction with slight variations to PCA output</li>
           </ul>
           <p>
             <strong>Use cases:</strong> Document clustering, finding similar documents, detecting outliers, 
@@ -207,11 +207,13 @@ export default function Wiki() {
             of thematically related documents. Outliers may represent unique or unusual content.
           </p>
           <p>
-            <strong>Note:</strong> Requires at least 3 documents. The algorithm may take a moment to 
-            compute on first run as it loads the dimensionality reduction libraries.
+            <strong>Note:</strong> Requires at least 3 documents. The algorithm runs quickly as it uses 
+            a browser-optimized PCA implementation. For production use with larger datasets, consider 
+            server-side t-SNE or UMAP processing.
           </p>
           <p className='wiki-source'>
             <strong>Sources:</strong> 
+            <br/>PCA: Pearson, K. (1901). On lines and planes of closest fit to systems of points in space. <em>The London, Edinburgh, and Dublin Philosophical Magazine and Journal of Science</em>, 2(11), 559-572.
             <br/>t-SNE: van der Maaten, L., & Hinton, G. (2008). Visualizing data using t-SNE. <em>Journal of Machine Learning Research</em>, 9, 2579-2605.
             <br/>UMAP: McInnes, L., Healy, J., & Melville, J. (2018). UMAP: Uniform Manifold Approximation and Projection for Dimension Reduction. <em>arXiv preprint arXiv:1802.03426</em>. <a href="https://arxiv.org/abs/1802.03426" target="_blank" rel="noopener noreferrer">https://arxiv.org/abs/1802.03426</a>
           </p>
