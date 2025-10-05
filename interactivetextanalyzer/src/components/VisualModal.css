@@ -1,0 +1,175 @@
+/* Visual Modal Styles */
+.visual-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  backdrop-filter: blur(6px);
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.visual-modal {
+  background: var(--c-surface);
+  border-radius: 16px;
+  width: 80vw;
+  height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--c-border);
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.visual-modal-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--c-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.visual-modal-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--c-text);
+}
+
+.visual-modal-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.export-btn {
+  background: var(--c-accent);
+  color: #111;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.export-btn:hover {
+  background: var(--c-accent-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(255, 153, 0, 0.3);
+}
+
+.visual-modal-body {
+  flex: 1;
+  overflow: auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+.visual-modal-content {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+/* Layout styles for content */
+.visual-modal-content.layout-single {
+  flex-direction: column;
+}
+
+.visual-modal-content.layout-side-by-side {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+}
+
+.visual-modal-content.layout-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 24px;
+}
+
+/* Ensure charts fill their containers in modal */
+.visual-modal-content .chart-box {
+  width: 100%;
+  height: 100%;
+  min-height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Maximize button */
+.maximize-btn {
+  background: var(--c-surface);
+  color: var(--c-text);
+  border: 1px solid var(--c-border);
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.maximize-btn:hover {
+  background: var(--c-bg);
+  border-color: var(--c-accent);
+  color: var(--c-accent);
+  transform: scale(1.05);
+}
+
+.maximize-btn:active {
+  transform: scale(0.98);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .visual-modal {
+    width: 95vw;
+    height: 95vh;
+  }
+
+  .visual-modal-content.layout-side-by-side,
+  .visual-modal-content.layout-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+  }
+
+  .export-btn {
+    padding: 6px 10px;
+    font-size: 11px;
+  }
+}
