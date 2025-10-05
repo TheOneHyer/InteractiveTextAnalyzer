@@ -1,8 +1,9 @@
-import { useState, useMemo, useEffect, useCallback, lazy, Suspense } from 'react'
+import { useState, useMemo, useEffect, useCallback, lazy, Suspense, useRef } from 'react'
 import './App.css'
 import ExcelJS from 'exceljs'
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts'
 import ImportPreviewModal from './components/ImportPreviewModal'
+import { DataVersionManager, applyDataTransformation } from './utils/dataVersioning'
 
 // Code-split heavy visualization pieces
 const WordCloud = lazy(()=>import('./components/WordCloud'))
@@ -129,6 +130,27 @@ function ColumnManager({ columns, hiddenColumns, renames, toggleHide, setRename,
   )
 }
 
+function SimpleColumnSelector({ columns, selectedColumns, toggleColumn }) {
+  return (
+    <div className='column-editor'>
+      {columns.map(col=>{
+        const selected=selectedColumns.includes(col)
+        return (
+          <div className='column-row' key={col} style={{padding:'8px 10px'}}>
+            <span style={{flex:1, fontSize:13, fontWeight:500}}>{col}</span>
+            <button 
+              className={`tag-btn ${selected?'active':''}`} 
+              onClick={()=>toggleColumn(col)}
+            >
+              {selected ? '✓ Active' : 'Inactive'}
+            </button>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 const LOCAL_KEY='ita_state_v1'
 const ROW_HEIGHT = 26
 const VIRTUAL_OVERSCAN = 8
@@ -156,6 +178,11 @@ export default function App(){
   const [pendingImportData, setPendingImportData] = useState(null)
   const [pendingFileName, setPendingFileName] = useState('')
   const [pendingFileType, setPendingFileType] = useState('')
+  
+  // View state and versioning
+  const [activeView, setActiveView] = useState('dashboard')
+  const versionManager = useRef(new DataVersionManager())
+  const [historyInfo, setHistoryInfo] = useState({ canUndo: false, canRedo: false })
 
   // Restore settings (no eval)
   useEffect(()=>{ try { const s=JSON.parse(localStorage.getItem(LOCAL_KEY)||'{}');
@@ -284,6 +311,10 @@ export default function App(){
       obj[ws.name] = parseWorksheet(ws)
     })
     
+    // Initialize version manager
+    versionManager.current.initialize(obj)
+    setHistoryInfo(versionManager.current.getHistoryInfo())
+    
     setWorkbookData(obj)
     setActiveSheet(parsed.worksheets[0]?.name || null)
     setSelectedColumns([])
@@ -339,6 +370,10 @@ export default function App(){
       }
     })
     
+    // Initialize version manager with original data
+    versionManager.current.initialize(finalData)
+    setHistoryInfo(versionManager.current.getHistoryInfo())
+    
     setWorkbookData(finalData)
     setActiveSheet(Object.keys(finalData)[0] || null)
     setSelectedColumns(markedColumns)
@@ -382,6 +417,66 @@ export default function App(){
   const toggleHide=col=>setHiddenColumns(h=>h.includes(col)? h.filter(c=>c!==col):[...h,col])
   const setRename=(col,name)=>setRenames(r=>({...r,[col]:name}))
   const selectColumnForText=col=>setSelectedColumns(p=>p.includes(col)? p.filter(c=>c!==col):[...p,col])
+  
+  // Undo/Redo handlers
+  const handleUndo = () => {
+    const previousData = versionManager.current.undo()
+    if (previousData) {
+      setWorkbookData(previousData)
+      setHistoryInfo(versionManager.current.getHistoryInfo())
+    }
+  }
+  
+  const handleRedo = () => {
+    const nextData = versionManager.current.redo()
+    if (nextData) {
+      setWorkbookData(nextData)
+      setHistoryInfo(versionManager.current.getHistoryInfo())
+    }
+  }
+  
+  const handleResetToOriginal = () => {
+    const originalData = versionManager.current.resetToOriginal()
+    if (originalData) {
+      setWorkbookData(originalData)
+      setHistoryInfo(versionManager.current.getHistoryInfo())
+    }
+  }
+  
+  // Data manipulation functions
+  const applyTransformation = (transformation) => {
+    const newData = applyDataTransformation(workbookData, transformation)
+    versionManager.current.pushVersion(newData)
+    setWorkbookData(newData)
+    setHistoryInfo(versionManager.current.getHistoryInfo())
+  }
+  
+  const deleteColumn = (columnName) => {
+    applyTransformation({
+      type: 'DELETE_COLUMN',
+      sheetName: activeSheet || '__ALL__',
+      columnName
+    })
+  }
+  
+  const renameColumn = (oldName, newName) => {
+    if (newName && newName !== oldName) {
+      applyTransformation({
+        type: 'RENAME_COLUMN',
+        sheetName: activeSheet || '__ALL__',
+        oldName,
+        newName
+      })
+    }
+  }
+  
+  const deleteRows = (rowIndices) => {
+    applyTransformation({
+      type: 'DELETE_ROW',
+      sheetName: activeSheet || '__ALL__',
+      rowIndices
+    })
+  }
 
   const exportTransformed=async()=>{ 
     const cols=displayedColumns
@@ -435,24 +530,32 @@ export default function App(){
         />
       )}
       <aside className='sidebar'>
-        <div className='sidebar-header'>?? Analyzer</div>
+        <div className='sidebar-header'>📊 Analyzer</div>
         <div className='nav'>
-          <button className='active'>Dashboard</button>
-          <button disabled style={{opacity:.4,cursor:'not-allowed'}}>Reports</button>
-          <button disabled style={{opacity:.4,cursor:'not-allowed'}}>Admin</button>
+          <button className={activeView==='dashboard'?'active':''} onClick={()=>setActiveView('dashboard')}>Dashboard</button>
+          <button className={activeView==='editor'?'active':''} onClick={()=>setActiveView('editor')}>Editor</button>
         </div>
-        <div style={{padding:'12px 16px', fontSize:11, color:'var(--c-subtle)'}}>v0.2</div>
+        <div style={{padding:'12px 16px', fontSize:11, color:'var(--c-subtle)'}}>v0.3</div>
       </aside>
       <div className='main'>
         <div className='topbar'>
-          <h1>Dashboard</h1>
+          <h1>{activeView === 'dashboard' ? 'Dashboard' : 'Editor'}</h1>
           <div style={{display:'flex',gap:8,alignItems:'center'}}>
-            <button className='theme-toggle' onClick={()=>setTheme(t=>t==='light'?'dark':'light')}>{theme==='light'? '?? Dark':'?? Light'}</button>
+            <button className='theme-toggle' onClick={()=>setTheme(t=>t==='light'?'dark':'light')}>{theme==='light'? '🌙 Dark':'☀️ Light'}</button>
+            {activeView === 'editor' && (
+              <>
+                <button className='btn outline' onClick={handleUndo} disabled={!historyInfo.canUndo}>Undo</button>
+                <button className='btn outline' onClick={handleRedo} disabled={!historyInfo.canRedo}>Redo</button>
+                <button className='btn outline' onClick={handleResetToOriginal} disabled={!versionManager.current.originalData}>Reset</button>
+              </>
+            )}
             <button className='btn outline' onClick={exportTransformed} disabled={!currentRows.length}>Export Data</button>
-            <button className='btn accent' onClick={exportAnalysis} disabled={!textSamples.length}>Export Analysis</button>
+            {activeView === 'dashboard' && <button className='btn accent' onClick={exportAnalysis} disabled={!textSamples.length}>Export Analysis</button>}
           </div>
         </div>
         <div className='content'>
+          {activeView === 'dashboard' ? (
+            <>
           <div className='stats-grid'>
             <div className='stat-card'><div className='stat-accent'></div><h4>Documents</h4><div className='stat-value'>{statDocs}</div><span className='subtle'>Rows combined</span></div>
             <div className='stat-card'><div className='stat-accent'></div><h4>Tokens</h4><div className='stat-value'>{statTokens}</div><span className='subtle'>Whitespace split</span></div>
@@ -465,16 +568,16 @@ export default function App(){
                 <h4>Data Source</h4>
                 <input type='file' accept='.xlsx,.xls,.csv' onChange={handleFile} />
                 <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
-                  <button className='btn secondary' style={{background:'#e2e8f0'}} onClick={()=>fetch(new URL('sample-data.csv', import.meta.env.BASE_URL)).then(r=>r.text()).then(txt=>{const p=parseCsv(txt); setWorkbookData({'Sample CSV':p}); setActiveSheet('Sample CSV'); setSelectedColumns([]); setHiddenColumns([]); setRenames({}) })}>Load CSV Sample</button>
+                  <button className='btn secondary' style={{background:'#e2e8f0'}} onClick={()=>fetch(new URL('sample-data.csv', import.meta.env.BASE_URL)).then(r=>r.text()).then(txt=>{const p=parseCsv(txt); versionManager.current.initialize(p); setHistoryInfo(versionManager.current.getHistoryInfo()); setWorkbookData({'Sample CSV':p}); setActiveSheet('Sample CSV'); setSelectedColumns([]); setHiddenColumns([]); setRenames({}) })}>Load CSV Sample</button>
                   <button className='btn secondary' style={{background:'#e2e8f0'}} onClick={loadSampleExcel}>Load Excel Sample</button>
                 </div>
                 {Object.keys(workbookData).length>0 && <SheetSelector sheets={Object.keys(workbookData)} activeSheet={activeSheet} setActiveSheet={setActiveSheet} />}
               </div>
               {currentColumns.length>0 && (
                 <div className='box'>
-                  <h4>Columns</h4>
-                  <ColumnManager columns={currentColumns} hiddenColumns={hiddenColumns} renames={renames} toggleHide={toggleHide} setRename={setRename} selectColumnForText={selectColumnForText} selectedTextColumns={selectedColumns} />
-                  <div className='notice'>TXT toggles inclusion</div>
+                  <h4>Analysis Columns</h4>
+                  <SimpleColumnSelector columns={currentColumns} selectedColumns={selectedColumns} toggleColumn={selectColumnForText} />
+                  <div className='notice'>Select columns for text analysis</div>
                 </div>
               )}
               <div className='box'>
@@ -545,7 +648,83 @@ export default function App(){
               )}
             </div>
           </div>
-          <footer>Interactive Text Analyzer � {libsLoaded? 'NER Ready':'NER Lazy'} � Theme: {theme}</footer>
+          </>
+          ) : (
+            /* Editor View */
+            <>
+              <div className='panel'>
+                <div className='panel-header'>
+                  <h3>Data Editor</h3>
+                  <span className='subtle'>History: {historyInfo.currentIndex + 1}/{historyInfo.historyLength}</span>
+                </div>
+                <div style={{marginBottom:16}}>
+                  {Object.keys(workbookData).length>0 && <SheetSelector sheets={Object.keys(workbookData)} activeSheet={activeSheet} setActiveSheet={setActiveSheet} />}
+                </div>
+                {currentColumns.length > 0 && (
+                  <div style={{marginBottom:20}}>
+                    <h4 style={{marginBottom:10}}>Column Management</h4>
+                    <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
+                      {currentColumns.map(col => (
+                        <div key={col} style={{display:'flex',alignItems:'center',gap:6,background:'var(--c-bg)',padding:'6px 10px',borderRadius:8,border:'1px solid var(--c-border)'}}>
+                          <span style={{fontSize:13}}>{col}</span>
+                          <input 
+                            type='text' 
+                            placeholder='Rename...'
+                            style={{width:100,padding:'2px 6px',fontSize:11,border:'1px solid var(--c-border)',borderRadius:4,background:'var(--c-surface)'}}
+                            onBlur={(e) => {
+                              if (e.target.value && e.target.value !== col) {
+                                renameColumn(col, e.target.value)
+                                e.target.value = ''
+                              }
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.target.blur()
+                              }
+                            }}
+                          />
+                          <button 
+                            className='btn' 
+                            style={{padding:'2px 6px',fontSize:11,background:'var(--c-danger)',color:'#fff'}}
+                            onClick={() => deleteColumn(col)}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {currentRows.length > 0 && (
+                  <div>
+                    <h4 style={{marginBottom:10}}>Data Preview</h4>
+                    <div className='table-scroll virtual-container' onScroll={onScroll} style={{maxHeight:500}}>
+                      <div className='virtual-spacer' style={{height: totalRows*ROW_HEIGHT}}>
+                        <table style={{position:'absolute', top:0, left:0, width:'100%'}}>
+                          <thead>
+                            <tr>
+                              <th style={{width:40}}>#</th>
+                              {displayedColumns.map(c=> <th key={c}>{c}</th>)}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr style={{height:offsetY}}></tr>
+                            {visibleRows.map((r,i)=> (
+                              <tr key={startIndex+i} style={{height:ROW_HEIGHT}}>
+                                <td style={{fontSize:11,color:'var(--c-subtle)'}}>{startIndex+i+1}</td>
+                                {displayedColumns.map(c=> <td key={c}>{String(r[c]).slice(0,90)}</td>)}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+          <footer>Interactive Text Analyzer • {libsLoaded? 'NER Ready':'NER Lazy'} • Theme: {theme}</footer>
         </div>
       </div>
     </div>
