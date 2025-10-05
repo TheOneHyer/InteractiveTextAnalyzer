@@ -18,9 +18,6 @@ export default function Wiki() {
             that has been combined from your selected columns. More documents generally provide 
             more robust analysis results.
           </p>
-          <p className='wiki-source'>
-            <strong>Source:</strong> Manning, C. D., Raghavan, P., & Schütze, H. (2008). <em>Introduction to Information Retrieval</em>. Cambridge University Press.
-          </p>
         </div>
 
         <div className='wiki-item'>
@@ -30,9 +27,6 @@ export default function Wiki() {
             Tokenization is the first step in text analysis, breaking down sentences into 
             individual units. The token count gives you a sense of the total volume of text 
             being analyzed.
-          </p>
-          <p className='wiki-source'>
-            <strong>Source:</strong> Jurafsky, D., & Martin, J. H. (2023). <em>Speech and Language Processing</em> (3rd ed.). Chapter 2: Regular Expressions, Text Normalization, Edit Distance.
           </p>
         </div>
 
@@ -44,9 +38,6 @@ export default function Wiki() {
             it's unique phrase combinations, and for NER it's unique named entities. A higher 
             unique count indicates more vocabulary diversity.
           </p>
-          <p className='wiki-source'>
-            <strong>Source:</strong> Zipf, G. K. (1949). <em>Human Behavior and the Principle of Least Effort</em>. Addison-Wesley.
-          </p>
         </div>
 
         <div className='wiki-item'>
@@ -54,9 +45,6 @@ export default function Wiki() {
           <p>
             The currently active analysis algorithm. Different modes reveal different insights 
             about your text data. Choose the mode that best suits your analytical goals.
-          </p>
-          <p className='wiki-source'>
-            <strong>Source:</strong> Aggarwal, C. C., & Zhai, C. (2012). <em>Mining Text Data</em>. Springer.
           </p>
         </div>
       </section>
