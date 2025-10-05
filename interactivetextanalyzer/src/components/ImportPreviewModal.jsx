@@ -3,6 +3,27 @@ import './ImportPreviewModal.css'
 
 const COLUMN_TYPES = ['text', 'number', 'date', 'boolean']
 
+// Eye icon SVG component
+const EyeIcon = ({ visible }) => {
+  if (visible) {
+    return (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 5C7 5 2.73 8.11 1 12.5C2.73 16.89 7 20 12 20C17 20 21.27 16.89 23 12.5C21.27 8.11 17 5 12 5Z" 
+          stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+        <circle cx="12" cy="12.5" r="3.5" 
+          stroke="currentColor" strokeWidth="2" fill="none"/>
+      </svg>
+    )
+  } else {
+    return (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M3 3L21 21M10.5 10.5C10.0353 10.9653 9.75 11.6 9.75 12.3C9.75 13.7 10.9 14.85 12.3 14.85C13 14.85 13.6347 14.5647 14.1 14.1M7 7C4.5 8.5 2.73 10.39 1 12.5C2.73 16.89 7 20 12 20C14 20 15.8 19.5 17.5 18.5L7 7ZM12 5C17 5 21.27 8.11 23 12.5C22.18 14.34 21 15.96 19.5 17.22L12 5Z" 
+          stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+      </svg>
+    )
+  }
+}
+
 function ImportPreviewModal({ 
   isOpen, 
   onClose, 
@@ -22,6 +43,8 @@ function ImportPreviewModal({
   const [autoDetectSynonyms, setAutoDetectSynonyms] = useState(true)
   const [trimWhitespace, setTrimWhitespace] = useState(true)
   const [removeEmptyRows, setRemoveEmptyRows] = useState(true)
+  const [ignoredRows, setIgnoredRows] = useState([])
+  const [removeAfterIncomplete, setRemoveAfterIncomplete] = useState(false)
 
   const sheets = Object.keys(workbookData)
   const currentData = useMemo(() => 
@@ -34,9 +57,12 @@ function ImportPreviewModal({
     let rows = [...currentData.rows]
     let columns = [...currentData.columns]
 
-    // Skip first n rows
-    if (skipFirstRows > 0) {
-      rows = rows.slice(skipFirstRows)
+    // Skip first n rows (but protect header row - first row is always header)
+    // This means we skip rows AFTER the header
+    if (skipFirstRows > 0 && rows.length > 1) {
+      // Keep first row (header) and skip next n rows
+      const headerRow = rows[0]
+      rows = [headerRow, ...rows.slice(skipFirstRows + 1)]
     }
 
     // Remove empty rows
@@ -47,6 +73,25 @@ function ImportPreviewModal({
           return val !== null && val !== undefined && String(val).trim() !== ''
         })
       })
+    }
+
+    // Remove rows after first incomplete row (after empty rows removed)
+    if (removeAfterIncomplete) {
+      const firstIncompleteIndex = rows.findIndex(row => {
+        // Check if any column has empty/null/undefined value
+        return columns.some(col => {
+          const val = row[col]
+          return val === null || val === undefined || String(val).trim() === ''
+        })
+      })
+      if (firstIncompleteIndex > 0) {
+        rows = rows.slice(0, firstIncompleteIndex)
+      }
+    }
+
+    // Remove ignored rows by index
+    if (ignoredRows.length > 0) {
+      rows = rows.filter((_, idx) => !ignoredRows.includes(idx))
     }
 
     // Remove columns after first blank if enabled
@@ -96,10 +141,37 @@ function ImportPreviewModal({
     }
 
     return { rows, columns, columnGroups }
-  }, [currentData, skipFirstRows, removeEmptyRows, removeAfterBlank, trimWhitespace, autoDetectSynonyms, hiddenColumns])
+  }, [currentData, skipFirstRows, removeEmptyRows, removeAfterBlank, trimWhitespace, autoDetectSynonyms, hiddenColumns, ignoredRows, removeAfterIncomplete])
 
   const displayRows = processedData.rows.slice(0, rowsToShow)
   const displayColumns = processedData.columns.filter(col => !hiddenColumns.includes(col))
+
+  // Calculate statistics
+  const stats = useMemo(() => {
+    const totalRows = currentData.rows.length
+    const processedRows = processedData.rows.length
+    const totalColumns = currentData.columns.length
+    const visibleColumns = displayColumns.length
+    
+    // Calculate total character count from all cells
+    let charCount = 0
+    currentData.rows.forEach(row => {
+      currentData.columns.forEach(col => {
+        const val = row[col]
+        if (val !== null && val !== undefined) {
+          charCount += String(val).length
+        }
+      })
+    })
+    
+    return {
+      totalRows,
+      processedRows,
+      totalColumns,
+      visibleColumns,
+      charCount
+    }
+  }, [currentData, processedData, displayColumns])
 
   const toggleColumnVisibility = (col) => {
     setHiddenColumns(prev => 
@@ -110,6 +182,12 @@ function ImportPreviewModal({
   const toggleColumnMark = (col) => {
     setMarkedColumns(prev => 
       prev.includes(col) ? prev.filter(c => c !== col) : [...prev, col]
+    )
+  }
+
+  const toggleRowIgnored = (rowIndex) => {
+    setIgnoredRows(prev => 
+      prev.includes(rowIndex) ? prev.filter(i => i !== rowIndex) : [...prev, rowIndex]
     )
   }
 
@@ -127,6 +205,8 @@ function ImportPreviewModal({
       removeAfterBlank,
       trimWhitespace,
       removeEmptyRows,
+      ignoredRows,
+      removeAfterIncomplete,
       processedData
     }
     onConfirm(config)
@@ -194,6 +274,13 @@ function ImportPreviewModal({
             </div>
           )}
 
+          {/* Statistics - inconspicuous */}
+          <div className="import-stats">
+            <span className="stat-item">Rows: {stats.processedRows}/{stats.totalRows}</span>
+            <span className="stat-item">Cols: {stats.visibleColumns}/{stats.totalColumns}</span>
+            <span className="stat-item">Chars: {stats.charCount.toLocaleString()}</span>
+          </div>
+
           {/* Data Cleaning Options */}
           <div className="import-section">
             <label>Data Cleaning Options</label>
@@ -213,6 +300,14 @@ function ImportPreviewModal({
                   onChange={e => setRemoveEmptyRows(e.target.checked)} 
                 />
                 <span>Remove completely empty rows</span>
+              </label>
+              <label className="import-checkbox">
+                <input 
+                  type="checkbox" 
+                  checked={removeAfterIncomplete} 
+                  onChange={e => setRemoveAfterIncomplete(e.target.checked)} 
+                />
+                <span>Remove rows after first incomplete row</span>
               </label>
               <label className="import-checkbox">
                 <input 
@@ -287,8 +382,9 @@ function ImportPreviewModal({
                       <button 
                         className={`visibility-btn ${hiddenColumns.includes(col) ? 'hidden' : 'visible'}`}
                         onClick={() => toggleColumnVisibility(col)}
+                        title={hiddenColumns.includes(col) ? 'Show column' : 'Hide column'}
                       >
-                        {hiddenColumns.includes(col) ? '👁️‍🗨️' : '👁️'}
+                        <EyeIcon visible={!hiddenColumns.includes(col)} />
                       </button>
                     </div>
                   )
@@ -307,19 +403,32 @@ function ImportPreviewModal({
               <table className="preview-table">
                 <thead>
                   <tr>
+                    <th className="row-select-header">Ignore</th>
                     {displayColumns.map(col => (
                       <th key={col}>{col}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {displayRows.map((row, idx) => (
-                    <tr key={idx}>
-                      {displayColumns.map(col => (
-                        <td key={col}>{String(row[col] || '').slice(0, 100)}</td>
-                      ))}
-                    </tr>
-                  ))}
+                  {displayRows.map((row, idx) => {
+                    const originalIdx = currentData.rows.indexOf(row)
+                    const isIgnored = ignoredRows.includes(originalIdx)
+                    return (
+                      <tr key={idx} className={isIgnored ? 'row-ignored' : ''}>
+                        <td className="row-select-cell">
+                          <input
+                            type="checkbox"
+                            checked={isIgnored}
+                            onChange={() => toggleRowIgnored(originalIdx)}
+                            title="Ignore this row"
+                          />
+                        </td>
+                        {displayColumns.map(col => (
+                          <td key={col}>{String(row[col] || '').slice(0, 100)}</td>
+                        ))}
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
