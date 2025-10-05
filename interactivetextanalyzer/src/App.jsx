@@ -9,6 +9,7 @@ import { DataVersionManager, applyDataTransformation } from './utils/dataVersion
 const WordCloud = lazy(()=>import('./components/WordCloud'))
 const NetworkGraph = lazy(()=>import('./components/NetworkGraph'))
 const Heatmap = lazy(()=>import('./components/Heatmap'))
+const Wiki = lazy(()=>import('./components/Wiki'))
 
 // Lightweight tokenization utilities (replace heavy natural for ngram + assoc)
 const tokenize = (text) => text.toLowerCase().split(/[^a-z0-9']+/).filter(Boolean)
@@ -107,6 +108,19 @@ const SheetSelector = ({ sheets, activeSheet, setActiveSheet }) => (
   <div className='flex-row'>
     {sheets.map(n=> <button key={n} className='btn secondary' style={{background:n===activeSheet?'var(--c-accent)':'#e2e8f0',color:n===activeSheet?'#111':'#1e293b'}} onClick={()=>setActiveSheet(n)}>{n}</button>)}
     <button className='btn secondary' style={{background:activeSheet==='__ALL__'?'var(--c-accent)':'#e2e8f0',color:activeSheet==='__ALL__'?'#111':'#1e293b'}} onClick={()=>setActiveSheet('__ALL__')}>All Sheets</button>
+  </div>
+)
+
+const InfoTooltip = ({ text, onNavigateToWiki }) => (
+  <div className='tooltip-wrapper'>
+    <span 
+      className='info-icon' 
+      onClick={onNavigateToWiki}
+      title="Click for more info"
+    >
+      ?
+    </span>
+    <div className='tooltip'>{text}</div>
   </div>
 )
 
@@ -552,12 +566,15 @@ export default function App(){
           <button className={activeView==='editor'?'active':''} onClick={()=>setActiveView('editor')} title='Editor'>
             {sidebarCollapsed ? '✏️' : 'Editor'}
           </button>
+          <button className={activeView==='wiki'?'active':''} onClick={()=>setActiveView('wiki')} title='Wiki'>
+            {sidebarCollapsed ? '📖' : 'Wiki'}
+          </button>
         </div>
         <div style={{padding:'12px 16px', fontSize:11, color:'var(--c-subtle)'}}>v0.3</div>
       </aside>
       <div className='main'>
         <div className='topbar'>
-          <h1>{activeView === 'dashboard' ? 'Dashboard' : 'Editor'}</h1>
+          <h1>{activeView === 'dashboard' ? 'Dashboard' : activeView === 'editor' ? 'Editor' : 'Wiki'}</h1>
           <div style={{display:'flex',gap:8,alignItems:'center'}}>
             <button className='theme-toggle' onClick={()=>setTheme(t=>t==='light'?'dark':'light')}>{theme==='light'? '🌙 Dark':'☀️ Light'}</button>
             {activeView === 'editor' && (
@@ -575,10 +592,54 @@ export default function App(){
           {activeView === 'dashboard' ? (
             <>
           <div className='stats-grid'>
-            <div className='stat-card'><div className='stat-accent'></div><h4>Documents</h4><div className='stat-value'>{statDocs}</div><span className='subtle'>Rows combined</span></div>
-            <div className='stat-card'><div className='stat-accent'></div><h4>Tokens</h4><div className='stat-value'>{statTokens}</div><span className='subtle'>Whitespace split</span></div>
-            <div className='stat-card'><div className='stat-accent'></div><h4>Unique</h4><div className='stat-value'>{statUniqueTerms||0}</div><span className='subtle'>Terms / units</span></div>
-            <div className='stat-card'><div className='stat-accent'></div><h4>Mode</h4><div className='stat-value' style={{fontSize:22}}>{analysisType.toUpperCase()}</div><span className='subtle'>Analysis type</span></div>
+            <div className='stat-card'>
+              <div className='stat-accent'></div>
+              <h4>
+                Documents
+                <InfoTooltip 
+                  text="Number of text samples being analyzed from combined rows" 
+                  onNavigateToWiki={() => setActiveView('wiki')}
+                />
+              </h4>
+              <div className='stat-value'>{statDocs}</div>
+              <span className='subtle'>Rows combined</span>
+            </div>
+            <div className='stat-card'>
+              <div className='stat-accent'></div>
+              <h4>
+                Tokens
+                <InfoTooltip 
+                  text="Total word count extracted by splitting text on whitespace" 
+                  onNavigateToWiki={() => setActiveView('wiki')}
+                />
+              </h4>
+              <div className='stat-value'>{statTokens}</div>
+              <span className='subtle'>Whitespace split</span>
+            </div>
+            <div className='stat-card'>
+              <div className='stat-accent'></div>
+              <h4>
+                Unique
+                <InfoTooltip 
+                  text="Number of distinct terms, n-grams, or entities found in your data" 
+                  onNavigateToWiki={() => setActiveView('wiki')}
+                />
+              </h4>
+              <div className='stat-value'>{statUniqueTerms||0}</div>
+              <span className='subtle'>Terms / units</span>
+            </div>
+            <div className='stat-card'>
+              <div className='stat-accent'></div>
+              <h4>
+                Mode
+                <InfoTooltip 
+                  text="Currently active analysis algorithm type" 
+                  onNavigateToWiki={() => setActiveView('wiki')}
+                />
+              </h4>
+              <div className='stat-value' style={{fontSize:22}}>{analysisType.toUpperCase()}</div>
+              <span className='subtle'>Analysis type</span>
+            </div>
           </div>
           <div className='analysis-layout'>
             <div className='side-stack'>
@@ -600,8 +661,39 @@ export default function App(){
               )}
               <div className='box'>
                 <h4>Analysis Settings</h4>
-                <label style={{fontSize:12}}>Type<select value={analysisType} onChange={e=>setAnalysisType(e.target.value)} style={{width:'100%',marginTop:4}}>
-                  <option value='ngram'>N-Gram</option><option value='tfidf'>TF-IDF</option><option value='assoc'>Association</option><option value='ner'>NER</option></select></label>
+                <label style={{fontSize:12}}>
+                  Type
+                  <InfoTooltip 
+                    text="Choose the analysis algorithm that best suits your goals" 
+                    onNavigateToWiki={() => setActiveView('wiki')}
+                  />
+                  <select value={analysisType} onChange={e=>setAnalysisType(e.target.value)} style={{width:'100%',marginTop:4}}>
+                    <option value='ngram'>N-Gram</option>
+                    <option value='tfidf'>TF-IDF</option>
+                    <option value='assoc'>Association</option>
+                    <option value='ner'>NER</option>
+                  </select>
+                </label>
+                {analysisType==='ngram' && (
+                  <div className='notice' style={{marginTop:8}}>
+                    <strong>N-Gram:</strong> Finds common word sequences/phrases in your text.
+                  </div>
+                )}
+                {analysisType==='tfidf' && (
+                  <div className='notice' style={{marginTop:8}}>
+                    <strong>TF-IDF:</strong> Identifies important terms by balancing frequency with rarity.
+                  </div>
+                )}
+                {analysisType==='assoc' && (
+                  <div className='notice' style={{marginTop:8}}>
+                    <strong>Association:</strong> Discovers which terms frequently appear together.
+                  </div>
+                )}
+                {analysisType==='ner' && (
+                  <div className='notice' style={{marginTop:8}}>
+                    <strong>NER:</strong> Extracts named entities (people, places, organizations).
+                  </div>
+                )}
                 {analysisType==='ngram' && <label style={{fontSize:12}}>N Size<input type='number' min={1} max={6} value={ngramN} onChange={e=>setNgramN(Number(e.target.value)||2)} style={{width:'100%',marginTop:4}}/></label>}
                 {analysisType==='assoc' && <label style={{fontSize:12}}>Min Support<input type='number' step={0.01} value={minSupport} onChange={e=>setMinSupport(Math.min(Math.max(Number(e.target.value)||0,0.01),0.8))} style={{width:'100%',marginTop:4}}/></label>}
                 <label style={{fontSize:12}}><input type='checkbox' checked={enableStemming} onChange={e=>setEnableStemming(e.target.checked)} /> Stemming (light)</label>
@@ -757,6 +849,11 @@ export default function App(){
             </div>
           </div>
           </>
+          ) : activeView === 'wiki' ? (
+            /* Wiki View */
+            <Suspense fallback={<div className='skel block' style={{height:400}} />}>
+              <Wiki />
+            </Suspense>
           ) : (
             /* Editor View */
             <>
