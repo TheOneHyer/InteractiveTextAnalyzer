@@ -89,6 +89,17 @@ describe('NetworkGraph Component', () => {
     expect(nodes[0]).toHaveProperty('value')
   })
 
+  it('should accept weightedLines prop', () => {
+    const nodes = [{ id: 'node1', value: 10 }]
+    const edges = []
+    
+    const { container } = render(
+      <NetworkGraph nodes={nodes} edges={edges} weightedLines={true} />
+    )
+    
+    expect(container.querySelector('div')).toBeInTheDocument()
+  })
+
   it('should validate edge structure', () => {
     const edges = [
       { source: 'a', target: 'b', value: 5 }
