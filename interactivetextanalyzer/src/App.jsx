@@ -183,6 +183,11 @@ export default function App(){
   const [activeView, setActiveView] = useState('dashboard')
   const versionManager = useRef(new DataVersionManager())
   const [historyInfo, setHistoryInfo] = useState({ canUndo: false, canRedo: false })
+  
+  // Dashboard layout state
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [chartLayout, setChartLayout] = useState('single') // 'single', 'side-by-side', 'grid'
+  const [detailsExpanded, setDetailsExpanded] = useState(false)
 
   // Restore settings (no eval)
   useEffect(()=>{ try { const s=JSON.parse(localStorage.getItem(LOCAL_KEY)||'{}');
@@ -409,8 +414,8 @@ export default function App(){
   const networkData=useMemo(()=> analysisType==='assoc'&&associations? {nodes:associations.items.slice(0,50).map(i=>({id:i.item,value:i.support})), edges:associations.pairs.filter(p=>p.lift>=1).map(p=>({source:p.a,target:p.b,value:p.lift}))}:{nodes:[],edges:[]},[analysisType,associations])
   const heatmapData=useMemo(()=>{ if(analysisType==='tfidf'&&tfidf){ const top=tfidf.aggregate.slice(0,20).map(t=>t.term); const matrix=tfidf.perDoc.slice(0,25).map(doc=>top.map(term=>{const f=doc.find(x=>x.term===term); return f? Number(f.tfidf.toFixed(2)):0})); return {matrix,xLabels:top,yLabels:matrix.map((_,i)=>'Doc '+(i+1))}} return {matrix:[],xLabels:[],yLabels:[]} },[analysisType,tfidf])
 
-  // Chart data (live updating)
-  const pieData=useMemo(()=>{ if(analysisType==='assoc'&&associations) return associations.items.slice(0,6).map(i=>({ name:i.item, value:+(i.support*100).toFixed(2) })); if(analysisType==='tfidf'&&tfidf) return tfidf.aggregate.slice(0,6).map(t=>({ name:t.term, value:+t.score.toFixed(2) })); if(analysisType==='ngram') return ngrams.slice(0,6).map(g=>({ name:g.gram, value:g.count })); if(analysisType==='ner') return entities.slice(0,6).map(e=>({ name:e.value, value:e.count })); return [] },[analysisType,associations,tfidf,ngrams,entities])
+  // Chart data (live updating) - pie chart removed, keeping bar chart
+  // const pieData=useMemo(()=>{ if(analysisType==='assoc'&&associations) return associations.items.slice(0,6).map(i=>({ name:i.item, value:+(i.support*100).toFixed(2) })); if(analysisType==='tfidf'&&tfidf) return tfidf.aggregate.slice(0,6).map(t=>({ name:t.term, value:+t.score.toFixed(2) })); if(analysisType==='ngram') return ngrams.slice(0,6).map(g=>({ name:g.gram, value:g.count })); if(analysisType==='ner') return entities.slice(0,6).map(e=>({ name:e.value, value:e.count })); return [] },[analysisType,associations,tfidf,ngrams,entities])
   const barData=useMemo(()=>{ if(analysisType==='assoc'&&associations) return associations.pairs.slice(0,8).map(p=>({ name:`${p.a}+${p.b}`, lift:+p.lift.toFixed(2) })); if(analysisType==='tfidf'&&tfidf) return tfidf.aggregate.slice(0,8).map(t=>({ name:t.term, score:+t.score.toFixed(2) })); if(analysisType==='ngram') return ngrams.slice(0,8).map(g=>({ name:g.gram, freq:g.count })); if(analysisType==='ner') return entities.slice(0,8).map(e=>({ name:e.value, count:e.count })); return [] },[analysisType,associations,tfidf,ngrams,entities])
 
   // Mutators
@@ -529,11 +534,24 @@ export default function App(){
           detectedFileType={pendingFileType}
         />
       )}
-      <aside className='sidebar'>
-        <div className='sidebar-header'>📊 Analyzer</div>
+      <aside className={`sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
+        <div className='sidebar-header'>
+          {!sidebarCollapsed && '📊 Analyzer'}
+          <button 
+            className='sidebar-toggle' 
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            {sidebarCollapsed ? '▶' : '◀'}
+          </button>
+        </div>
         <div className='nav'>
-          <button className={activeView==='dashboard'?'active':''} onClick={()=>setActiveView('dashboard')}>Dashboard</button>
-          <button className={activeView==='editor'?'active':''} onClick={()=>setActiveView('editor')}>Editor</button>
+          <button className={activeView==='dashboard'?'active':''} onClick={()=>setActiveView('dashboard')} title='Dashboard'>
+            {sidebarCollapsed ? '📊' : 'Dashboard'}
+          </button>
+          <button className={activeView==='editor'?'active':''} onClick={()=>setActiveView('editor')} title='Editor'>
+            {sidebarCollapsed ? '✏️' : 'Editor'}
+          </button>
         </div>
         <div style={{padding:'12px 16px', fontSize:11, color:'var(--c-subtle)'}}>v0.3</div>
       </aside>
@@ -594,39 +612,129 @@ export default function App(){
             <div className='analysis-view'>
               {analysisType==='ner' && !libsLoaded && textSamples.length>0 && <div className='alert'>Loading NER model...</div>}
               <div className='panel'>
-                <div className='panel-header'><h3>Live Summary Charts</h3><span className='subtle'>Auto-updates</span></div>
-                <div style={{display:'flex',gap:24,flexWrap:'wrap'}}>
-                  <div style={{flex:'1 1 260px',minWidth:240}} className='chart-box'>
-                    {pieData.length>0 ? <ResponsiveContainer width='100%' height='100%'><PieChart><Pie dataKey='value' data={pieData} outerRadius={90} innerRadius={40} stroke='none'>{pieData.map((_,i)=><Cell key={i} fill={['#ff9900','#0f172a','#0284c7','#475569','#06b6d4','#f59e0b'][i%6]} />)}</Pie></PieChart></ResponsiveContainer> : <div className='skel block' />}
+                <div className='panel-header'>
+                  <h3>Live Summary Charts</h3>
+                  <div style={{display:'flex',alignItems:'center',gap:8}}>
+                    <span className='subtle'>Layout:</span>
+                    <button className='btn secondary' style={{padding:'4px 8px',fontSize:11,background:chartLayout==='single'?'var(--c-accent)':'#e2e8f0',color:chartLayout==='single'?'#111':'#1e293b'}} onClick={()=>setChartLayout('single')}>Single</button>
+                    <button className='btn secondary' style={{padding:'4px 8px',fontSize:11,background:chartLayout==='side-by-side'?'var(--c-accent)':'#e2e8f0',color:chartLayout==='side-by-side'?'#111':'#1e293b'}} onClick={()=>setChartLayout('side-by-side')}>Side-by-Side</button>
+                    <button className='btn secondary' style={{padding:'4px 8px',fontSize:11,background:chartLayout==='grid'?'var(--c-accent)':'#e2e8f0',color:chartLayout==='grid'?'#111':'#1e293b'}} onClick={()=>setChartLayout('grid')}>2x2 Grid</button>
                   </div>
-                  <div style={{flex:'2 1 320px',minWidth:300}} className='chart-box'>
+                </div>
+                <div style={{
+                  display: 'grid',
+                  gap: 24,
+                  gridTemplateColumns: chartLayout === 'single' ? '1fr' : chartLayout === 'side-by-side' ? 'repeat(2, 1fr)' : 'repeat(2, 1fr)',
+                  gridTemplateRows: chartLayout === 'grid' ? 'repeat(2, 1fr)' : 'auto'
+                }}>
+                  <div className='chart-box' style={{minHeight: chartLayout === 'single' ? 320 : 240}}>
                     {barData.length>0 ? <ResponsiveContainer width='100%' height='100%'><BarChart data={barData} margin={{top:10,right:10,bottom:10,left:0}}><XAxis dataKey='name' hide={barData.length>6} tick={{fontSize:11}} interval={0} angle={-20} textAnchor='end'/><YAxis tick={{fontSize:11}} /><Tooltip wrapperStyle={{fontSize:12}}/><Bar dataKey={analysisType==='tfidf'?'score': analysisType==='ngram'?'freq': analysisType==='assoc'?'lift':'count'} radius={[6,6,0,0]} fill='#0f172a'>{barData.map((_,i)=><Cell key={i} fill={['#0f172a','#ff9900','#0284c7','#475569','#06b6d4','#f59e0b'][i%6]} />)}</Bar></BarChart></ResponsiveContainer> : <div className='skel block' />}
                   </div>
+                  {chartLayout !== 'single' && (
+                    <>
+                      <div className='chart-box' style={{minHeight: 240}}>
+                        {wordCloudData.length>0 ? <Suspense fallback={<div className='skel block' /> }><WordCloud data={wordCloudData} /></Suspense> : <div className='skel block' />}
+                      </div>
+                      {chartLayout === 'grid' && (
+                        <>
+                          <div className='chart-box' style={{minHeight: 240}}>
+                            {networkData.nodes.length>0 ? <Suspense fallback={<div className='skel block' /> }><NetworkGraph nodes={networkData.nodes} edges={networkData.edges} /></Suspense> : <div className='skel block' />}
+                          </div>
+                          <div className='chart-box' style={{minHeight: 240}}>
+                            {heatmapData.matrix.length>0 ? <Suspense fallback={<div className='skel block' /> }><Heatmap matrix={heatmapData.matrix} xLabels={heatmapData.xLabels} yLabels={heatmapData.yLabels} /></Suspense> : <div className='skel block' />}
+                          </div>
+                        </>
+                      )}
+                    </>
+                  )}
                 </div>
               </div>
               <div className='panel'>
-                <div className='panel-header'><h3>Details</h3><span className='subtle'>Top results</span></div>
+                <div className='panel-header'>
+                  <h3>Details</h3>
+                  <span className='subtle'>Top results</span>
+                </div>
                 <div style={{display:'flex',flexWrap:'wrap',gap:24}}>
                   <div style={{flex:'1 1 280px',minWidth:260}} className='result-section'>
-                    {analysisType==='tfidf' && tfidf && <><h3>TF-IDF Terms</h3><ol className='result-list'>{tfidf.aggregate.slice(0,40).map(t=> <li key={t.term}>{t.term} <span className='subtle'>({t.score.toFixed(2)})</span></li>)}</ol></>}
-                    {analysisType==='ngram' && <><h3>N-Grams</h3><ol className='result-list'>{ngrams.slice(0,40).map(g=> <li key={g.gram}>{g.gram} <span className='subtle'>({g.count})</span></li>)}</ol></>}
-                    {analysisType==='assoc' && associations && <><h3>Items</h3><ol className='result-list'>{associations.items.slice(0,40).map(i=> <li key={i.item}>{i.item} <span className='subtle'>({(i.support*100).toFixed(1)}%)</span></li>)}</ol></>}
-                    {analysisType==='ner' && <><h3>Entities</h3><ol className='result-list'>{entities.slice(0,40).map(e=> <li key={e.value}>{e.value} <span className='subtle'>({e.count})</span></li>)}</ol></>}
+                    {analysisType==='tfidf' && tfidf && <>
+                      <h3>TF-IDF Terms</h3>
+                      <ol className='result-list'>
+                        {tfidf.aggregate.slice(0, detailsExpanded ? 40 : 10).map(t=> <li key={t.term}>{t.term} <span className='subtle'>({t.score.toFixed(2)})</span></li>)}
+                      </ol>
+                      {tfidf.aggregate.length > 10 && (
+                        <button className='btn secondary' style={{marginTop:8,padding:'4px 10px',fontSize:11}} onClick={()=>setDetailsExpanded(!detailsExpanded)}>
+                          {detailsExpanded ? 'Show Less' : `Show More (${tfidf.aggregate.length - 10} more)`}
+                        </button>
+                      )}
+                    </>}
+                    {analysisType==='ngram' && <>
+                      <h3>N-Grams</h3>
+                      <ol className='result-list'>
+                        {ngrams.slice(0, detailsExpanded ? 40 : 10).map(g=> <li key={g.gram}>{g.gram} <span className='subtle'>({g.count})</span></li>)}
+                      </ol>
+                      {ngrams.length > 10 && (
+                        <button className='btn secondary' style={{marginTop:8,padding:'4px 10px',fontSize:11}} onClick={()=>setDetailsExpanded(!detailsExpanded)}>
+                          {detailsExpanded ? 'Show Less' : `Show More (${ngrams.length - 10} more)`}
+                        </button>
+                      )}
+                    </>}
+                    {analysisType==='assoc' && associations && <>
+                      <h3>Items</h3>
+                      <ol className='result-list'>
+                        {associations.items.slice(0, detailsExpanded ? 40 : 10).map(i=> <li key={i.item}>{i.item} <span className='subtle'>({(i.support*100).toFixed(1)}%)</span></li>)}
+                      </ol>
+                      {associations.items.length > 10 && (
+                        <button className='btn secondary' style={{marginTop:8,padding:'4px 10px',fontSize:11}} onClick={()=>setDetailsExpanded(!detailsExpanded)}>
+                          {detailsExpanded ? 'Show Less' : `Show More (${associations.items.length - 10} more)`}
+                        </button>
+                      )}
+                    </>}
+                    {analysisType==='ner' && <>
+                      <h3>Entities</h3>
+                      <ol className='result-list'>
+                        {entities.slice(0, detailsExpanded ? 40 : 10).map(e=> <li key={e.value}>{e.value} <span className='subtle'>({e.count})</span></li>)}
+                      </ol>
+                      {entities.length > 10 && (
+                        <button className='btn secondary' style={{marginTop:8,padding:'4px 10px',fontSize:11}} onClick={()=>setDetailsExpanded(!detailsExpanded)}>
+                          {detailsExpanded ? 'Show Less' : `Show More (${entities.length - 10} more)`}
+                        </button>
+                      )}
+                    </>}
                   </div>
                   <div style={{flex:'1 1 320px',minWidth:300}} className='result-section'>
-                    {analysisType==='assoc' && associations && <><h3>Pairs (Lift)</h3><ol className='result-list'>{associations.pairs.slice(0,40).map(p=> <li key={p.a+'|'+p.b}>{p.a}+{p.b} <span className='subtle'>lift {p.lift.toFixed(2)}</span></li>)}</ol></>}
-                    {analysisType==='tfidf' && tfidf && <><h3>Doc 1 Top Terms</h3><ol className='result-list'>{(tfidf.perDoc[0]||[]).slice(0,30).map(t=> <li key={t.term}>{t.term} <span className='subtle'>({t.tfidf.toFixed(2)})</span></li>)}</ol></>}
+                    {analysisType==='assoc' && associations && <>
+                      <h3>Pairs (Lift)</h3>
+                      <ol className='result-list'>
+                        {associations.pairs.slice(0, detailsExpanded ? 40 : 10).map(p=> <li key={p.a+'|'+p.b}>{p.a}+{p.b} <span className='subtle'>lift {p.lift.toFixed(2)}</span></li>)}
+                      </ol>
+                      {associations.pairs.length > 10 && (
+                        <button className='btn secondary' style={{marginTop:8,padding:'4px 10px',fontSize:11}} onClick={()=>setDetailsExpanded(!detailsExpanded)}>
+                          {detailsExpanded ? 'Show Less' : `Show More (${associations.pairs.length - 10} more)`}
+                        </button>
+                      )}
+                    </>}
+                    {analysisType==='tfidf' && tfidf && <>
+                      <h3>Doc 1 Top Terms</h3>
+                      <ol className='result-list'>
+                        {(tfidf.perDoc[0]||[]).slice(0, detailsExpanded ? 30 : 10).map(t=> <li key={t.term}>{t.term} <span className='subtle'>({t.tfidf.toFixed(2)})</span></li>)}
+                      </ol>
+                      {(tfidf.perDoc[0]||[]).length > 10 && (
+                        <button className='btn secondary' style={{marginTop:8,padding:'4px 10px',fontSize:11}} onClick={()=>setDetailsExpanded(!detailsExpanded)}>
+                          {detailsExpanded ? 'Show Less' : `Show More (${(tfidf.perDoc[0]||[]).length - 10} more)`}
+                        </button>
+                      )}
+                    </>}
                     {analysisType==='ngram' && <div className='notice'>Switch visualization mode for graphs.</div>}
                     {analysisType==='ner' && <div className='notice'>Aggregated entity counts shown.</div>}
                   </div>
                   <div style={{flex:'1 1 420px',minWidth:360}} className='result-section'>
+                    <div style={{marginBottom:12,display:'flex',gap:6,flexWrap:'wrap'}}>
+                      {['list','wordcloud','network','heatmap'].map(m => <button key={m} className='btn secondary' style={{padding:'4px 10px',fontSize:11,background:viewMode===m?'var(--c-accent)':'#e2e8f0',color:viewMode===m?'#111':'#1e293b'}} onClick={()=>setViewMode(m)}>{m.charAt(0).toUpperCase()+m.slice(1)}</button>)}
+                    </div>
                     {viewMode==='wordcloud' && <Suspense fallback={<div className='skel block' style={{height:300}} /> }><WordCloud data={wordCloudData} /></Suspense>}
                     {viewMode==='network' && <Suspense fallback={<div className='skel block' style={{height:300}} /> }><NetworkGraph nodes={networkData.nodes} edges={networkData.edges} /></Suspense>}
                     {viewMode==='heatmap' && <Suspense fallback={<div className='skel block' style={{height:300}} /> }><Heatmap matrix={heatmapData.matrix} xLabels={heatmapData.xLabels} yLabels={heatmapData.yLabels} /></Suspense>}
                     {viewMode==='list' && <div className='notice'>Choose a visualization mode.</div>}
-                    <div style={{marginTop:12,display:'flex',gap:6,flexWrap:'wrap'}}>
-                      {['list','wordcloud','network','heatmap'].map(m => <button key={m} className='btn secondary' style={{background:viewMode===m?'var(--c-accent)':'#e2e8f0',color:viewMode===m?'#111':'#1e293b'}} onClick={()=>setViewMode(m)}>{m.charAt(0).toUpperCase()+m.slice(1)}</button>)}
-                    </div>
                   </div>
                 </div>
               </div>
