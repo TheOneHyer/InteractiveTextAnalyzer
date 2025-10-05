@@ -1,7 +1,48 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import './ImportPreviewModal.css'
 
 const COLUMN_TYPES = ['text', 'number', 'date', 'boolean']
+
+// Helper function to detect data type from sample values
+const detectColumnType = (rows, column, sampleSize = 10) => {
+  // Get non-empty sample values
+  const samples = rows
+    .map(row => row[column])
+    .filter(val => val !== null && val !== undefined && String(val).trim() !== '')
+    .slice(0, sampleSize)
+  
+  if (samples.length === 0) return 'text'
+  
+  // Check for boolean
+  const booleanValues = ['true', 'false', 'yes', 'no', '1', '0', 't', 'f', 'y', 'n']
+  const isBooleanish = samples.every(val => 
+    booleanValues.includes(String(val).toLowerCase().trim())
+  )
+  if (isBooleanish) return 'boolean'
+  
+  // Check for number
+  const isNumeric = samples.every(val => {
+    const str = String(val).trim()
+    return !isNaN(str) && !isNaN(parseFloat(str))
+  })
+  if (isNumeric) return 'number'
+  
+  // Check for date patterns
+  const datePatterns = [
+    /^\d{4}-\d{2}-\d{2}/, // YYYY-MM-DD
+    /^\d{2}\/\d{2}\/\d{4}/, // MM/DD/YYYY
+    /^\d{2}-\d{2}-\d{4}/, // MM-DD-YYYY
+    /^\d{4}\/\d{2}\/\d{2}/, // YYYY/MM/DD
+  ]
+  const isDateish = samples.every(val => {
+    const str = String(val).trim()
+    return datePatterns.some(pattern => pattern.test(str)) || !isNaN(Date.parse(str))
+  })
+  if (isDateish) return 'date'
+  
+  return 'text'
+}
+
 
 // Eye icon SVG component
 const EyeIcon = ({ visible }) => {
@@ -40,6 +81,7 @@ function ImportPreviewModal({
   const [markedColumns, setMarkedColumns] = useState([])
   const [skipFirstRows, setSkipFirstRows] = useState(0)
   const [removeAfterBlank, setRemoveAfterBlank] = useState(false)
+  const [removeBlankColumns, setRemoveBlankColumns] = useState(false)
   const [autoDetectSynonyms, setAutoDetectSynonyms] = useState(true)
   const [trimWhitespace, setTrimWhitespace] = useState(true)
   const [removeEmptyRows, setRemoveEmptyRows] = useState(true)
@@ -52,10 +94,30 @@ function ImportPreviewModal({
     [workbookData, activeSheet]
   )
   
+  // Auto-detect column types when data changes
+  useEffect(() => {
+    if (currentData.rows.length > 0 && currentData.columns.length > 0) {
+      const detectedTypes = {}
+      currentData.columns.forEach(col => {
+        // Only auto-detect if not already set by user
+        if (!columnTypes[col]) {
+          detectedTypes[col] = detectColumnType(currentData.rows, col)
+        }
+      })
+      if (Object.keys(detectedTypes).length > 0) {
+        setColumnTypes(prev => ({ ...prev, ...detectedTypes }))
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentData])
+  
   // Apply transformations to preview data
   const processedData = useMemo(() => {
     let rows = [...currentData.rows]
     let columns = [...currentData.columns]
+    
+    // Add original index to each row for tracking
+    rows = rows.map((row, idx) => ({ ...row, __originalIndex: idx }))
 
     // Skip first n rows (but protect header row - first row is always header)
     // This means we skip rows AFTER the header
@@ -89,10 +151,8 @@ function ImportPreviewModal({
       }
     }
 
-    // Remove ignored rows by index
-    if (ignoredRows.length > 0) {
-      rows = rows.filter((_, idx) => !ignoredRows.includes(idx))
-    }
+    // Note: We don't filter ignored rows here - they stay visible in preview
+    // with 'row-ignored' styling. They'll be filtered out when data is confirmed.
 
     // Remove columns after first blank if enabled
     if (removeAfterBlank) {
@@ -103,11 +163,24 @@ function ImportPreviewModal({
         columns = columns.slice(0, firstBlankIndex)
       }
     }
+    
+    // Remove blank columns if enabled (columns with all blank values after header)
+    if (removeBlankColumns) {
+      columns = columns.filter(col => {
+        // Skip internal tracking properties
+        if (col.startsWith('__')) return false
+        // Check if any row has a non-blank value for this column
+        return rows.some(row => {
+          const val = row[col]
+          return val !== null && val !== undefined && String(val).trim() !== ''
+        })
+      })
+    }
 
     // Apply whitespace trimming
     if (trimWhitespace) {
       rows = rows.map(row => {
-        const newRow = {}
+        const newRow = { __originalIndex: row.__originalIndex }
         columns.forEach(col => {
           const val = row[col]
           newRow[col] = typeof val === 'string' ? val.trim() : val
@@ -141,7 +214,7 @@ function ImportPreviewModal({
     }
 
     return { rows, columns, columnGroups }
-  }, [currentData, skipFirstRows, removeEmptyRows, removeAfterBlank, trimWhitespace, autoDetectSynonyms, hiddenColumns, ignoredRows, removeAfterIncomplete])
+  }, [currentData, skipFirstRows, removeEmptyRows, removeAfterBlank, removeBlankColumns, trimWhitespace, autoDetectSynonyms, hiddenColumns, removeAfterIncomplete])
 
   const displayRows = processedData.rows.slice(0, rowsToShow)
   const displayColumns = processedData.columns.filter(col => !hiddenColumns.includes(col))
@@ -203,6 +276,7 @@ function ImportPreviewModal({
       markedColumns,
       skipFirstRows,
       removeAfterBlank,
+      removeBlankColumns,
       trimWhitespace,
       removeEmptyRows,
       ignoredRows,
@@ -320,6 +394,14 @@ function ImportPreviewModal({
               <label className="import-checkbox">
                 <input 
                   type="checkbox" 
+                  checked={removeBlankColumns} 
+                  onChange={e => setRemoveBlankColumns(e.target.checked)} 
+                />
+                <span>Remove blank columns (all rows empty)</span>
+              </label>
+              <label className="import-checkbox">
+                <input 
+                  type="checkbox" 
                   checked={autoDetectSynonyms} 
                   onChange={e => setAutoDetectSynonyms(e.target.checked)} 
                 />
@@ -397,7 +479,7 @@ function ImportPreviewModal({
           <div className="import-section">
             <label>
               Data Preview 
-              <span className="subtle"> (showing {displayRows.length} of {processedData.rows.length} rows, {displayColumns.length} of {processedData.columns.length} columns)</span>
+              <span className="subtle"> (showing {displayRows.length} of {processedData.rows.length} rows, {displayColumns.length} of {currentData.columns.length} columns)</span>
             </label>
             <div className="preview-table-container">
               <table className="preview-table">
@@ -411,7 +493,7 @@ function ImportPreviewModal({
                 </thead>
                 <tbody>
                   {displayRows.map((row, idx) => {
-                    const originalIdx = currentData.rows.indexOf(row)
+                    const originalIdx = row.__originalIndex
                     const isIgnored = ignoredRows.includes(originalIdx)
                     return (
                       <tr key={idx} className={isIgnored ? 'row-ignored' : ''}>

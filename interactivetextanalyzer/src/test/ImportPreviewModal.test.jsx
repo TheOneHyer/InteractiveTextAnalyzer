@@ -526,4 +526,443 @@ describe('ImportPreviewModal', () => {
       })
     )
   })
+  
+  it('should fix row selection to work individually', async () => {
+    const dataWithMultipleRows = {
+      'Sheet1': {
+        rows: [
+          { name: 'John', age: '30' },
+          { name: 'Jane', age: '25' },
+          { name: 'Bob', age: '35' },
+          { name: 'Alice', age: '28' },
+        ],
+        columns: ['name', 'age']
+      }
+    }
+    
+    const onClose = vi.fn()
+    const onConfirm = vi.fn()
+    
+    render(
+      <ImportPreviewModal
+        isOpen={true}
+        onClose={onClose}
+        onConfirm={onConfirm}
+        workbookData={dataWithMultipleRows}
+        fileName="test.xlsx"
+        detectedFileType="xlsx"
+      />
+    )
+    
+    // Wait for initial render
+    await waitFor(() => {
+      const checkboxes = screen.getAllByRole('checkbox')
+      const rowCheckboxes = checkboxes.filter(cb => cb.getAttribute('title') === 'Ignore this row')
+      expect(rowCheckboxes.length).toBe(4)
+    })
+    
+    // Get initial state - all should be unchecked
+    let checkboxes = screen.getAllByRole('checkbox')
+    let rowCheckboxes = checkboxes.filter(cb => cb.getAttribute('title') === 'Ignore this row')
+    expect(rowCheckboxes[0]).not.toBeChecked()
+    expect(rowCheckboxes[1]).not.toBeChecked()
+    expect(rowCheckboxes[2]).not.toBeChecked()
+    expect(rowCheckboxes[3]).not.toBeChecked()
+    
+    // Select first row only
+    fireEvent.click(rowCheckboxes[0])
+    
+    // Wait for state to update
+    await waitFor(() => {
+      const checkboxes = screen.getAllByRole('checkbox')
+      const rowCheckboxes = checkboxes.filter(cb => cb.getAttribute('title') === 'Ignore this row')
+      expect(rowCheckboxes[0]).toBeChecked()
+    })
+    
+    // Verify only first row is checked
+    checkboxes = screen.getAllByRole('checkbox')
+    rowCheckboxes = checkboxes.filter(cb => cb.getAttribute('title') === 'Ignore this row')
+    expect(rowCheckboxes[0]).toBeChecked()
+    expect(rowCheckboxes[1]).not.toBeChecked()
+    expect(rowCheckboxes[2]).not.toBeChecked()
+    expect(rowCheckboxes[3]).not.toBeChecked()
+  })
+  
+  it('should remove blank columns when option is enabled', async () => {
+    const dataWithBlankColumn = {
+      'Sheet1': {
+        rows: [
+          { name: 'John', age: '30', empty: '', email: 'john@example.com' },
+          { name: 'Jane', age: '25', empty: '', email: 'jane@example.com' },
+          { name: 'Bob', age: '35', empty: '', email: 'bob@example.com' },
+        ],
+        columns: ['name', 'age', 'empty', 'email']
+      }
+    }
+    
+    const onClose = vi.fn()
+    const onConfirm = vi.fn()
+    
+    render(
+      <ImportPreviewModal
+        isOpen={true}
+        onClose={onClose}
+        onConfirm={onConfirm}
+        workbookData={dataWithBlankColumn}
+        fileName="test.xlsx"
+        detectedFileType="xlsx"
+      />
+    )
+    
+    // Initially, all 4 columns should be visible
+    let previewText = screen.getByText(/showing .* columns/)
+    expect(previewText.textContent).toMatch(/4 of 4 columns/)
+    
+    // Enable removeBlankColumns
+    const blankColumnsCheckbox = screen.getByLabelText('Remove blank columns (all rows empty)')
+    fireEvent.click(blankColumnsCheckbox)
+    
+    await waitFor(() => {
+      expect(blankColumnsCheckbox).toBeChecked()
+    })
+    
+    // Now should show 3 of 4 columns (empty column removed)
+    previewText = screen.getByText(/showing .* columns/)
+    expect(previewText.textContent).toMatch(/3 of 4 columns/)
+    
+    const importButton = screen.getByText('Import Data')
+    fireEvent.click(importButton)
+    
+    expect(onConfirm).toHaveBeenCalledWith(
+      expect.objectContaining({
+        removeBlankColumns: true
+      })
+    )
+  })
+  
+  it('should keep columns with at least one non-blank value', async () => {
+    const dataWithSparseColumn = {
+      'Sheet1': {
+        rows: [
+          { name: 'John', age: '30', notes: '' },
+          { name: 'Jane', age: '25', notes: 'Has comment' },
+          { name: 'Bob', age: '35', notes: '' },
+        ],
+        columns: ['name', 'age', 'notes']
+      }
+    }
+    
+    const onClose = vi.fn()
+    const onConfirm = vi.fn()
+    
+    render(
+      <ImportPreviewModal
+        isOpen={true}
+        onClose={onClose}
+        onConfirm={onConfirm}
+        workbookData={dataWithSparseColumn}
+        fileName="test.xlsx"
+        detectedFileType="xlsx"
+      />
+    )
+    
+    // Enable removeBlankColumns
+    const blankColumnsCheckbox = screen.getByLabelText('Remove blank columns (all rows empty)')
+    fireEvent.click(blankColumnsCheckbox)
+    
+    await waitFor(() => {
+      expect(blankColumnsCheckbox).toBeChecked()
+    })
+    
+    // All 3 columns should still be visible (notes has one non-blank value)
+    const previewText = screen.getByText(/showing .* columns/)
+    expect(previewText.textContent).toMatch(/3 of 3 columns/)
+  })
+  
+  it('should auto-detect numeric column types', async () => {
+    const dataWithNumbers = {
+      'Sheet1': {
+        rows: [
+          { name: 'John', age: '30', score: '95.5' },
+          { name: 'Jane', age: '25', score: '87.3' },
+          { name: 'Bob', age: '35', score: '92.1' },
+        ],
+        columns: ['name', 'age', 'score']
+      }
+    }
+    
+    const onClose = vi.fn()
+    const onConfirm = vi.fn()
+    
+    render(
+      <ImportPreviewModal
+        isOpen={true}
+        onClose={onClose}
+        onConfirm={onConfirm}
+        workbookData={dataWithNumbers}
+        fileName="test.xlsx"
+        detectedFileType="xlsx"
+      />
+    )
+    
+    // Wait for auto-detection to complete
+    await waitFor(() => {
+      const typeSelects = screen.getAllByRole('combobox')
+      const columnTypeSelects = typeSelects.filter(select => 
+        select.className.includes('column-type-select')
+      )
+      // age and score columns should be detected as numbers
+      expect(columnTypeSelects.length).toBeGreaterThan(0)
+    })
+    
+    const importButton = screen.getByText('Import Data')
+    fireEvent.click(importButton)
+    
+    expect(onConfirm).toHaveBeenCalledWith(
+      expect.objectContaining({
+        columnTypes: expect.objectContaining({
+          age: 'number',
+          score: 'number'
+        })
+      })
+    )
+  })
+  
+  it('should auto-detect boolean column types', async () => {
+    const dataWithBooleans = {
+      'Sheet1': {
+        rows: [
+          { name: 'John', active: 'true', verified: 'yes' },
+          { name: 'Jane', active: 'false', verified: 'no' },
+          { name: 'Bob', active: 'true', verified: 'yes' },
+        ],
+        columns: ['name', 'active', 'verified']
+      }
+    }
+    
+    const onClose = vi.fn()
+    const onConfirm = vi.fn()
+    
+    render(
+      <ImportPreviewModal
+        isOpen={true}
+        onClose={onClose}
+        onConfirm={onConfirm}
+        workbookData={dataWithBooleans}
+        fileName="test.xlsx"
+        detectedFileType="xlsx"
+      />
+    )
+    
+    // Wait for auto-detection
+    await waitFor(() => {
+      const typeSelects = screen.getAllByRole('combobox')
+      expect(typeSelects.length).toBeGreaterThan(0)
+    })
+    
+    const importButton = screen.getByText('Import Data')
+    fireEvent.click(importButton)
+    
+    expect(onConfirm).toHaveBeenCalledWith(
+      expect.objectContaining({
+        columnTypes: expect.objectContaining({
+          active: 'boolean',
+          verified: 'boolean'
+        })
+      })
+    )
+  })
+  
+  it('should auto-detect date column types', async () => {
+    const dataWithDates = {
+      'Sheet1': {
+        rows: [
+          { name: 'John', birthdate: '2000-01-15', registered: '01/15/2020' },
+          { name: 'Jane', birthdate: '1995-05-20', registered: '05/20/2019' },
+          { name: 'Bob', birthdate: '1988-12-10', registered: '12/10/2018' },
+        ],
+        columns: ['name', 'birthdate', 'registered']
+      }
+    }
+    
+    const onClose = vi.fn()
+    const onConfirm = vi.fn()
+    
+    render(
+      <ImportPreviewModal
+        isOpen={true}
+        onClose={onClose}
+        onConfirm={onConfirm}
+        workbookData={dataWithDates}
+        fileName="test.xlsx"
+        detectedFileType="xlsx"
+      />
+    )
+    
+    // Wait for auto-detection
+    await waitFor(() => {
+      const typeSelects = screen.getAllByRole('combobox')
+      expect(typeSelects.length).toBeGreaterThan(0)
+    })
+    
+    const importButton = screen.getByText('Import Data')
+    fireEvent.click(importButton)
+    
+    expect(onConfirm).toHaveBeenCalledWith(
+      expect.objectContaining({
+        columnTypes: expect.objectContaining({
+          birthdate: 'date',
+          registered: 'date'
+        })
+      })
+    )
+  })
+  
+  it('should default to text type for mixed content', async () => {
+    const dataWithMixed = {
+      'Sheet1': {
+        rows: [
+          { name: 'John', value: '123' },
+          { name: 'Jane', value: 'abc' },
+          { name: 'Bob', value: '456' },
+        ],
+        columns: ['name', 'value']
+      }
+    }
+    
+    const onClose = vi.fn()
+    const onConfirm = vi.fn()
+    
+    render(
+      <ImportPreviewModal
+        isOpen={true}
+        onClose={onClose}
+        onConfirm={onConfirm}
+        workbookData={dataWithMixed}
+        fileName="test.xlsx"
+        detectedFileType="xlsx"
+      />
+    )
+    
+    // Wait for auto-detection
+    await waitFor(() => {
+      const typeSelects = screen.getAllByRole('combobox')
+      expect(typeSelects.length).toBeGreaterThan(0)
+    })
+    
+    const importButton = screen.getByText('Import Data')
+    fireEvent.click(importButton)
+    
+    expect(onConfirm).toHaveBeenCalledWith(
+      expect.objectContaining({
+        columnTypes: expect.objectContaining({
+          value: 'text'
+        })
+      })
+    )
+  })
+  
+  it('should allow manual override of auto-detected column types', async () => {
+    const dataWithNumbers = {
+      'Sheet1': {
+        rows: [
+          { name: 'John', age: '30' },
+          { name: 'Jane', age: '25' },
+        ],
+        columns: ['name', 'age']
+      }
+    }
+    
+    const onClose = vi.fn()
+    const onConfirm = vi.fn()
+    
+    render(
+      <ImportPreviewModal
+        isOpen={true}
+        onClose={onClose}
+        onConfirm={onConfirm}
+        workbookData={dataWithNumbers}
+        fileName="test.xlsx"
+        detectedFileType="xlsx"
+      />
+    )
+    
+    // Wait for auto-detection
+    await waitFor(() => {
+      const typeSelects = screen.getAllByRole('combobox')
+      expect(typeSelects.length).toBeGreaterThan(0)
+    })
+    
+    // Find the age column type select and change it to text
+    const typeSelects = screen.getAllByRole('combobox')
+    const columnTypeSelects = typeSelects.filter(select => 
+      select.className.includes('column-type-select')
+    )
+    
+    // Change the second column (age) from number to text
+    fireEvent.change(columnTypeSelects[1], { target: { value: 'text' } })
+    
+    await waitFor(() => {
+      expect(columnTypeSelects[1].value).toBe('text')
+    })
+    
+    const importButton = screen.getByText('Import Data')
+    fireEvent.click(importButton)
+    
+    expect(onConfirm).toHaveBeenCalledWith(
+      expect.objectContaining({
+        columnTypes: expect.objectContaining({
+          age: 'text'
+        })
+      })
+    )
+  })
+  
+  it('should handle row selection after empty row removal', async () => {
+    const dataWithEmpty = {
+      'Sheet1': {
+        rows: [
+          { name: 'John', age: '30' },
+          { name: '', age: '' }, // Empty row
+          { name: 'Jane', age: '25' },
+        ],
+        columns: ['name', 'age']
+      }
+    }
+    
+    const onClose = vi.fn()
+    const onConfirm = vi.fn()
+    
+    render(
+      <ImportPreviewModal
+        isOpen={true}
+        onClose={onClose}
+        onConfirm={onConfirm}
+        workbookData={dataWithEmpty}
+        fileName="test.xlsx"
+        detectedFileType="xlsx"
+      />
+    )
+    
+    // Empty row is removed by default, so we should only see John and Jane
+    let checkboxes = screen.getAllByRole('checkbox')
+    let rowCheckboxes = checkboxes.filter(cb => cb.getAttribute('title') === 'Ignore this row')
+    
+    // We should have 2 row checkboxes (empty row removed)
+    expect(rowCheckboxes.length).toBe(2)
+    
+    // Select Jane's row (second visible row)
+    fireEvent.click(rowCheckboxes[1])
+    
+    await waitFor(() => {
+      checkboxes = screen.getAllByRole('checkbox')
+      rowCheckboxes = checkboxes.filter(cb => cb.getAttribute('title') === 'Ignore this row')
+      expect(rowCheckboxes[1]).toBeChecked()
+    })
+    
+    // Get fresh checkboxes and verify John's row is not checked
+    checkboxes = screen.getAllByRole('checkbox')
+    rowCheckboxes = checkboxes.filter(cb => cb.getAttribute('title') === 'Ignore this row')
+    expect(rowCheckboxes[0]).not.toBeChecked()
+  })
 })
