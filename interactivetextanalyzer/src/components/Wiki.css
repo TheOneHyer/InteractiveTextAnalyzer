@@ -81,3 +81,31 @@
   color: var(--c-text);
   margin-bottom: 8px;
 }
+
+.wiki-source {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--c-border);
+  font-size: 13px;
+  color: var(--c-subtle);
+  font-style: italic;
+}
+
+.wiki-source strong {
+  color: var(--c-text);
+  font-style: normal;
+}
+
+.wiki-source a {
+  color: var(--c-accent);
+  text-decoration: none;
+  word-break: break-all;
+}
+
+.wiki-source a:hover {
+  text-decoration: underline;
+}
+
+.wiki-source em {
+  font-style: italic;
+}

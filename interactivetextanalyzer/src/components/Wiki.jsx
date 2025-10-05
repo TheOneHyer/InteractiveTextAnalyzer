@@ -18,6 +18,9 @@ export default function Wiki() {
             that has been combined from your selected columns. More documents generally provide 
             more robust analysis results.
           </p>
+          <p className='wiki-source'>
+            <strong>Source:</strong> Manning, C. D., Raghavan, P., & Schütze, H. (2008). <em>Introduction to Information Retrieval</em>. Cambridge University Press.
+          </p>
         </div>
 
         <div className='wiki-item'>
@@ -27,6 +30,9 @@ export default function Wiki() {
             Tokenization is the first step in text analysis, breaking down sentences into 
             individual units. The token count gives you a sense of the total volume of text 
             being analyzed.
+          </p>
+          <p className='wiki-source'>
+            <strong>Source:</strong> Jurafsky, D., & Martin, J. H. (2023). <em>Speech and Language Processing</em> (3rd ed.). Chapter 2: Regular Expressions, Text Normalization, Edit Distance.
           </p>
         </div>
 
@@ -38,6 +44,9 @@ export default function Wiki() {
             it's unique phrase combinations, and for NER it's unique named entities. A higher 
             unique count indicates more vocabulary diversity.
           </p>
+          <p className='wiki-source'>
+            <strong>Source:</strong> Zipf, G. K. (1949). <em>Human Behavior and the Principle of Least Effort</em>. Addison-Wesley.
+          </p>
         </div>
 
         <div className='wiki-item'>
@@ -45,6 +54,9 @@ export default function Wiki() {
           <p>
             The currently active analysis algorithm. Different modes reveal different insights 
             about your text data. Choose the mode that best suits your analytical goals.
+          </p>
+          <p className='wiki-source'>
+            <strong>Source:</strong> Aggarwal, C. C., & Zhai, C. (2012). <em>Mining Text Data</em>. Springer.
           </p>
         </div>
       </section>
@@ -73,6 +85,9 @@ export default function Wiki() {
             terms for distinguishing documents. Look at the per-document results to see what 
             makes each document unique.
           </p>
+          <p className='wiki-source'>
+            <strong>Source:</strong> Salton, G., & Buckley, C. (1988). Term-weighting approaches in automatic text retrieval. <em>Information Processing & Management</em>, 24(5), 513-523. <a href="https://doi.org/10.1016/0306-4573(88)90021-0" target="_blank" rel="noopener noreferrer">https://doi.org/10.1016/0306-4573(88)90021-0</a>
+          </p>
         </div>
 
         <div className='wiki-item'>
@@ -96,6 +111,9 @@ export default function Wiki() {
             <strong>Interpreting results:</strong> The most frequent n-grams reveal the key 
             phrases and expressions in your corpus. Higher N values capture longer phrases but 
             may have lower frequencies.
+          </p>
+          <p className='wiki-source'>
+            <strong>Source:</strong> Cavnar, W. B., & Trenkle, J. M. (1994). N-gram-based text categorization. In <em>Proceedings of SDAIR-94, 3rd Annual Symposium on Document Analysis and Information Retrieval</em> (pp. 161-175).
           </p>
         </div>
 
@@ -125,6 +143,9 @@ export default function Wiki() {
           <p>
             <strong>Interpreting results:</strong> High lift values indicate strong associations. 
             Adjust the minimum support threshold to control how common terms must be to be included.
+          </p>
+          <p className='wiki-source'>
+            <strong>Source:</strong> Agrawal, R., Imieliński, T., & Swami, A. (1993). Mining association rules between sets of items in large databases. In <em>ACM SIGMOD Record</em>, 22(2), 207-216. <a href="https://doi.org/10.1145/170036.170072" target="_blank" rel="noopener noreferrer">https://doi.org/10.1145/170036.170072</a>
           </p>
         </div>
 
@@ -161,6 +182,9 @@ export default function Wiki() {
             <strong>Note:</strong> NER requires loading an additional NLP library and may take 
             a moment to initialize on first use.
           </p>
+          <p className='wiki-source'>
+            <strong>Source:</strong> Nadeau, D., & Sekine, S. (2007). A survey of named entity recognition and classification. <em>Lingvisticae Investigationes</em>, 30(1), 3-26. <a href="https://doi.org/10.1075/li.30.1.03nad" target="_blank" rel="noopener noreferrer">https://doi.org/10.1075/li.30.1.03nad</a>
+          </p>
         </div>
       </section>
 
@@ -174,6 +198,9 @@ export default function Wiki() {
             This helps group related terms together but may occasionally produce unexpected results. 
             Enable for more consolidated results, disable for exact word matching.
           </p>
+          <p className='wiki-source'>
+            <strong>Source:</strong> Porter, M. F. (1980). An algorithm for suffix stripping. <em>Program</em>, 14(3), 130-137. <a href="https://doi.org/10.1108/eb046814" target="_blank" rel="noopener noreferrer">https://doi.org/10.1108/eb046814</a>
+          </p>
         </div>
 
         <div className='wiki-item'>
@@ -184,6 +211,9 @@ export default function Wiki() {
             your own comma-separated terms in the text area. More stopwords = cleaner results 
             focused on content words.
           </p>
+          <p className='wiki-source'>
+            <strong>Source:</strong> Fox, C. (1990). A stop list for general text. <em>ACM SIGIR Forum</em>, 24(1-2), 19-21. <a href="https://doi.org/10.1145/378881.378888" target="_blank" rel="noopener noreferrer">https://doi.org/10.1145/378881.378888</a>
+          </p>
         </div>
 
         <div className='wiki-item'>
@@ -193,6 +223,9 @@ export default function Wiki() {
             N=3 finds three-word phrases (trigrams), etc. Lower values find more frequent patterns, 
             higher values find more specific phrases.
           </p>
+          <p className='wiki-source'>
+            <strong>Source:</strong> Shannon, C. E. (1948). A mathematical theory of communication. <em>The Bell System Technical Journal</em>, 27(3), 379-423. <a href="https://doi.org/10.1002/j.1538-7305.1948.tb01338.x" target="_blank" rel="noopener noreferrer">https://doi.org/10.1002/j.1538-7305.1948.tb01338.x</a>
+          </p>
         </div>
 
         <div className='wiki-item'>
@@ -201,6 +234,9 @@ export default function Wiki() {
             The minimum frequency threshold (as a decimal, e.g., 0.02 = 2%) for terms and pairs 
             to be included in the analysis. Lower values include more rare terms, higher values 
             focus on common patterns. Adjust based on your corpus size and analytical goals.
+          </p>
+          <p className='wiki-source'>
+            <strong>Source:</strong> Han, J., Pei, J., & Kamber, M. (2011). <em>Data Mining: Concepts and Techniques</em> (3rd ed.). Morgan Kaufmann.
           </p>
         </div>
       </section>
@@ -215,6 +251,9 @@ export default function Wiki() {
             frequency, lift, or count depending on analysis mode). Great for quickly identifying 
             the most significant elements.
           </p>
+          <p className='wiki-source'>
+            <strong>Source:</strong> Cleveland, W. S. (1985). <em>The Elements of Graphing Data</em>. Wadsworth Advanced Books and Software.
+          </p>
         </div>
 
         <div className='wiki-item'>
@@ -223,6 +262,9 @@ export default function Wiki() {
             Visual representation where term size corresponds to importance or frequency. 
             Provides an intuitive at-a-glance view of your text's main themes. Larger words 
             are more significant in your corpus.
+          </p>
+          <p className='wiki-source'>
+            <strong>Source:</strong> Viégas, F. B., Wattenberg, M., & Feinberg, J. (2009). Participatory visualization with wordle. <em>IEEE Transactions on Visualization and Computer Graphics</em>, 15(6), 1137-1144. <a href="https://doi.org/10.1109/TVCG.2009.171" target="_blank" rel="noopener noreferrer">https://doi.org/10.1109/TVCG.2009.171</a>
           </p>
         </div>
 
@@ -233,6 +275,9 @@ export default function Wiki() {
             terms, edges represent associations, and edge thickness indicates lift strength. 
             Useful for understanding how concepts relate to each other.
           </p>
+          <p className='wiki-source'>
+            <strong>Source:</strong> Newman, M. E. (2010). <em>Networks: An Introduction</em>. Oxford University Press. <a href="https://doi.org/10.1093/acprof:oso/9780199206650.001.0001" target="_blank" rel="noopener noreferrer">https://doi.org/10.1093/acprof:oso/9780199206650.001.0001</a>
+          </p>
         </div>
 
         <div className='wiki-item'>
@@ -241,6 +286,9 @@ export default function Wiki() {
             Matrix visualization showing term distributions across documents (available in TF-IDF mode). 
             Darker colors indicate higher TF-IDF scores. Helps identify which terms characterize 
             which documents.
+          </p>
+          <p className='wiki-source'>
+            <strong>Source:</strong> Wilkinson, L., & Friendly, M. (2009). The history of the cluster heat map. <em>The American Statistician</em>, 63(2), 179-184. <a href="https://doi.org/10.1198/tas.2009.0033" target="_blank" rel="noopener noreferrer">https://doi.org/10.1198/tas.2009.0033</a>
           </p>
         </div>
       </section>
@@ -256,6 +304,9 @@ export default function Wiki() {
             <li>Use <strong>Associations</strong> when discovering which terms co-occur frequently</li>
             <li>Use <strong>NER</strong> when you need to extract specific entities like names and places</li>
           </ul>
+          <p className='wiki-source'>
+            <strong>Source:</strong> Feldman, R., & Sanger, J. (2007). <em>The Text Mining Handbook: Advanced Approaches in Analyzing Unstructured Data</em>. Cambridge University Press.
+          </p>
         </div>
 
         <div className='wiki-item'>
@@ -264,6 +315,9 @@ export default function Wiki() {
             Better input data leads to better results. Clean your text data by removing irrelevant 
             content, fixing encoding issues, and ensuring consistent formatting. Select only the 
             columns that contain meaningful text for analysis.
+          </p>
+          <p className='wiki-source'>
+            <strong>Source:</strong> Rahm, E., & Do, H. H. (2000). Data cleaning: Problems and current approaches. <em>IEEE Data Engineering Bulletin</em>, 23(4), 3-13.
           </p>
         </div>
 
@@ -274,6 +328,9 @@ export default function Wiki() {
             parameters (stopwords, stemming, thresholds), and re-analyze. Different settings may 
             reveal different insights.
           </p>
+          <p className='wiki-source'>
+            <strong>Source:</strong> Hearst, M. A. (1999). Untangling text data mining. In <em>Proceedings of the 37th Annual Meeting of the Association for Computational Linguistics</em> (pp. 3-10). <a href="https://doi.org/10.3115/1034678.1034679" target="_blank" rel="noopener noreferrer">https://doi.org/10.3115/1034678.1034679</a>
+          </p>
         </div>
 
         <div className='wiki-item'>
@@ -282,6 +339,9 @@ export default function Wiki() {
             Don't rely on just one analysis mode. Try multiple approaches on the same data to 
             get a comprehensive understanding. Use the different visualization layouts (single, 
             side-by-side, 2x2 grid) to compare results efficiently.
+          </p>
+          <p className='wiki-source'>
+            <strong>Source:</strong> Few, S. (2012). <em>Show Me the Numbers: Designing Tables and Graphs to Enlighten</em> (2nd ed.). Analytics Press.
           </p>
         </div>
       </section>
