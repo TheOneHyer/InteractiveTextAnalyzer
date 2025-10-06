@@ -1803,41 +1803,58 @@ export default function App(){
                     </div>
                   </div>
                 )}
-                {/* Column Type Management */}
+                {/* Column Types and Categorical Columns - Side by Side */}
                 {currentColumns.length > 0 && (
-                  <div style={{marginBottom:20}}>
-                    <h4 style={{marginBottom:10}}>
-                      Column Types
-                      <button 
-                        className='btn secondary' 
-                        style={{fontSize:11,padding:'2px 8px',marginLeft:8}}
-                        onClick={() => {
-                          const detected = detectCategoricalColumns(currentRows, currentColumns)
-                          setCategoricalColumns(prev => {
-                            const combined = [...new Set([...prev, ...detected])]
-                            return combined
-                          })
-                        }}
-                      >
-                        Auto-Detect Categorical
-                      </button>
-                    </h4>
-                    <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
-                      {currentColumns.map(col => (
-                        <div key={col} style={{display:'flex',alignItems:'center',gap:6,background:'var(--c-bg)',padding:'6px 10px',borderRadius:8,border:'1px solid var(--c-border)'}}>
-                          <span style={{fontSize:13,fontWeight:500}}>{col}</span>
-                          <select 
-                            value={columnTypes[col] || 'text'}
-                            onChange={(e) => setColumnTypes(prev => ({ ...prev, [col]: e.target.value }))}
-                            style={{padding:'2px 6px',fontSize:11,border:'1px solid var(--c-border)',borderRadius:4,background:'var(--c-surface)',color:'var(--c-text)'}}
-                          >
-                            <option value="text">text</option>
-                            <option value="number">number</option>
-                            <option value="date">date</option>
-                            <option value="boolean">boolean</option>
-                          </select>
-                        </div>
-                      ))}
+                  <div className="editor-sections-container" style={{marginBottom:20}}>
+                    {/* Column Type Management */}
+                    <div>
+                      <h4 style={{marginBottom:10}}>
+                        Column Types
+                        <button 
+                          className='btn secondary' 
+                          style={{fontSize:11,padding:'2px 8px',marginLeft:8}}
+                          onClick={() => {
+                            const detected = detectCategoricalColumns(currentRows, currentColumns)
+                            setCategoricalColumns(prev => {
+                              const combined = [...new Set([...prev, ...detected])]
+                              return combined
+                            })
+                          }}
+                        >
+                          Auto-Detect Categorical
+                        </button>
+                      </h4>
+                      <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
+                        {currentColumns.map(col => (
+                          <div key={col} style={{display:'flex',alignItems:'center',gap:6,background:'var(--c-bg)',padding:'6px 10px',borderRadius:8,border:'1px solid var(--c-border)'}}>
+                            <span style={{fontSize:13,fontWeight:500}}>{col}</span>
+                            <select 
+                              value={columnTypes[col] || 'text'}
+                              onChange={(e) => setColumnTypes(prev => ({ ...prev, [col]: e.target.value }))}
+                              style={{padding:'2px 6px',fontSize:11,border:'1px solid var(--c-border)',borderRadius:4,background:'var(--c-surface)',color:'var(--c-text)'}}
+                            >
+                              <option value="text">text</option>
+                              <option value="number">number</option>
+                              <option value="date">date</option>
+                              <option value="boolean">boolean</option>
+                            </select>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    {/* Categorical Column Selection */}
+                    <div>
+                      <h4 style={{marginBottom:10}}>Categorical Columns</h4>
+                      <p style={{fontSize:12,color:'var(--c-text-muted)',marginBottom:8}}>Flag columns for categorical filtering (keeps original data type)</p>
+                      <SimpleColumnSelector 
+                        columns={currentColumns} 
+                        selectedColumns={categoricalColumns} 
+                        toggleColumn={(col) => {
+                          setCategoricalColumns(prev => 
+                            prev.includes(col) ? prev.filter(c => c !== col) : [...prev, col]
+                          )
+                        }} 
+                      />
                     </div>
                   </div>
                 )}
@@ -1850,22 +1867,6 @@ export default function App(){
                       columns={currentColumns} 
                       selectedColumns={selectedColumns} 
                       toggleColumn={selectColumnForText} 
-                    />
-                  </div>
-                )}
-                {/* Categorical Column Selection */}
-                {currentColumns.length > 0 && (
-                  <div style={{marginBottom:20}}>
-                    <h4 style={{marginBottom:10}}>Categorical Columns</h4>
-                    <p style={{fontSize:12,color:'var(--c-text-muted)',marginBottom:8}}>Flag columns for categorical filtering (keeps original data type)</p>
-                    <SimpleColumnSelector 
-                      columns={currentColumns} 
-                      selectedColumns={categoricalColumns} 
-                      toggleColumn={(col) => {
-                        setCategoricalColumns(prev => 
-                          prev.includes(col) ? prev.filter(c => c !== col) : [...prev, col]
-                        )
-                      }} 
                     />
                   </div>
                 )}

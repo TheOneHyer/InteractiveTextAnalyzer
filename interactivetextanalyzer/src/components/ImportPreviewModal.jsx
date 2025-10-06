@@ -412,8 +412,10 @@ function ImportPreviewModal({
                 <label htmlFor="import-rowstoshow">Rows to Preview</label>
                 <select id="import-rowstoshow" value={rowsToShow} onChange={e => setRowsToShow(Number(e.target.value))}>
                   <option value={10}>10 rows</option>
+                  <option value={20}>20 rows</option>
                   <option value={50}>50 rows</option>
                   <option value={100}>100 rows</option>
+                  <option value={200}>200 rows</option>
                 </select>
               </div>
             </div>
@@ -511,105 +513,108 @@ function ImportPreviewModal({
             </div>
           </div>
 
-          {/* Column Configuration */}
-          <div className="import-section">
-            <label>Column Configuration</label>
-            <div className="column-config-grid">
-              <div className="column-config-header">
-                <span>Column Name</span>
-                <span>Type</span>
-                <span>Mark for Analysis</span>
-                <span>Visibility</span>
-              </div>
-              <div className="column-config-list">
-                {processedData.columns.map(col => {
-                  const synonyms = getSynonymousColumns(col)
-                  const hasSynonyms = synonyms.length > 1
-                  return (
-                    <div key={col} className={`column-config-row ${hasSynonyms ? 'has-synonyms' : ''}`}>
-                      <div className="column-name">
-                        {col}
-                        {hasSynonyms && (
-                          <span className="synonym-badge" title={`Similar to: ${synonyms.filter(s => s !== col).join(', ')}`}>
-                            ~{synonyms.length}
-                          </span>
-                        )}
-                      </div>
-                      <select 
-                        value={columnTypes[col] || 'text'} 
-                        onChange={e => setColumnType(col, e.target.value)}
-                        className="column-type-select"
-                      >
-                        {COLUMN_TYPES.map(type => (
-                          <option key={type} value={type}>{type}</option>
-                        ))}
-                      </select>
-                      <button 
-                        className={`mark-btn ${markedColumns.includes(col) ? 'marked' : ''}`}
-                        onClick={() => toggleColumnMark(col)}
-                      >
-                        {markedColumns.includes(col) ? '✓' : '○'}
-                      </button>
-                      <button 
-                        className={`visibility-btn ${hiddenColumns.includes(col) ? 'hidden' : 'visible'}`}
-                        onClick={() => toggleColumnVisibility(col)}
-                        title={hiddenColumns.includes(col) ? 'Show column' : 'Hide column'}
-                      >
-                        <EyeIcon visible={!hiddenColumns.includes(col)} />
-                      </button>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          </div>
-
-          {/* Categorical Filters */}
-          {(() => {
-            const categCols = processedData.columns.filter(col => 
-              (categoricalColumns.includes(col) || columnTypes[col] === 'boolean')
-            )
-            return categCols.length > 0 ? (
-              <div className="import-section">
-                <label>Categorical Filters</label>
-                <div className="categorical-filters">
-                  {categCols.map(col => {
-                    const values = getCategoricalValuesForColumn(col)
-                    const selectedValues = categoricalFilters[col] || []
+          {/* Column Configuration and Categorical Filters - Side by Side */}
+          <div className="config-and-filters-container">
+            {/* Column Configuration */}
+            <div className="import-section">
+              <label>Column Configuration</label>
+              <div className="column-config-grid">
+                <div className="column-config-header">
+                  <span>Column Name</span>
+                  <span>Type</span>
+                  <span>Mark for Analysis</span>
+                  <span>Visibility</span>
+                </div>
+                <div className="column-config-list">
+                  {processedData.columns.map(col => {
+                    const synonyms = getSynonymousColumns(col)
+                    const hasSynonyms = synonyms.length > 1
                     return (
-                      <div key={col} className="categorical-filter-group">
-                        <div className="categorical-filter-header">
-                          <strong>{col}</strong>
-                          <span className="subtle">({values.length} unique)</span>
+                      <div key={col} className={`column-config-row ${hasSynonyms ? 'has-synonyms' : ''}`}>
+                        <div className="column-name">
+                          {col}
+                          {hasSynonyms && (
+                            <span className="synonym-badge" title={`Similar to: ${synonyms.filter(s => s !== col).join(', ')}`}>
+                              ~{synonyms.length}
+                            </span>
+                          )}
                         </div>
-                        <div className="categorical-filter-values">
-                          {values.map(value => (
-                            <label key={value} className="categorical-filter-option">
-                              <input
-                                type="checkbox"
-                                checked={selectedValues.length === 0 || selectedValues.includes(value)}
-                                onChange={() => toggleCategoricalFilter(col, value)}
-                              />
-                              <span>{value}</span>
-                            </label>
+                        <select 
+                          value={columnTypes[col] || 'text'} 
+                          onChange={e => setColumnType(col, e.target.value)}
+                          className="column-type-select"
+                        >
+                          {COLUMN_TYPES.map(type => (
+                            <option key={type} value={type}>{type}</option>
                           ))}
-                        </div>
-                        {selectedValues.length > 0 && (
-                          <button 
-                            className="btn secondary" 
-                            style={{ fontSize: 11, padding: '2px 8px', marginTop: 4 }}
-                            onClick={() => setCategoricalFilters(prev => ({ ...prev, [col]: [] }))}
-                          >
-                            Clear Filter
-                          </button>
-                        )}
+                        </select>
+                        <button 
+                          className={`mark-btn ${markedColumns.includes(col) ? 'marked' : ''}`}
+                          onClick={() => toggleColumnMark(col)}
+                        >
+                          {markedColumns.includes(col) ? '✓' : '○'}
+                        </button>
+                        <button 
+                          className={`visibility-btn ${hiddenColumns.includes(col) ? 'hidden' : 'visible'}`}
+                          onClick={() => toggleColumnVisibility(col)}
+                          title={hiddenColumns.includes(col) ? 'Show column' : 'Hide column'}
+                        >
+                          <EyeIcon visible={!hiddenColumns.includes(col)} />
+                        </button>
                       </div>
                     )
                   })}
                 </div>
               </div>
-            ) : null
-          })()}
+            </div>
+
+            {/* Categorical Filters */}
+            {(() => {
+              const categCols = processedData.columns.filter(col => 
+                (categoricalColumns.includes(col) || columnTypes[col] === 'boolean')
+              )
+              return categCols.length > 0 ? (
+                <div className="import-section">
+                  <label>Categorical Filters</label>
+                  <div className="categorical-filters">
+                    {categCols.map(col => {
+                      const values = getCategoricalValuesForColumn(col)
+                      const selectedValues = categoricalFilters[col] || []
+                      return (
+                        <div key={col} className="categorical-filter-group">
+                          <div className="categorical-filter-header">
+                            <strong>{col}</strong>
+                            <span className="subtle">({values.length} unique)</span>
+                          </div>
+                          <div className="categorical-filter-values">
+                            {values.map(value => (
+                              <label key={value} className="categorical-filter-option">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedValues.length === 0 || selectedValues.includes(value)}
+                                  onChange={() => toggleCategoricalFilter(col, value)}
+                                />
+                                <span>{value}</span>
+                              </label>
+                            ))}
+                          </div>
+                          {selectedValues.length > 0 && (
+                            <button 
+                              className="btn secondary" 
+                              style={{ fontSize: 11, padding: '2px 8px', marginTop: 4 }}
+                              onClick={() => setCategoricalFilters(prev => ({ ...prev, [col]: [] }))}
+                            >
+                              Clear Filter
+                            </button>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              ) : null
+            })()}
+          </div>
 
           {/* Data Preview */}
           <div className="import-section">

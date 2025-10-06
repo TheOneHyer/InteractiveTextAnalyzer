@@ -16,8 +16,8 @@
 .import-modal {
   background: var(--c-surface);
   border-radius: 16px;
-  width: 90vw;
-  max-width: 1200px;
+  width: 85vw;
+  max-width: 1400px;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
@@ -363,7 +363,7 @@
   border: 1px solid var(--c-border);
   border-radius: 10px;
   overflow: auto;
-  max-height: 400px;
+  max-height: 500px;
   background: var(--c-surface);
 }
 
@@ -376,6 +376,28 @@
   border: 1px solid var(--c-border);
   border-radius: 10px;
   padding: 12px;
+}
+
+/* Side-by-side layout for column config and categorical filters */
+.config-and-filters-container {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.config-and-filters-container > .import-section {
+  flex: 1;
+  min-width: 400px;
+}
+
+@media (max-width: 900px) {
+  .config-and-filters-container {
+    flex-direction: column;
+  }
+  
+  .config-and-filters-container > .import-section {
+    min-width: 0;
+  }
 }
 
 .categorical-filter-group {
