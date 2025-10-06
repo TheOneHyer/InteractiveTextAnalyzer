@@ -184,9 +184,10 @@ describe('applyDataTransformation', () => {
       }
       
       const result = applyDataTransformation(testData, transformation)
-      expect(result.Sheet1.rows).toHaveLength(2)
-      expect(result.Sheet1.rows[0].col1).toBe('a')
-      expect(result.Sheet1.rows[1].col1).toBe('g')
+      expect(result.newData.Sheet1.rows).toHaveLength(2)
+      expect(result.newData.Sheet1.rows[0].col1).toBe('a')
+      expect(result.newData.Sheet1.rows[1].col1).toBe('g')
+      expect(result.actionDescription).toContain('Deleted')
     })
 
     it('should delete multiple rows', () => {
@@ -197,8 +198,9 @@ describe('applyDataTransformation', () => {
       }
       
       const result = applyDataTransformation(testData, transformation)
-      expect(result.Sheet1.rows).toHaveLength(1)
-      expect(result.Sheet1.rows[0].col1).toBe('d')
+      expect(result.newData.Sheet1.rows).toHaveLength(1)
+      expect(result.newData.Sheet1.rows[0].col1).toBe('d')
+      expect(result.actionDescription).toContain('Deleted')
     })
   })
 
@@ -211,9 +213,10 @@ describe('applyDataTransformation', () => {
       }
       
       const result = applyDataTransformation(testData, transformation)
-      expect(result.Sheet1.columns).toEqual(['col1', 'col3'])
-      expect(result.Sheet1.rows[0]).toEqual({ col1: 'a', col3: 'c' })
-      expect(result.Sheet1.rows[0].col2).toBeUndefined()
+      expect(result.newData.Sheet1.columns).toEqual(['col1', 'col3'])
+      expect(result.newData.Sheet1.rows[0]).toEqual({ col1: 'a', col3: 'c' })
+      expect(result.newData.Sheet1.rows[0].col2).toBeUndefined()
+      expect(result.actionDescription).toContain('Deleted column')
     })
   })
 
@@ -227,9 +230,10 @@ describe('applyDataTransformation', () => {
       }
       
       const result = applyDataTransformation(testData, transformation)
-      expect(result.Sheet1.columns).toEqual(['col1', 'newCol2', 'col3'])
-      expect(result.Sheet1.rows[0].newCol2).toBe('b')
-      expect(result.Sheet1.rows[0].col2).toBeUndefined()
+      expect(result.newData.Sheet1.columns).toEqual(['col1', 'newCol2', 'col3'])
+      expect(result.newData.Sheet1.rows[0].newCol2).toBe('b')
+      expect(result.newData.Sheet1.rows[0].col2).toBeUndefined()
+      expect(result.actionDescription).toContain('Renamed column')
     })
   })
 
@@ -244,7 +248,8 @@ describe('applyDataTransformation', () => {
       }
       
       const result = applyDataTransformation(testData, transformation)
-      expect(result.Sheet1.rows[1].col2).toBe('updated')
+      expect(result.newData.Sheet1.rows[1].col2).toBe('updated')
+      expect(result.actionDescription).toContain('Updated cell')
     })
   })
 
@@ -261,5 +266,107 @@ describe('applyDataTransformation', () => {
       applyDataTransformation(testData, transformation)
       expect(testData).toEqual(originalCopy)
     })
+  })
+  
+  describe('action descriptions', () => {
+    it('should return descriptive action for DELETE_COLUMN', () => {
+      const transformation = {
+        type: 'DELETE_COLUMN',
+        sheetName: 'Sheet1',
+        columnName: 'testCol'
+      }
+      
+      const result = applyDataTransformation(testData, transformation)
+      expect(result.actionDescription).toBe('Deleted column: testCol')
+    })
+    
+    it('should return descriptive action for RENAME_COLUMN', () => {
+      const transformation = {
+        type: 'RENAME_COLUMN',
+        sheetName: 'Sheet1',
+        oldName: 'oldCol',
+        newName: 'newCol'
+      }
+      
+      const result = applyDataTransformation(testData, transformation)
+      expect(result.actionDescription).toBe('Renamed column: oldCol → newCol')
+    })
+    
+    it('should return descriptive action for DELETE_ROW', () => {
+      const transformation = {
+        type: 'DELETE_ROW',
+        sheetName: 'Sheet1',
+        rowIndices: [0, 1, 2]
+      }
+      
+      const result = applyDataTransformation(testData, transformation)
+      expect(result.actionDescription).toBe('Deleted 3 row(s)')
+    })
+    
+    it('should return descriptive action for TRANSFORM_COLUMN', () => {
+      const transformation = {
+        type: 'TRANSFORM_COLUMN',
+        sheetName: 'Sheet1',
+        columnName: 'col1',
+        transformType: 'uppercase'
+      }
+      
+      const result = applyDataTransformation(testData, transformation)
+      expect(result.actionDescription).toBe('Transformed column col1 to uppercase')
+    })
+    
+    it('should return descriptive action for SET_COLUMN_TYPE', () => {
+      const transformation = {
+        type: 'SET_COLUMN_TYPE',
+        sheetName: 'Sheet1',
+        columnName: 'col1',
+        columnType: 'categorical'
+      }
+      
+      const result = applyDataTransformation(testData, transformation)
+      expect(result.actionDescription).toBe('Set col1 as categorical')
+    })
+  })
+})
+
+describe('History with action descriptions', () => {
+  let manager
+  let testData
+  
+  beforeEach(() => {
+    manager = new DataVersionManager()
+    testData = {
+      'Sheet1': {
+        columns: ['col1', 'col2', 'col3'],
+        rows: [
+          { col1: 'a', col2: 'b', col3: 'c' },
+          { col1: 'd', col2: 'e', col3: 'f' }
+        ]
+      }
+    }
+  })
+  
+  it('should store action descriptions with versions', () => {
+    manager.initialize(testData)
+    
+    const newData = JSON.parse(JSON.stringify(testData))
+    newData.Sheet1.rows.push({ col1: 'g', col2: 'h', col3: 'i' })
+    
+    manager.pushVersion(newData, 'Added new row')
+    
+    const history = manager.getHistoryWithSummaries()
+    expect(history).toHaveLength(2)
+    expect(history[0].summary).toBe('Initial data load')
+    expect(history[1].summary).toBe('Added new row')
+  })
+  
+  it('should use action descriptions in history summaries', () => {
+    manager.initialize(testData)
+    manager.pushVersion(testData, 'Renamed column: old → new')
+    manager.pushVersion(testData, 'Deleted column: test')
+    
+    const history = manager.getHistoryWithSummaries()
+    expect(history[1].summary).toBe('Renamed column: old → new')
+    expect(history[2].summary).toBe('Deleted column: test')
   })
 })

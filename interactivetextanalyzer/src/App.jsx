@@ -329,7 +329,7 @@ function HistoryModal({ isOpen, onClose, versionManager, onJumpToVersion }) {
   
   return (
     <div className='modal-overlay' onClick={onClose}>
-      <div className='modal-content' onClick={(e) => e.stopPropagation()} style={{maxWidth: 600, maxHeight: '80vh', overflow: 'auto'}}>
+      <div className='modal-content' onClick={(e) => e.stopPropagation()}>
         <div className='modal-header'>
           <h2>Version History</h2>
           <button className='modal-close' onClick={onClose}>×</button>
@@ -544,26 +544,243 @@ export default function App(){
   }
 
   const loadSampleExcel=async()=>{ 
-    const s1=[{id:1,category:'Books',review:'Great narrative and engaging characters',sentiment:'positive'},{id:2,category:'Books',review:'Predictable plot and slow middle section',sentiment:'negative'},{id:3,category:'Books',review:'Informative reference with clear diagrams',sentiment:'positive'}]
-    const s2=[{id:1,product:'Headphones',notes:'Crisp sound quality but fragile hinges',rating:4},{id:2,product:'Headphones',notes:'Muffled bass and short battery life',rating:2},{id:3,product:'Monitor',notes:'Sharp resolution; colors accurate out of box',rating:5}]
-    const s3=[{ticket:101,channel:'Email',message:'Cannot reset password after multiple attempts'},{ticket:102,channel:'Chat',message:'Payment failed although card is valid'},{ticket:103,channel:'Email',message:'Requesting refund due to defective item'}]
+    // Generate diverse review data with 200+ rows
+    const reviewData = [
+      // Books - Diverse reviews with variety
+      {id:1,category:'Books',review:'Great narrative and engaging characters',sentiment:'positive'},
+      {id:2,category:'Books',review:'Predictable plot and slow middle section',sentiment:'negative'},
+      {id:3,category:'Books',review:'Informative reference with clear diagrams',sentiment:'positive'},
+      {id:4,category:'Books',review:'The protagonist journey was deeply moving and authentic',sentiment:'positive'},
+      {id:5,category:'Books',review:'Too many subplots diluted the main storyline',sentiment:'negative'},
+      {id:6,category:'Books',review:'Masterful world-building with intricate details',sentiment:'positive'},
+      {id:7,category:'Books',review:'Dialogue felt forced and unnatural throughout',sentiment:'negative'},
+      {id:8,category:'Books',review:'Historical accuracy combined with gripping storytelling',sentiment:'positive'},
+      {id:9,category:'Books',review:'The ending was rushed and unsatisfying',sentiment:'negative'},
+      {id:10,category:'Books',review:'Beautifully written prose that flows like poetry',sentiment:'positive'},
+      {id:11,category:'Books',review:'Character development was shallow and one-dimensional',sentiment:'negative'},
+      {id:12,category:'Books',review:'Page-turner that kept me up all night reading',sentiment:'positive'},
+      {id:13,category:'Books',review:'Overly descriptive passages slowed down the pace',sentiment:'negative'},
+      {id:14,category:'Books',review:'The mystery unfolded perfectly with clever clues',sentiment:'positive'},
+      {id:15,category:'Books',review:'Plot holes big enough to drive a truck through',sentiment:'negative'},
+      {id:16,category:'Books',review:'Emotional depth that resonated with my experiences',sentiment:'positive'},
+      {id:17,category:'Books',review:'Clichéd tropes and predictable romance subplot',sentiment:'negative'},
+      {id:18,category:'Books',review:'Thought-provoking themes about society and humanity',sentiment:'positive'},
+      {id:19,category:'Books',review:'The pacing was uneven with boring chapters',sentiment:'negative'},
+      {id:20,category:'Books',review:'Exceptional character arcs with meaningful growth',sentiment:'positive'},
+      
+      // Electronics - Product reviews with specific details
+      {id:21,category:'Electronics',review:'Crystal clear sound quality exceeded expectations',sentiment:'positive'},
+      {id:22,category:'Electronics',review:'Battery died after only 3 months of use',sentiment:'negative'},
+      {id:23,category:'Electronics',review:'Setup was intuitive and took less than 5 minutes',sentiment:'positive'},
+      {id:24,category:'Electronics',review:'Constant Bluetooth connectivity issues with my phone',sentiment:'negative'},
+      {id:25,category:'Electronics',review:'The display is vibrant with excellent color accuracy',sentiment:'positive'},
+      {id:26,category:'Electronics',review:'Overheats during extended gaming sessions',sentiment:'negative'},
+      {id:27,category:'Electronics',review:'Premium build quality with metal chassis',sentiment:'positive'},
+      {id:28,category:'Electronics',review:'Arrived with scratches on the screen',sentiment:'negative'},
+      {id:29,category:'Electronics',review:'Fast charging feature is incredibly convenient',sentiment:'positive'},
+      {id:30,category:'Electronics',review:'Speakers produce tinny sound at high volume',sentiment:'negative'},
+      {id:31,category:'Electronics',review:'Lightweight design perfect for travel',sentiment:'positive'},
+      {id:32,category:'Electronics',review:'Poor WiFi range compared to other devices',sentiment:'negative'},
+      {id:33,category:'Electronics',review:'The camera takes stunning photos in low light',sentiment:'positive'},
+      {id:34,category:'Electronics',review:'Laggy interface makes basic tasks frustrating',sentiment:'negative'},
+      {id:35,category:'Electronics',review:'Water resistant and survived accidental drops',sentiment:'positive'},
+      {id:36,category:'Electronics',review:'Cheap plastic feels like it will break easily',sentiment:'negative'},
+      {id:37,category:'Electronics',review:'Long battery life lasts multiple days',sentiment:'positive'},
+      {id:38,category:'Electronics',review:'Software updates caused more bugs than fixes',sentiment:'negative'},
+      {id:39,category:'Electronics',review:'Responsive touchscreen with smooth gestures',sentiment:'positive'},
+      {id:40,category:'Electronics',review:'Expensive price not justified by features',sentiment:'negative'},
+      
+      // Restaurants - Food experiences
+      {id:41,category:'Restaurants',review:'The pasta was perfectly al dente with rich sauce',sentiment:'positive'},
+      {id:42,category:'Restaurants',review:'Service was slow and staff seemed overwhelmed',sentiment:'negative'},
+      {id:43,category:'Restaurants',review:'Ambiance was cozy with excellent music selection',sentiment:'positive'},
+      {id:44,category:'Restaurants',review:'Food arrived cold and had to be sent back',sentiment:'negative'},
+      {id:45,category:'Restaurants',review:'Fresh ingredients and creative flavor combinations',sentiment:'positive'},
+      {id:46,category:'Restaurants',review:'Portions were tiny for the high prices',sentiment:'negative'},
+      {id:47,category:'Restaurants',review:'Wine pairing recommendations were spot on',sentiment:'positive'},
+      {id:48,category:'Restaurants',review:'Kitchen ran out of multiple menu items early',sentiment:'negative'},
+      {id:49,category:'Restaurants',review:'Dessert presentation was beautiful and delicious',sentiment:'positive'},
+      {id:50,category:'Restaurants',review:'Found a hair in my salad, very disappointing',sentiment:'negative'},
+      {id:51,category:'Restaurants',review:'Chef personally checked on our experience',sentiment:'positive'},
+      {id:52,category:'Restaurants',review:'Noisy atmosphere made conversation impossible',sentiment:'negative'},
+      {id:53,category:'Restaurants',review:'Vegetarian options were creative not afterthoughts',sentiment:'positive'},
+      {id:54,category:'Restaurants',review:'Waited 45 minutes past reservation time',sentiment:'negative'},
+      {id:55,category:'Restaurants',review:'Exceptional value for the quality of food',sentiment:'positive'},
+      {id:56,category:'Restaurants',review:'Menu was confusing with unclear descriptions',sentiment:'negative'},
+      {id:57,category:'Restaurants',review:'Seasonal menu showcases local farm ingredients',sentiment:'positive'},
+      {id:58,category:'Restaurants',review:'Server was rude when asked about allergens',sentiment:'negative'},
+      {id:59,category:'Restaurants',review:'Cocktails were expertly crafted and balanced',sentiment:'positive'},
+      {id:60,category:'Restaurants',review:'Bathroom was dirty which raised hygiene concerns',sentiment:'negative'},
+      
+      // Hotels - Travel accommodations
+      {id:61,category:'Hotels',review:'Room was spotlessly clean with comfortable bed',sentiment:'positive'},
+      {id:62,category:'Hotels',review:'Noisy neighbors kept us awake all night',sentiment:'negative'},
+      {id:63,category:'Hotels',review:'Staff went above and beyond for special requests',sentiment:'positive'},
+      {id:64,category:'Hotels',review:'AC was broken during a heat wave',sentiment:'negative'},
+      {id:65,category:'Hotels',review:'Stunning ocean view from the balcony',sentiment:'positive'},
+      {id:66,category:'Hotels',review:'Hidden fees doubled the advertised price',sentiment:'negative'},
+      {id:67,category:'Hotels',review:'Complimentary breakfast had great variety',sentiment:'positive'},
+      {id:68,category:'Hotels',review:'WiFi was unreliable and kept disconnecting',sentiment:'negative'},
+      {id:69,category:'Hotels',review:'Pool area was relaxing and well-maintained',sentiment:'positive'},
+      {id:70,category:'Hotels',review:'Elevator was out of service for entire stay',sentiment:'negative'},
+      {id:71,category:'Hotels',review:'Concierge provided excellent local recommendations',sentiment:'positive'},
+      {id:72,category:'Hotels',review:'Shower had no hot water multiple mornings',sentiment:'negative'},
+      {id:73,category:'Hotels',review:'Convenient location walking distance to attractions',sentiment:'positive'},
+      {id:74,category:'Hotels',review:'Parking garage was confusing and poorly lit',sentiment:'negative'},
+      {id:75,category:'Hotels',review:'Spa services were rejuvenating and professional',sentiment:'positive'},
+      {id:76,category:'Hotels',review:'Room smelled musty despite air fresheners',sentiment:'negative'},
+      {id:77,category:'Hotels',review:'Rooftop bar had amazing city views',sentiment:'positive'},
+      {id:78,category:'Hotels',review:'Front desk lost our reservation confirmation',sentiment:'negative'},
+      {id:79,category:'Hotels',review:'Upgraded us to a suite as a nice surprise',sentiment:'positive'},
+      {id:80,category:'Hotels',review:'Construction noise started at 6am daily',sentiment:'negative'},
+      
+      // Movies - Film reviews
+      {id:81,category:'Movies',review:'Cinematography was absolutely breathtaking',sentiment:'positive'},
+      {id:82,category:'Movies',review:'Plot made no sense and left too many questions',sentiment:'negative'},
+      {id:83,category:'Movies',review:'Lead actor delivered an Oscar-worthy performance',sentiment:'positive'},
+      {id:84,category:'Movies',review:'Special effects looked cheap and unconvincing',sentiment:'negative'},
+      {id:85,category:'Movies',review:'Original soundtrack enhanced every scene perfectly',sentiment:'positive'},
+      {id:86,category:'Movies',review:'Pacing dragged in the second act endlessly',sentiment:'negative'},
+      {id:87,category:'Movies',review:'Clever twists kept me guessing until the end',sentiment:'positive'},
+      {id:88,category:'Movies',review:'Dialogue was cringeworthy and unrealistic',sentiment:'negative'},
+      {id:89,category:'Movies',review:'Directing choices created powerful emotional moments',sentiment:'positive'},
+      {id:90,category:'Movies',review:'Unnecessary sequel that added nothing new',sentiment:'negative'},
+      {id:91,category:'Movies',review:'Supporting cast brought depth to minor characters',sentiment:'positive'},
+      {id:92,category:'Movies',review:'Editing was choppy with jarring transitions',sentiment:'negative'},
+      {id:93,category:'Movies',review:'Costume design captured the era authentically',sentiment:'positive'},
+      {id:94,category:'Movies',review:'Predictable ending visible from first 10 minutes',sentiment:'negative'},
+      {id:95,category:'Movies',review:'Brilliant satire that resonated with current events',sentiment:'positive'},
+      {id:96,category:'Movies',review:'Humor fell flat with outdated jokes',sentiment:'negative'},
+      {id:97,category:'Movies',review:'Action sequences were choreographed masterfully',sentiment:'positive'},
+      {id:98,category:'Movies',review:'Runtime was bloated could have been 30 minutes shorter',sentiment:'negative'},
+      {id:99,category:'Movies',review:'Emotional climax brought tears to my eyes',sentiment:'positive'},
+      {id:100,category:'Movies',review:'Sequel ignored established lore from original',sentiment:'negative'},
+      
+      // Software - Application reviews
+      {id:101,category:'Software',review:'User interface is clean and intuitive',sentiment:'positive'},
+      {id:102,category:'Software',review:'Crashes frequently losing unsaved work',sentiment:'negative'},
+      {id:103,category:'Software',review:'Regular updates add useful new features',sentiment:'positive'},
+      {id:104,category:'Software',review:'Customer support is unresponsive to tickets',sentiment:'negative'},
+      {id:105,category:'Software',review:'Integration with other tools works seamlessly',sentiment:'positive'},
+      {id:106,category:'Software',review:'Steep learning curve with poor documentation',sentiment:'negative'},
+      {id:107,category:'Software',review:'Performance is fast even with large datasets',sentiment:'positive'},
+      {id:108,category:'Software',review:'Subscription price increased without warning',sentiment:'negative'},
+      {id:109,category:'Software',review:'Mobile app syncs perfectly with desktop version',sentiment:'positive'},
+      {id:110,category:'Software',review:'Export feature corrupts files regularly',sentiment:'negative'},
+      {id:111,category:'Software',review:'Keyboard shortcuts boost productivity significantly',sentiment:'positive'},
+      {id:112,category:'Software',review:'Ads are intrusive in the free tier',sentiment:'negative'},
+      {id:113,category:'Software',review:'Collaboration features make teamwork effortless',sentiment:'positive'},
+      {id:114,category:'Software',review:'Login issues persist for weeks unresolved',sentiment:'negative'},
+      {id:115,category:'Software',review:'Dark mode option is easy on the eyes',sentiment:'positive'},
+      {id:116,category:'Software',review:'Missing basic features competitors have',sentiment:'negative'},
+      {id:117,category:'Software',review:'Customization options suit different workflows',sentiment:'positive'},
+      {id:118,category:'Software',review:'Data privacy policy raises red flags',sentiment:'negative'},
+      {id:119,category:'Software',review:'Offline mode works without internet perfectly',sentiment:'positive'},
+      {id:120,category:'Software',review:'Resource heavy slows down entire computer',sentiment:'negative'},
+      
+      // Games - Video game reviews
+      {id:121,category:'Games',review:'Gameplay mechanics are innovative and addictive',sentiment:'positive'},
+      {id:122,category:'Games',review:'Pay-to-win monetization ruins balance',sentiment:'negative'},
+      {id:123,category:'Games',review:'Graphics are stunning with realistic lighting',sentiment:'positive'},
+      {id:124,category:'Games',review:'Server lag makes multiplayer unplayable',sentiment:'negative'},
+      {id:125,category:'Games',review:'Story campaign is engaging with memorable characters',sentiment:'positive'},
+      {id:126,category:'Games',review:'Bugs break main questline progression',sentiment:'negative'},
+      {id:127,category:'Games',review:'Sound design creates immersive atmosphere',sentiment:'positive'},
+      {id:128,category:'Games',review:'Tutorial is confusing for new players',sentiment:'negative'},
+      {id:129,category:'Games',review:'Replayability is high with different playstyles',sentiment:'positive'},
+      {id:130,category:'Games',review:'Matchmaking pairs unfair skill levels',sentiment:'negative'},
+      {id:131,category:'Games',review:'DLC content adds substantial new areas',sentiment:'positive'},
+      {id:132,category:'Games',review:'Microtransactions feel predatory targeting kids',sentiment:'negative'},
+      {id:133,category:'Games',review:'Controls are responsive and well-mapped',sentiment:'positive'},
+      {id:134,category:'Games',review:'Difficulty spike makes it frustratingly hard',sentiment:'negative'},
+      {id:135,category:'Games',review:'Community events keep the game fresh',sentiment:'positive'},
+      {id:136,category:'Games',review:'Toxic player base ruins online experience',sentiment:'negative'},
+      {id:137,category:'Games',review:'Level design is creative with hidden secrets',sentiment:'positive'},
+      {id:138,category:'Games',review:'Save system loses progress randomly',sentiment:'negative'},
+      {id:139,category:'Games',review:'Boss battles are epic and challenging',sentiment:'positive'},
+      {id:140,category:'Games',review:'Loading times are excessively long',sentiment:'negative'},
+      
+      // Weird/Edge Cases - Testing unusual inputs
+      {id:141,category:'???',review:'zzz睡觉 sleep zzz mixed languages and symbols',sentiment:'neutral'},
+      {id:142,category:'Books',review:'ALLLLLLL CAPSSSSSS EXCESSIVE PUNCTUATION!!!!!!!',sentiment:'positive'},
+      {id:143,category:'Electronics',review:'...just dots... nothing else... just dots...',sentiment:'negative'},
+      {id:144,category:'Restaurants',review:'One word',sentiment:'positive'},
+      {id:145,category:'Hotels',review:'',sentiment:'neutral'},
+      {id:146,category:'Movies',review:'12345 67890 numbers only review strange',sentiment:'negative'},
+      {id:147,category:'Software',review:'emoji 😀 😁 😂 🤣 😃 😄 review with lots of emoji 🎉🎊🎈',sentiment:'positive'},
+      {id:148,category:'Games',review:'ThisIsOneReallyLongWordWithNoSpacesAtAllToTestEdgeCases',sentiment:'neutral'},
+      {id:149,category:'Books',review:'Mix3d numb3r5 w1th l3tt3rs l33t sp34k st7le',sentiment:'positive'},
+      {id:150,category:'Electronics',review:'Repeated repeated repeated repeated repeated repeated',sentiment:'negative'},
+      {id:151,category:'Restaurants',review:'SO MANY EXCLAMATION MARKS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!',sentiment:'positive'},
+      {id:152,category:'Hotels',review:'question marks???? why???? so???? many????',sentiment:'negative'},
+      {id:153,category:'Movies',review:'Special chars @#$%^&*() testing symbols',sentiment:'neutral'},
+      {id:154,category:'Software',review:'Very very very very very very very very very long repeating words',sentiment:'positive'},
+      {id:155,category:'Games',review:'unicode 测试 тест テスト परीक्षण 테스트 test',sentiment:'positive'},
+      {id:156,category:'Books',review:'nospacesbetweenanywordsatallinthisreviewtotestparser',sentiment:'negative'},
+      {id:157,category:'Electronics',review:'<html><body>HTML tags in review</body></html>',sentiment:'negative'},
+      {id:158,category:'Restaurants',review:'Review; with; many; semicolons; everywhere; strange;',sentiment:'neutral'},
+      {id:159,category:'Hotels',review:'"Quoted" entire "review" with "many" "quotes"',sentiment:'positive'},
+      {id:160,category:'Movies',review:'Tab\tseparated\treview\twith\ttabs\tinside',sentiment:'negative'},
+      
+      // More standard reviews to reach 200+
+      {id:161,category:'Books',review:'Compelling thriller with unexpected revelations',sentiment:'positive'},
+      {id:162,category:'Electronics',review:'Ergonomic design reduces hand fatigue',sentiment:'positive'},
+      {id:163,category:'Restaurants',review:'Authentic flavors transport you to Italy',sentiment:'positive'},
+      {id:164,category:'Hotels',review:'Family-friendly with kids activities',sentiment:'positive'},
+      {id:165,category:'Movies',review:'Documentary was eye-opening and informative',sentiment:'positive'},
+      {id:166,category:'Software',review:'Backup feature saved me from data loss',sentiment:'positive'},
+      {id:167,category:'Games',review:'Crossplay allows gaming with friends anywhere',sentiment:'positive'},
+      {id:168,category:'Books',review:'Research was thorough and well-cited',sentiment:'positive'},
+      {id:169,category:'Electronics',review:'Firmware updates improved functionality',sentiment:'positive'},
+      {id:170,category:'Restaurants',review:'Gluten-free options were plentiful and tasty',sentiment:'positive'},
+      {id:171,category:'Hotels',review:'Business center had everything needed',sentiment:'positive'},
+      {id:172,category:'Movies',review:'Ending left room for sequel possibilities',sentiment:'positive'},
+      {id:173,category:'Software',review:'Templates save time on repetitive tasks',sentiment:'positive'},
+      {id:174,category:'Games',review:'Character customization is incredibly detailed',sentiment:'positive'},
+      {id:175,category:'Books',review:'Illustrations complemented the text beautifully',sentiment:'positive'},
+      {id:176,category:'Electronics',review:'Warranty coverage gave peace of mind',sentiment:'positive'},
+      {id:177,category:'Restaurants',review:'Sommelier knowledge enhanced the dining',sentiment:'positive'},
+      {id:178,category:'Hotels',review:'Quiet neighborhood perfect for relaxing',sentiment:'positive'},
+      {id:179,category:'Movies',review:'Remake honored original while adding freshness',sentiment:'positive'},
+      {id:180,category:'Software',review:'Version control prevents file conflicts',sentiment:'positive'},
+      {id:181,category:'Games',review:'Tutorial teaches mechanics through gameplay',sentiment:'positive'},
+      {id:182,category:'Books',review:'Translation preserved original meaning well',sentiment:'positive'},
+      {id:183,category:'Electronics',review:'Accessories included no extra purchases needed',sentiment:'positive'},
+      {id:184,category:'Restaurants',review:'Takeout packaging kept food hot and secure',sentiment:'positive'},
+      {id:185,category:'Hotels',review:'Pet-friendly policies welcomed our dog',sentiment:'positive'},
+      {id:186,category:'Movies',review:'Bonus features provided behind-scenes insights',sentiment:'positive'},
+      {id:187,category:'Software',review:'API documentation is comprehensive and clear',sentiment:'positive'},
+      {id:188,category:'Games',review:'Seasonal content keeps me coming back',sentiment:'positive'},
+      {id:189,category:'Books',review:'Bibliography pointed to more great reads',sentiment:'positive'},
+      {id:190,category:'Electronics',review:'Customer service replaced defective unit quickly',sentiment:'positive'},
+      {id:191,category:'Restaurants',review:'Outdoor seating area was lovely in summer',sentiment:'positive'},
+      {id:192,category:'Hotels',review:'Turndown service was a nice touch',sentiment:'positive'},
+      {id:193,category:'Movies',review:'Cameo appearances delighted longtime fans',sentiment:'positive'},
+      {id:194,category:'Software',review:'Training resources helped team adoption',sentiment:'positive'},
+      {id:195,category:'Games',review:'Accessibility options make it inclusive',sentiment:'positive'},
+      {id:196,category:'Books',review:'Book club discussion questions sparked conversation',sentiment:'positive'},
+      {id:197,category:'Electronics',review:'Energy efficient reduces electricity costs',sentiment:'positive'},
+      {id:198,category:'Restaurants',review:'Happy hour deals offer excellent value',sentiment:'positive'},
+      {id:199,category:'Hotels',review:'Loyalty program rewards repeat guests',sentiment:'positive'},
+      {id:200,category:'Movies',review:'Post-credits scene teased exciting continuation',sentiment:'positive'},
+      {id:201,category:'Software',review:'Security features protect sensitive data',sentiment:'positive'},
+      {id:202,category:'Games',review:'Physics engine creates realistic interactions',sentiment:'positive'},
+      {id:203,category:'Books',review:'Cover art captured the essence perfectly',sentiment:'positive'},
+      {id:204,category:'Electronics',review:'Compatible with legacy devices surprisingly',sentiment:'positive'},
+      {id:205,category:'Restaurants',review:'Reservation system worked smoothly online',sentiment:'positive'},
+      {id:206,category:'Hotels',review:'Check-in process was quick and efficient',sentiment:'positive'},
+      {id:207,category:'Movies',review:'Soundtrack album worth purchasing separately',sentiment:'positive'},
+      {id:208,category:'Software',review:'Bulk operations handle large workloads',sentiment:'positive'},
+      {id:209,category:'Games',review:'Mod support extends gameplay possibilities',sentiment:'positive'},
+      {id:210,category:'Books',review:'Author Q&A section answered my questions',sentiment:'positive'}
+    ]
     
     const workbook = new ExcelJS.Workbook()
     
-    // Add Reviews sheet
+    // Add Reviews sheet with all data
     const sheet1 = workbook.addWorksheet('Reviews')
-    sheet1.columns = Object.keys(s1[0]).map(key => ({ header: key, key }))
-    s1.forEach(row => sheet1.addRow(row))
-    
-    // Add Products sheet
-    const sheet2 = workbook.addWorksheet('Products')
-    sheet2.columns = Object.keys(s2[0]).map(key => ({ header: key, key }))
-    s2.forEach(row => sheet2.addRow(row))
-    
-    // Add Support sheet
-    const sheet3 = workbook.addWorksheet('Support')
-    sheet3.columns = Object.keys(s3[0]).map(key => ({ header: key, key }))
-    s3.forEach(row => sheet3.addRow(row))
+    sheet1.columns = Object.keys(reviewData[0]).map(key => ({ header: key, key }))
+    reviewData.forEach(row => sheet1.addRow(row))
     
     // Convert to buffer and parse
     const buffer = await workbook.xlsx.writeBuffer()
@@ -584,6 +801,13 @@ export default function App(){
     setSelectedColumns([])
     setHiddenColumns([])
     setRenames({})
+    
+    // Auto-detect categorical columns
+    const firstSheet = parsed.worksheets[0]?.name
+    if (firstSheet && obj[firstSheet]) {
+      const detected = detectCategoricalColumns(obj[firstSheet].rows, obj[firstSheet].columns)
+      setColumnTypes(detected)
+    }
   }
 
   const handleFile=e=>{ 
@@ -648,6 +872,23 @@ export default function App(){
     setShowImportModal(false)
     setPendingImportData(null)
   }
+
+  // Auto-detect categorical columns based on unique value count
+  const detectCategoricalColumns = useCallback((rows, columns) => {
+    const detected = {}
+    columns.forEach(col => {
+      const uniqueValues = new Set(
+        rows.map(row => row[col])
+          .filter(val => val !== null && val !== undefined && String(val).trim() !== '')
+          .map(normalizeValue)
+      )
+      // Auto-detect as categorical if 5 or fewer unique values
+      if (uniqueValues.size > 0 && uniqueValues.size <= 5) {
+        detected[col] = 'categorical'
+      }
+    })
+    return detected
+  }, [])
 
   const handleImportCancel = () => {
     setShowImportModal(false)
@@ -797,8 +1038,9 @@ export default function App(){
   
   // Data manipulation functions
   const applyTransformation = (transformation) => {
-    const newData = applyDataTransformation(workbookData, transformation)
-    versionManager.current.pushVersion(newData)
+    const result = applyDataTransformation(workbookData, transformation)
+    const { newData, actionDescription } = result
+    versionManager.current.pushVersion(newData, actionDescription)
     setWorkbookData(newData)
     setHistoryInfo(versionManager.current.getHistoryInfo())
   }
@@ -1555,7 +1797,19 @@ export default function App(){
                 {/* Column Type Management */}
                 {currentColumns.length > 0 && (
                   <div style={{marginBottom:20}}>
-                    <h4 style={{marginBottom:10}}>Column Types</h4>
+                    <h4 style={{marginBottom:10}}>
+                      Column Types
+                      <button 
+                        className='btn secondary' 
+                        style={{fontSize:11,padding:'2px 8px',marginLeft:8}}
+                        onClick={() => {
+                          const detected = detectCategoricalColumns(currentRows, currentColumns)
+                          setColumnTypes(prev => ({ ...prev, ...detected }))
+                        }}
+                      >
+                        Auto-Detect Categorical
+                      </button>
+                    </h4>
                     <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
                       {currentColumns.map(col => (
                         <div key={col} style={{display:'flex',alignItems:'center',gap:6,background:'var(--c-bg)',padding:'6px 10px',borderRadius:8,border:'1px solid var(--c-border)'}}>

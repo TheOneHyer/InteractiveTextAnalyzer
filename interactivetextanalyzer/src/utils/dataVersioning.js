@@ -6,6 +6,7 @@ export class DataVersionManager {
   constructor() {
     this.originalData = null
     this.history = []
+    this.actionDescriptions = [] // Track action descriptions for each version
     this.currentIndex = -1
     this.maxHistorySize = 50
   }
@@ -16,6 +17,7 @@ export class DataVersionManager {
   initialize(data) {
     this.originalData = JSON.parse(JSON.stringify(data))
     this.history = [JSON.parse(JSON.stringify(data))]
+    this.actionDescriptions = ['Initial data load']
     this.currentIndex = 0
   }
 
@@ -37,19 +39,22 @@ export class DataVersionManager {
   }
 
   /**
-   * Push a new version to history
+   * Push a new version to history with action description
    */
-  pushVersion(data) {
+  pushVersion(data, actionDescription = 'Data modified') {
     // Remove any redo history when pushing a new version
     this.history = this.history.slice(0, this.currentIndex + 1)
+    this.actionDescriptions = this.actionDescriptions.slice(0, this.currentIndex + 1)
     
     // Add new version
     this.history.push(JSON.parse(JSON.stringify(data)))
+    this.actionDescriptions.push(actionDescription)
     this.currentIndex++
     
     // Limit history size
     if (this.history.length > this.maxHistorySize) {
       this.history.shift()
+      this.actionDescriptions.shift()
       this.currentIndex--
     }
   }
@@ -108,6 +113,7 @@ export class DataVersionManager {
   clear() {
     this.originalData = null
     this.history = []
+    this.actionDescriptions = []
     this.currentIndex = -1
   }
 
@@ -128,7 +134,7 @@ export class DataVersionManager {
    */
   getHistoryWithSummaries() {
     return this.history.map((data, index) => {
-      const summary = this.generateSummary(data, index)
+      const summary = this.actionDescriptions[index] || this.generateSummary(data, index)
       return {
         index,
         isCurrent: index === this.currentIndex,
@@ -222,9 +228,11 @@ export class DataVersionManager {
 
 /**
  * Apply a transformation to data and track in version history
+ * @returns {object} { newData, actionDescription }
  */
 export function applyDataTransformation(currentData, transformation) {
   const newData = JSON.parse(JSON.stringify(currentData))
+  let actionDescription = 'Data modified'
   
   switch (transformation.type) {
     case 'DELETE_ROW':
@@ -235,6 +243,7 @@ export function applyDataTransformation(currentData, transformation) {
           )
         }
       })
+      actionDescription = `Deleted ${transformation.rowIndices.length} row(s)`
       break
       
     case 'DELETE_COLUMN':
@@ -251,6 +260,7 @@ export function applyDataTransformation(currentData, transformation) {
           })
         }
       })
+      actionDescription = `Deleted column: ${transformation.columnName}`
       break
       
     case 'RENAME_COLUMN':
@@ -269,6 +279,7 @@ export function applyDataTransformation(currentData, transformation) {
           }
         }
       })
+      actionDescription = `Renamed column: ${transformation.oldName} → ${transformation.newName}`
       break
       
     case 'UPDATE_CELL':
@@ -278,6 +289,7 @@ export function applyDataTransformation(currentData, transformation) {
           row[transformation.columnName] = transformation.value
         }
       }
+      actionDescription = `Updated cell in ${transformation.columnName}`
       break
       
     case 'TRANSFORM_COLUMN':
@@ -298,6 +310,7 @@ export function applyDataTransformation(currentData, transformation) {
           })
         }
       })
+      actionDescription = `Transformed column ${transformation.columnName} to ${transformation.transformType}`
       break
       
     case 'TRANSFORM_ALL':
@@ -324,11 +337,18 @@ export function applyDataTransformation(currentData, transformation) {
           })
         }
       })
+      actionDescription = `Transformed all columns to ${transformation.transformType}`
+      break
+      
+    case 'SET_COLUMN_TYPE':
+      // This transformation only tracks the column type change for history
+      // The actual columnTypes state is managed separately
+      actionDescription = `Set ${transformation.columnName} as ${transformation.columnType}`
       break
       
     default:
       console.warn('Unknown transformation type:', transformation.type)
   }
   
-  return newData
+  return { newData, actionDescription }
 }
