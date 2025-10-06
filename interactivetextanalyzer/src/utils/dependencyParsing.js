@@ -189,36 +189,9 @@ export const chuLiuEdmondsAlgorithm = (tokens) => {
     parent[j] = maxHead
   }
   
-  // Step 2: Check for cycles
-  const visited = Array(n + 1).fill(false)
-  const inStack = Array(n + 1).fill(false)
-  let hasCycle = false
-  
-  const detectCycle = (node, path) => {
-    if (inStack[node]) {
-      hasCycle = true
-      return
-    }
-    if (visited[node]) return
-    
-    visited[node] = true
-    inStack[node] = true
-    
-    if (parent[node] !== -1 && parent[node] !== 0) {
-      detectCycle(parent[node], [...path, node])
-    }
-    
-    inStack[node] = false
-  }
-  
-  for (let i = 1; i < n + 1; i++) {
-    if (!visited[i]) {
-      detectCycle(i, [])
-    }
-  }
-  
-  // If no cycle, we have our tree
-  // (For simplicity, we'll just use the greedy solution without full cycle contraction)
+  // Step 2: Check for cycles (simplified - for full implementation would need cycle contraction)
+  // Note: For simplicity, we use the greedy solution without full cycle contraction
+  // A complete implementation would detect and contract cycles iteratively
   
   // Convert to visualization format
   const nodes = tokens.map((token, i) => ({
