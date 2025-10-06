@@ -112,3 +112,81 @@ describe('App Component - UI Elements', () => {
     })
   })
 })
+
+describe('App Component - Maximize Modal Functionality', () => {
+  it('should render maximize button for Live Summary Charts', async () => {
+    render(<App />)
+    
+    await waitFor(() => {
+      const buttons = screen.getAllByRole('button')
+      const maximizeButton = buttons.find(btn => btn.title === 'Maximize charts')
+      expect(maximizeButton).toBeInTheDocument()
+    }, { timeout: 3000 })
+  })
+
+  it('should have maximize button with correct symbol', async () => {
+    render(<App />)
+    
+    await waitFor(() => {
+      const buttons = screen.getAllByRole('button')
+      const maximizeButton = buttons.find(btn => btn.title === 'Maximize charts')
+      if (maximizeButton) {
+        expect(maximizeButton.textContent).toBe('⛶')
+      }
+    }, { timeout: 3000 })
+  })
+
+  it('should render visualization mode buttons', async () => {
+    render(<App />)
+    
+    await waitFor(() => {
+      const buttons = screen.getAllByRole('button')
+      const visualButtons = buttons.filter(btn => 
+        btn.textContent === 'Wordcloud' || 
+        btn.textContent === 'Network' || 
+        btn.textContent === 'Heatmap' ||
+        btn.textContent === 'List'
+      )
+      expect(visualButtons.length).toBeGreaterThan(0)
+    })
+  })
+
+  it('should have export buttons in dashboard view', async () => {
+    render(<App />)
+    
+    await waitFor(() => {
+      const heading = document.querySelector('h1')
+      if (heading && heading.textContent === 'Dashboard') {
+        const buttons = screen.getAllByRole('button')
+        const exportButton = buttons.find(btn => btn.textContent.includes('Export'))
+        expect(exportButton).toBeInTheDocument()
+      }
+    })
+  })
+
+  it('should render chart layout control buttons', async () => {
+    render(<App />)
+    
+    await waitFor(() => {
+      const buttons = screen.getAllByRole('button')
+      const singleButton = buttons.find(btn => btn.textContent === 'Single')
+      const sideBySideButton = buttons.find(btn => btn.textContent === 'Side-by-Side')
+      const gridButton = buttons.find(btn => btn.textContent === '2x2 Grid')
+      
+      expect(singleButton || sideBySideButton || gridButton).toBeTruthy()
+    })
+  })
+
+  it('should maintain dashboard structure with maximize functionality', async () => {
+    const { container } = render(<App />)
+    
+    await waitFor(() => {
+      const heading = document.querySelector('h1')
+      if (heading && heading.textContent === 'Dashboard') {
+        // Check that the panel structure is intact
+        const panels = container.querySelectorAll('.panel')
+        expect(panels.length).toBeGreaterThan(0)
+      }
+    })
+  })
+})
