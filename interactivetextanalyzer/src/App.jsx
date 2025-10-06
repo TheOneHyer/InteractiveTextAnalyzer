@@ -1770,47 +1770,11 @@ export default function App(){
                 </div>
                 {currentColumns.length > 0 && (
                   <div style={{marginBottom:20}}>
-                    <h4 style={{marginBottom:10}}>Column Management</h4>
-                    <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
-                      {currentColumns.map(col => (
-                        <div key={col} style={{display:'flex',alignItems:'center',gap:6,background:'var(--c-bg)',padding:'6px 10px',borderRadius:8,border:'1px solid var(--c-border)'}}>
-                          <span style={{fontSize:13}}>{col}</span>
-                          <input 
-                            type='text' 
-                            placeholder='Rename...'
-                            style={{width:100,padding:'2px 6px',fontSize:11,border:'1px solid var(--c-border)',borderRadius:4,background:'var(--c-surface)',color:'var(--c-text)'}}
-                            onBlur={(e) => {
-                              if (e.target.value && e.target.value !== col) {
-                                renameColumn(col, e.target.value)
-                                e.target.value = ''
-                              }
-                            }}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                e.target.blur()
-                              }
-                            }}
-                          />
-                          <button 
-                            className='btn' 
-                            style={{padding:'2px 6px',fontSize:11,background:'var(--c-danger)',color:'#fff'}}
-                            onClick={() => deleteColumn(col)}
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {/* Column Type Management */}
-                {currentColumns.length > 0 && (
-                  <div style={{marginBottom:20}}>
-                    <h4 style={{marginBottom:10}}>
-                      Column Types
+                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
+                      <h4 style={{margin:0}}>Column Management</h4>
                       <button 
                         className='btn secondary' 
-                        style={{fontSize:11,padding:'2px 8px',marginLeft:8}}
+                        style={{fontSize:11,padding:'4px 10px'}}
                         onClick={() => {
                           const detected = detectCategoricalColumns(currentRows, currentColumns)
                           setCategoricalColumns(prev => {
@@ -1821,52 +1785,86 @@ export default function App(){
                       >
                         Auto-Detect Categorical
                       </button>
-                    </h4>
-                    <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
-                      {currentColumns.map(col => (
-                        <div key={col} style={{display:'flex',alignItems:'center',gap:6,background:'var(--c-bg)',padding:'6px 10px',borderRadius:8,border:'1px solid var(--c-border)'}}>
-                          <span style={{fontSize:13,fontWeight:500}}>{col}</span>
-                          <select 
-                            value={columnTypes[col] || 'text'}
-                            onChange={(e) => setColumnTypes(prev => ({ ...prev, [col]: e.target.value }))}
-                            style={{padding:'2px 6px',fontSize:11,border:'1px solid var(--c-border)',borderRadius:4,background:'var(--c-surface)',color:'var(--c-text)'}}
-                          >
-                            <option value="text">text</option>
-                            <option value="number">number</option>
-                            <option value="date">date</option>
-                            <option value="boolean">boolean</option>
-                          </select>
-                        </div>
-                      ))}
                     </div>
-                  </div>
-                )}
-                {/* Analysis Column Selection */}
-                {currentColumns.length > 0 && (
-                  <div style={{marginBottom:20}}>
-                    <h4 style={{marginBottom:10}}>Analysis Columns</h4>
-                    <p style={{fontSize:12,color:'var(--c-text-muted)',marginBottom:8}}>Select columns to use for text analysis when switching to Analyzer view</p>
-                    <SimpleColumnSelector 
-                      columns={currentColumns} 
-                      selectedColumns={selectedColumns} 
-                      toggleColumn={selectColumnForText} 
-                    />
-                  </div>
-                )}
-                {/* Categorical Column Selection */}
-                {currentColumns.length > 0 && (
-                  <div style={{marginBottom:20}}>
-                    <h4 style={{marginBottom:10}}>Categorical Columns</h4>
-                    <p style={{fontSize:12,color:'var(--c-text-muted)',marginBottom:8}}>Flag columns for categorical filtering (keeps original data type)</p>
-                    <SimpleColumnSelector 
-                      columns={currentColumns} 
-                      selectedColumns={categoricalColumns} 
-                      toggleColumn={(col) => {
-                        setCategoricalColumns(prev => 
-                          prev.includes(col) ? prev.filter(c => c !== col) : [...prev, col]
-                        )
-                      }} 
-                    />
+                    <div className='table-scroll' style={{maxHeight:400}}>
+                      <table className='column-mgmt-table'>
+                        <thead>
+                          <tr>
+                            <th>Column Name</th>
+                            <th>Analyze</th>
+                            <th>Categorical</th>
+                            <th>Type</th>
+                            <th>Edit Name</th>
+                            <th>Delete</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {currentColumns.map(col => (
+                            <tr key={col}>
+                              <td style={{fontWeight:500}}>{col}</td>
+                              <td style={{textAlign:'center'}}>
+                                <input 
+                                  type='checkbox'
+                                  className='column-mgmt-checkbox'
+                                  checked={selectedColumns.includes(col)}
+                                  onChange={() => selectColumnForText(col)}
+                                  title='Select for text analysis'
+                                />
+                              </td>
+                              <td style={{textAlign:'center'}}>
+                                <input 
+                                  type='checkbox'
+                                  className='column-mgmt-checkbox'
+                                  checked={categoricalColumns.includes(col)}
+                                  onChange={() => {
+                                    setCategoricalColumns(prev => 
+                                      prev.includes(col) ? prev.filter(c => c !== col) : [...prev, col]
+                                    )
+                                  }}
+                                  title='Flag as categorical for filtering'
+                                />
+                              </td>
+                              <td>
+                                <select 
+                                  value={columnTypes[col] || 'text'}
+                                  onChange={(e) => setColumnTypes(prev => ({ ...prev, [col]: e.target.value }))}
+                                >
+                                  <option value="text">text</option>
+                                  <option value="number">number</option>
+                                  <option value="date">date</option>
+                                  <option value="boolean">boolean</option>
+                                </select>
+                              </td>
+                              <td>
+                                <input 
+                                  type='text' 
+                                  placeholder='New name...'
+                                  onBlur={(e) => {
+                                    if (e.target.value && e.target.value !== col) {
+                                      renameColumn(col, e.target.value)
+                                      e.target.value = ''
+                                    }
+                                  }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      e.target.blur()
+                                    }
+                                  }}
+                                />
+                              </td>
+                              <td style={{textAlign:'center'}}>
+                                <button 
+                                  className='column-mgmt-delete-btn'
+                                  onClick={() => deleteColumn(col)}
+                                >
+                                  Delete
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 )}
                 {/* Text Case Transformation */}
