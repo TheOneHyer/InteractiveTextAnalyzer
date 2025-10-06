@@ -73,6 +73,9 @@ export default function Wiki() {
             terms for distinguishing documents. Look at the per-document results to see what 
             makes each document unique.
           </p>
+          <p>
+            <strong>Visualization options:</strong> Bar Chart, Word Cloud, Heatmap
+          </p>
           <p className='wiki-source'>
             <strong>Source:</strong> Salton, G., & Buckley, C. (1988). Term-weighting approaches in automatic text retrieval. <em>Information Processing & Management</em>, 24(5), 513-523. <a href="https://doi.org/10.1016/0306-4573(88)90021-0" target="_blank" rel="noopener noreferrer">https://doi.org/10.1016/0306-4573(88)90021-0</a>
           </p>
@@ -99,6 +102,9 @@ export default function Wiki() {
             <strong>Interpreting results:</strong> The most frequent n-grams reveal the key 
             phrases and expressions in your corpus. Higher N values capture longer phrases but 
             may have lower frequencies.
+          </p>
+          <p>
+            <strong>Visualization options:</strong> Bar Chart, Word Cloud
           </p>
           <p className='wiki-source'>
             <strong>Source:</strong> Cavnar, W. B., & Trenkle, J. M. (1994). N-gram-based text categorization. In <em>Proceedings of SDAIR-94, 3rd Annual Symposium on Document Analysis and Information Retrieval</em> (pp. 161-175).
@@ -131,6 +137,9 @@ export default function Wiki() {
           <p>
             <strong>Interpreting results:</strong> High lift values indicate strong associations. 
             Adjust the minimum support threshold to control how common terms must be to be included.
+          </p>
+          <p>
+            <strong>Visualization options:</strong> Bar Chart, Word Cloud, Network Graph
           </p>
           <p className='wiki-source'>
             <strong>Source:</strong> Agrawal, R., Imieliński, T., & Swami, A. (1993). Mining association rules between sets of items in large databases. In <em>ACM SIGMOD Record</em>, 22(2), 207-216. <a href="https://doi.org/10.1145/170036.170072" target="_blank" rel="noopener noreferrer">https://doi.org/10.1145/170036.170072</a>
@@ -169,6 +178,9 @@ export default function Wiki() {
           <p>
             <strong>Note:</strong> NER requires loading an additional NLP library and may take 
             a moment to initialize on first use.
+          </p>
+          <p>
+            <strong>Visualization options:</strong> Bar Chart, Word Cloud
           </p>
           <p className='wiki-source'>
             <strong>Source:</strong> Nadeau, D., & Sekine, S. (2007). A survey of named entity recognition and classification. <em>Lingvisticae Investigationes</em>, 30(1), 3-26. <a href="https://doi.org/10.1075/li.30.1.03nad" target="_blank" rel="noopener noreferrer">https://doi.org/10.1075/li.30.1.03nad</a>
@@ -210,6 +222,9 @@ export default function Wiki() {
             <strong>Note:</strong> Requires at least 3 documents. The algorithm runs quickly as it uses 
             a browser-optimized PCA implementation. For production use with larger datasets, consider 
             server-side t-SNE or UMAP processing.
+          </p>
+          <p>
+            <strong>Visualization options:</strong> Scatter Plot
           </p>
           <p className='wiki-source'>
             <strong>Sources:</strong> 
