@@ -1,9 +1,9 @@
 /* Theme base */
 :root { --c-bg:#f5f7fb; --c-surface:#ffffff; --c-border:#e2e8f0; --c-text:#1e293b; --c-subtle:#64748b; --c-accent:#ff9900; --c-accent-hover:#e58900; --c-danger:#dc2626; --c-sidebar:#050b11; --c-sidebar-border:#13202e; --c-chip:#101c29; }
 [data-theme='dark'] { --c-bg:#0f172a; --c-surface:#1e293b; --c-border:#334155; --c-text:#f1f5f9; --c-subtle:#94a3b8; --c-accent:#ff9900; --c-accent-hover:#e58900; --c-sidebar:#020a13; --c-sidebar-border:#1e293b; --c-chip:#0f172a; }
-html,body,#root { height:100%; }
+html,body,#root { height:100%; width:100%; }
 body { margin:0; font-family: 'Inter', system-ui, Arial, sans-serif; background:var(--c-bg); color:var(--c-text); }
-#root { display:flex; }
+#root { display:flex; width:100%; }
 
 /* Sidebar */
 .sidebar { width:230px; background:var(--c-sidebar); color:#e2e8f0; display:flex; flex-direction:column; border-right:1px solid var(--c-sidebar-border); transition: width 0.3s ease; }
