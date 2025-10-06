@@ -329,7 +329,7 @@ function HistoryModal({ isOpen, onClose, versionManager, onJumpToVersion }) {
   
   return (
     <div className='modal-overlay' onClick={onClose}>
-      <div className='modal-content' onClick={(e) => e.stopPropagation()} style={{maxWidth: 600, maxHeight: '80vh', overflow: 'auto'}}>
+      <div className='modal-content' onClick={(e) => e.stopPropagation()}>
         <div className='modal-header'>
           <h2>Version History</h2>
           <button className='modal-close' onClick={onClose}>×</button>
