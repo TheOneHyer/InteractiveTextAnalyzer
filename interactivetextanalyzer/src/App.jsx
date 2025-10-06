@@ -2005,6 +2005,7 @@ export default function App(){
               {analysisType==='embeddings' && textSamples.length<3 && <div className='alert'>Need at least 3 documents for embeddings analysis</div>}
               {analysisType==='summary' && summaryLoading && <div className='alert'>Generating summary...</div>}
               {analysisType==='summary' && !summaryLoading && !summaryResult && textSamples.length>0 && <div className='alert'>Initializing summarization model...</div>}
+              {analysisType !== 'summary' && (
               <div className='panel'>
                 <div className='panel-header'>
                   <h3>Live Summary Charts</h3>
@@ -2062,6 +2063,7 @@ export default function App(){
                   )}
                 </div>
               </div>
+              )}
               <div className='panel'>
                 <div className='panel-header'>
                   <h3>Details</h3>
