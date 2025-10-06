@@ -1759,8 +1759,17 @@ export default function App(){
                 </div>
                 <div style={{marginBottom:20}}>
                   <h4 style={{marginBottom:10}}>Data Source</h4>
-                  <input type='file' accept='.xlsx,.xls,.csv' onChange={handleFile} />
-                  <div style={{display:'flex',gap:6,flexWrap:'wrap',marginTop:8}}>
+                  <input 
+                    type='file' 
+                    id='file-upload-input'
+                    accept='.xlsx,.xls,.csv' 
+                    onChange={handleFile}
+                    style={{display:'none'}}
+                  />
+                  <label htmlFor='file-upload-input' className='btn secondary' style={{display:'inline-block',cursor:'pointer',background:'#e2e8f0',marginBottom:8}}>
+                    Choose File
+                  </label>
+                  <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
                     <button className='btn secondary' style={{background:'#e2e8f0'}} onClick={()=>fetch(new URL('sample-data.csv', import.meta.env.BASE_URL)).then(r=>r.text()).then(txt=>{const p=parseCsv(txt); versionManager.current.initialize(p); setHistoryInfo(versionManager.current.getHistoryInfo()); setWorkbookData({'Sample CSV':p}); setActiveSheet('Sample CSV'); setSelectedColumns([]); setHiddenColumns([]); setRenames({}) })}>Load CSV Sample</button>
                     <button className='btn secondary' style={{background:'#e2e8f0'}} onClick={loadSampleExcel}>Load Excel Sample</button>
                   </div>
@@ -1801,29 +1810,56 @@ export default function App(){
                           </tr>
                         </thead>
                         <tbody>
-                          {currentColumns.map(col => (
+                          {currentColumns.map(col => {
+                            const isAnalyze = selectedColumns.includes(col)
+                            const isCategorical = categoricalColumns.includes(col)
+                            return (
                             <tr key={col}>
                               <td style={{fontWeight:500}}>{col}</td>
                               <td style={{textAlign:'center'}}>
                                 <input 
                                   type='checkbox'
                                   className='column-mgmt-checkbox'
-                                  checked={selectedColumns.includes(col)}
-                                  onChange={() => selectColumnForText(col)}
+                                  checked={isAnalyze}
+                                  onChange={() => {
+                                    if (isCategorical) {
+                                      // Remove from categorical and add to analyze
+                                      setCategoricalColumns(prev => prev.filter(c => c !== col))
+                                      selectColumnForText(col)
+                                    } else {
+                                      selectColumnForText(col)
+                                    }
+                                  }}
                                   title='Select for text analysis'
+                                  style={{
+                                    opacity: isCategorical && !isAnalyze ? 0.3 : 1,
+                                    cursor: 'pointer'
+                                  }}
                                 />
                               </td>
                               <td style={{textAlign:'center'}}>
                                 <input 
                                   type='checkbox'
                                   className='column-mgmt-checkbox'
-                                  checked={categoricalColumns.includes(col)}
+                                  checked={isCategorical}
                                   onChange={() => {
-                                    setCategoricalColumns(prev => 
-                                      prev.includes(col) ? prev.filter(c => c !== col) : [...prev, col]
-                                    )
+                                    if (isAnalyze) {
+                                      // Remove from analyze and add to categorical
+                                      selectColumnForText(col)
+                                      setCategoricalColumns(prev => 
+                                        prev.includes(col) ? prev.filter(c => c !== col) : [...prev, col]
+                                      )
+                                    } else {
+                                      setCategoricalColumns(prev => 
+                                        prev.includes(col) ? prev.filter(c => c !== col) : [...prev, col]
+                                      )
+                                    }
                                   }}
                                   title='Flag as categorical for filtering'
+                                  style={{
+                                    opacity: isAnalyze && !isCategorical ? 0.3 : 1,
+                                    cursor: 'pointer'
+                                  }}
                                 />
                               </td>
                               <td>
@@ -1863,7 +1899,7 @@ export default function App(){
                                 </button>
                               </td>
                             </tr>
-                          ))}
+                          )})}
                         </tbody>
                       </table>
                     </div>
