@@ -358,7 +358,7 @@ export default function App(){
   const [categoricalFilters, setCategoricalFilters] = useState({})
   
   // View state and versioning
-  const [activeView, setActiveView] = useState('dashboard')
+  const [activeView, setActiveView] = useState('editor')
   const versionManager = useRef(new DataVersionManager())
   const [historyInfo, setHistoryInfo] = useState({ canUndo: false, canRedo: false })
   
@@ -1000,15 +1000,6 @@ export default function App(){
           </div>
           <div className='analysis-layout'>
             <div className='side-stack'>
-              <div className='box'>
-                <h4>Data Source</h4>
-                <input type='file' accept='.xlsx,.xls,.csv' onChange={handleFile} />
-                <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
-                  <button className='btn secondary' style={{background:'#e2e8f0'}} onClick={()=>fetch(new URL('sample-data.csv', import.meta.env.BASE_URL)).then(r=>r.text()).then(txt=>{const p=parseCsv(txt); versionManager.current.initialize(p); setHistoryInfo(versionManager.current.getHistoryInfo()); setWorkbookData({'Sample CSV':p}); setActiveSheet('Sample CSV'); setSelectedColumns([]); setHiddenColumns([]); setRenames({}) })}>Load CSV Sample</button>
-                  <button className='btn secondary' style={{background:'#e2e8f0'}} onClick={loadSampleExcel}>Load Excel Sample</button>
-                </div>
-                {Object.keys(workbookData).length>0 && <SheetSelector sheets={Object.keys(workbookData)} activeSheet={activeSheet} setActiveSheet={setActiveSheet} />}
-              </div>
               {currentColumns.length>0 && (
                 <div className='box'>
                   <h4>Analysis Columns</h4>
@@ -1333,6 +1324,14 @@ export default function App(){
                 <div className='panel-header'>
                   <h3>Data Editor</h3>
                   <span className='subtle'>History: {historyInfo.currentIndex + 1}/{historyInfo.historyLength}</span>
+                </div>
+                <div style={{marginBottom:20}}>
+                  <h4 style={{marginBottom:10}}>Data Source</h4>
+                  <input type='file' accept='.xlsx,.xls,.csv' onChange={handleFile} />
+                  <div style={{display:'flex',gap:6,flexWrap:'wrap',marginTop:8}}>
+                    <button className='btn secondary' style={{background:'#e2e8f0'}} onClick={()=>fetch(new URL('sample-data.csv', import.meta.env.BASE_URL)).then(r=>r.text()).then(txt=>{const p=parseCsv(txt); versionManager.current.initialize(p); setHistoryInfo(versionManager.current.getHistoryInfo()); setWorkbookData({'Sample CSV':p}); setActiveSheet('Sample CSV'); setSelectedColumns([]); setHiddenColumns([]); setRenames({}) })}>Load CSV Sample</button>
+                    <button className='btn secondary' style={{background:'#e2e8f0'}} onClick={loadSampleExcel}>Load Excel Sample</button>
+                  </div>
                 </div>
                 <div style={{marginBottom:16}}>
                   {Object.keys(workbookData).length>0 && <SheetSelector sheets={Object.keys(workbookData)} activeSheet={activeSheet} setActiveSheet={setActiveSheet} />}

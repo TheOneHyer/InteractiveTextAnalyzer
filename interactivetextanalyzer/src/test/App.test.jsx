@@ -54,11 +54,20 @@ describe('App Component - Data Handling', () => {
     expect(fileInput).toBeTruthy()
   })
 
-  it('should have analysis type selection', () => {
-    const { container } = render(<App />)
-    // Should have some form of analysis type selector
-    const selects = container.querySelectorAll('select')
-    expect(selects.length).toBeGreaterThan(0)
+  it('should have analysis type selection', async () => {
+    render(<App />)
+    // Navigate to Dashboard to see analysis type selectors
+    await waitFor(() => {
+      const buttons = screen.getAllByRole('button')
+      const dashboardButton = buttons.find(btn => btn.title === 'Dashboard')
+      expect(dashboardButton).toBeInTheDocument()
+      dashboardButton.click()
+    })
+    // Should have some form of analysis type selector in Dashboard
+    await waitFor(() => {
+      const selects = document.querySelectorAll('select')
+      expect(selects.length).toBeGreaterThan(0)
+    })
   })
 })
 
@@ -93,6 +102,14 @@ describe('App Component - UI Elements', () => {
   it('should render chart layout options in dashboard', async () => {
     render(<App />)
     
+    // Navigate to Dashboard first
+    await waitFor(() => {
+      const buttons = screen.getAllByRole('button')
+      const dashboardButton = buttons.find(btn => btn.title === 'Dashboard')
+      expect(dashboardButton).toBeInTheDocument()
+      dashboardButton.click()
+    })
+    
     // Wait for dashboard to render - look for the h1 heading
     await waitFor(() => {
       const heading = document.querySelector('h1')
@@ -117,6 +134,14 @@ describe('App Component - Maximize Modal Functionality', () => {
   it('should render maximize button for Live Summary Charts', async () => {
     render(<App />)
     
+    // Navigate to Dashboard first
+    await waitFor(() => {
+      const buttons = screen.getAllByRole('button')
+      const dashboardButton = buttons.find(btn => btn.title === 'Dashboard')
+      expect(dashboardButton).toBeInTheDocument()
+      dashboardButton.click()
+    })
+    
     await waitFor(() => {
       const buttons = screen.getAllByRole('button')
       const maximizeButton = buttons.find(btn => btn.title === 'Maximize charts')
@@ -138,6 +163,14 @@ describe('App Component - Maximize Modal Functionality', () => {
 
   it('should render visualization mode buttons', async () => {
     render(<App />)
+    
+    // Navigate to Dashboard first
+    await waitFor(() => {
+      const buttons = screen.getAllByRole('button')
+      const dashboardButton = buttons.find(btn => btn.title === 'Dashboard')
+      expect(dashboardButton).toBeInTheDocument()
+      dashboardButton.click()
+    })
     
     await waitFor(() => {
       const buttons = screen.getAllByRole('button')
@@ -166,6 +199,14 @@ describe('App Component - Maximize Modal Functionality', () => {
 
   it('should render chart layout control buttons', async () => {
     render(<App />)
+    
+    // Navigate to Dashboard first
+    await waitFor(() => {
+      const buttons = screen.getAllByRole('button')
+      const dashboardButton = buttons.find(btn => btn.title === 'Dashboard')
+      expect(dashboardButton).toBeInTheDocument()
+      dashboardButton.click()
+    })
     
     await waitFor(() => {
       const buttons = screen.getAllByRole('button')
