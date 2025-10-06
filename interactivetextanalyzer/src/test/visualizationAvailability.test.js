@@ -194,37 +194,11 @@ describe('Visualization Availability - Comprehensive Matrix', () => {
   })
   
   it('should ensure all analyses have at least one visualization', () => {
-    // Summary is text-only output, so it doesn't need visualizations
-    const visualizableAnalyses = analyses.filter(a => a !== 'summary')
-    visualizableAnalyses.forEach(analysis => {
+    analyses.forEach(analysis => {
       const availableViz = visualizations.filter(viz => 
         isVisualizationAvailable(analysis, viz)
       )
       expect(availableViz.length).toBeGreaterThan(0)
     })
-  })
-})
-
-describe('Visualization Availability - Summary Analysis', () => {
-  const analysisType = 'summary'
-  
-  it('should not allow Bar Chart for Summary', () => {
-    expect(isVisualizationAvailable(analysisType, 'bar')).toBe(false)
-  })
-  
-  it('should not allow Word Cloud for Summary', () => {
-    expect(isVisualizationAvailable(analysisType, 'wordcloud')).toBe(false)
-  })
-  
-  it('should not allow Heatmap for Summary', () => {
-    expect(isVisualizationAvailable(analysisType, 'heatmap')).toBe(false)
-  })
-  
-  it('should not allow Network Graph for Summary', () => {
-    expect(isVisualizationAvailable(analysisType, 'network')).toBe(false)
-  })
-  
-  it('should not allow Scatter Plot for Summary', () => {
-    expect(isVisualizationAvailable(analysisType, 'scatter')).toBe(false)
   })
 })
