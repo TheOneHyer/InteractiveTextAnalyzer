@@ -74,7 +74,8 @@ export function initializeLazyLoading() {
   lazyLoader.register('WordCloud', () => import('../components/WordCloud'), 1)
   lazyLoader.register('NetworkGraph', () => import('../components/NetworkGraph'), 2)
   lazyLoader.register('Heatmap', () => import('../components/Heatmap'), 3)
-  lazyLoader.register('Wiki', () => import('../components/Wiki'), 4)
+  lazyLoader.register('ScatterPlot', () => import('../components/ScatterPlot'), 4)
+  lazyLoader.register('Wiki', () => import('../components/Wiki'), 5)
   
   // Register NLP library with lower priority (loads last)
   lazyLoader.register('compromise', async () => {
