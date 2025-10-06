@@ -430,6 +430,14 @@ export default function App(){
   const [modalContent, setModalContent] = useState(null)
   const [modalTitle, setModalTitle] = useState('')
   const [weightedLines, setWeightedLines] = useState(false)
+  
+  // Visualization selection for each chart position
+  const [chartVisualizations, setChartVisualizations] = useState({
+    pos1: 'bar',      // Position 1: always visible (bar/wordcloud/network/heatmap)
+    pos2: 'wordcloud', // Position 2: visible in side-by-side and grid
+    pos3: 'network',  // Position 3: visible in grid only
+    pos4: 'heatmap'   // Position 4: visible in grid only
+  })
 
   // Initialize lazy loading system on mount
   useEffect(() => {
@@ -1311,6 +1319,45 @@ export default function App(){
   }
   const exportAnalysis=()=>{ const payload={analysisType,timestamp:new Date().toISOString(), tfidf:analysisType==='tfidf'?tfidf:undefined, ngrams:analysisType==='ngram'?ngrams:undefined, associations:analysisType==='assoc'?associations:undefined, entities:analysisType==='ner'?entities:undefined, embeddings:analysisType==='embeddings'?{vocab:embeddings?.vocab,points:embeddingPoints,method:dimReductionMethod}:undefined}; const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`analysis_${analysisType}.json`; a.click() }
 
+  // Helper function to render a visualization based on type
+  const renderVisualization = (type) => {
+    switch(type) {
+      case 'bar':
+        return barData.length>0 ? (
+          <ResponsiveContainer width='100%' height='100%'>
+            <BarChart data={barData} margin={{top:10,right:10,bottom:10,left:0}}>
+              <XAxis dataKey='name' hide={barData.length>6} tick={{fontSize:11}} interval={0} angle={-20} textAnchor='end'/>
+              <YAxis tick={{fontSize:11}} />
+              <Tooltip wrapperStyle={{fontSize:12}}/>
+              <Bar dataKey={analysisType==='tfidf'?'score': analysisType==='ngram'?'freq': analysisType==='assoc'?'lift':'count'} radius={[6,6,0,0]} fill='#0f172a'>
+                {barData.map((_,i)=><Cell key={i} fill={['#0f172a','#ff9900','#0284c7','#475569','#06b6d4','#f59e0b'][i%6]} />)}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        ) : <div className='skel block' />
+      case 'wordcloud':
+        return wordCloudData.length>0 ? (
+          <Suspense fallback={<div className='skel block' />}>
+            <WordCloud data={wordCloudData} />
+          </Suspense>
+        ) : <div className='skel block' />
+      case 'network':
+        return networkData.nodes.length>0 ? (
+          <Suspense fallback={<div className='skel block' />}>
+            <NetworkGraph nodes={networkData.nodes} edges={networkData.edges} weightedLines={weightedLines} />
+          </Suspense>
+        ) : <div className='skel block' />
+      case 'heatmap':
+        return heatmapData.matrix.length>0 ? (
+          <Suspense fallback={<div className='skel block' />}>
+            <Heatmap matrix={heatmapData.matrix} xLabels={heatmapData.xLabels} yLabels={heatmapData.yLabels} />
+          </Suspense>
+        ) : <div className='skel block' />
+      default:
+        return <div className='skel block' />
+    }
+  }
+
   // Maximize modal functions
   const openMaximizeModal = (title, content) => {
     setModalTitle(title)
@@ -1327,20 +1374,20 @@ export default function App(){
     const content = (
       <>
         <div className='chart-box' style={{minHeight: chartLayout === 'single' ? '100%' : 300}}>
-          {barData.length>0 ? <ResponsiveContainer width='100%' height='100%'><BarChart data={barData} margin={{top:10,right:10,bottom:10,left:0}}><XAxis dataKey='name' hide={barData.length>6} tick={{fontSize:11}} interval={0} angle={-20} textAnchor='end'/><YAxis tick={{fontSize:11}} /><Tooltip wrapperStyle={{fontSize:12}}/><Bar dataKey={analysisType==='tfidf'?'score': analysisType==='ngram'?'freq': analysisType==='assoc'?'lift':'count'} radius={[6,6,0,0]} fill='#0f172a'>{barData.map((_,i)=><Cell key={i} fill={['#0f172a','#ff9900','#0284c7','#475569','#06b6d4','#f59e0b'][i%6]} />)}</Bar></BarChart></ResponsiveContainer> : <div className='skel block' />}
+          {renderVisualization(chartVisualizations.pos1)}
         </div>
         {chartLayout !== 'single' && (
           <>
             <div className='chart-box' style={{minHeight: 300}}>
-              {wordCloudData.length>0 ? <Suspense fallback={<div className='skel block' /> }><WordCloud data={wordCloudData} /></Suspense> : <div className='skel block' />}
+              {renderVisualization(chartVisualizations.pos2)}
             </div>
             {chartLayout === 'grid' && (
               <>
                 <div className='chart-box' style={{minHeight: 300}}>
-                  {networkData.nodes.length>0 ? <Suspense fallback={<div className='skel block' /> }><NetworkGraph nodes={networkData.nodes} edges={networkData.edges} weightedLines={weightedLines} /></Suspense> : <div className='skel block' />}
+                  {renderVisualization(chartVisualizations.pos3)}
                 </div>
                 <div className='chart-box' style={{minHeight: 300}}>
-                  {heatmapData.matrix.length>0 ? <Suspense fallback={<div className='skel block' /> }><Heatmap matrix={heatmapData.matrix} xLabels={heatmapData.xLabels} yLabels={heatmapData.yLabels} /></Suspense> : <div className='skel block' />}
+                  {renderVisualization(chartVisualizations.pos4)}
                 </div>
               </>
             )}
@@ -1735,24 +1782,81 @@ export default function App(){
                     </div>
                   ) : (
                     <>
-                      <div className='chart-box' style={{minHeight: chartLayout === 'single' ? 320 : 240}}>
-                        {barData.length>0 ? <ResponsiveContainer width='100%' height='100%'><BarChart data={barData} margin={{top:10,right:10,bottom:10,left:0}}><XAxis dataKey='name' hide={barData.length>6} tick={{fontSize:11}} interval={0} angle={-20} textAnchor='end'/><YAxis tick={{fontSize:11}} /><Tooltip wrapperStyle={{fontSize:12}}/><Bar dataKey={analysisType==='tfidf'?'score': analysisType==='ngram'?'freq': analysisType==='assoc'?'lift':'count'} radius={[6,6,0,0]} fill='#0f172a'>{barData.map((_,i)=><Cell key={i} fill={['#0f172a','#ff9900','#0284c7','#475569','#06b6d4','#f59e0b'][i%6]} />)}</Bar></BarChart></ResponsiveContainer> : <div className='skel block' />}
+                      <div style={{position: 'relative'}}>
+                        <div style={{position: 'absolute', top: -32, right: 0, zIndex: 10, display: 'flex', gap: 4}}>
+                          {['bar','wordcloud','network','heatmap'].map(viz => (
+                            <button 
+                              key={viz}
+                              className='btn secondary' 
+                              style={{padding:'3px 6px',fontSize:10,background:chartVisualizations.pos1===viz?'var(--c-accent)':'#e2e8f0',color:chartVisualizations.pos1===viz?'#111':'#1e293b'}}
+                              onClick={()=>setChartVisualizations(prev => ({...prev, pos1: viz}))}
+                              title={`Show ${viz}`}
+                            >
+                              {viz === 'bar' ? '📊' : viz === 'wordcloud' ? '☁️' : viz === 'network' ? '🕸️' : '🔥'}
+                            </button>
+                          ))}
+                        </div>
+                        <div className='chart-box' style={{minHeight: chartLayout === 'single' ? 320 : 240}}>
+                          {renderVisualization(chartVisualizations.pos1)}
+                        </div>
                       </div>
                       {chartLayout !== 'single' && (
                         <>
-                          <div className='chart-box' style={{minHeight: 240}}>
-                            {networkData.nodes.length>0 ? <NetworkGraph nodes={networkData.nodes} edges={networkData.edges} weightedLines={weightedLines} /> : <div className='skel block' />}
-                          </div>
-                          <div className='chart-box' style={{minHeight: 240}}>
-                            {heatmapData.matrix.length>0 ? <Heatmap matrix={heatmapData.matrix} xLabels={heatmapData.xLabels} yLabels={heatmapData.yLabels} /> : <div className='skel block' />}
+                          <div style={{position: 'relative'}}>
+                            <div style={{position: 'absolute', top: -32, right: 0, zIndex: 10, display: 'flex', gap: 4}}>
+                              {['bar','wordcloud','network','heatmap'].map(viz => (
+                                <button 
+                                  key={viz}
+                                  className='btn secondary' 
+                                  style={{padding:'3px 6px',fontSize:10,background:chartVisualizations.pos2===viz?'var(--c-accent)':'#e2e8f0',color:chartVisualizations.pos2===viz?'#111':'#1e293b'}}
+                                  onClick={()=>setChartVisualizations(prev => ({...prev, pos2: viz}))}
+                                  title={`Show ${viz}`}
+                                >
+                                  {viz === 'bar' ? '📊' : viz === 'wordcloud' ? '☁️' : viz === 'network' ? '🕸️' : '🔥'}
+                                </button>
+                              ))}
+                            </div>
+                            <div className='chart-box' style={{minHeight: 240}}>
+                              {renderVisualization(chartVisualizations.pos2)}
+                            </div>
                           </div>
                           {chartLayout === 'grid' && (
                             <>
-                              <div className='chart-box' style={{minHeight: 240}}>
-                                {networkData.nodes.length>0 ? <Suspense fallback={<div className='skel block' /> }><NetworkGraph nodes={networkData.nodes} edges={networkData.edges} weightedLines={weightedLines} /></Suspense> : <div className='skel block' />}
+                              <div style={{position: 'relative'}}>
+                                <div style={{position: 'absolute', top: -32, right: 0, zIndex: 10, display: 'flex', gap: 4}}>
+                                  {['bar','wordcloud','network','heatmap'].map(viz => (
+                                    <button 
+                                      key={viz}
+                                      className='btn secondary' 
+                                      style={{padding:'3px 6px',fontSize:10,background:chartVisualizations.pos3===viz?'var(--c-accent)':'#e2e8f0',color:chartVisualizations.pos3===viz?'#111':'#1e293b'}}
+                                      onClick={()=>setChartVisualizations(prev => ({...prev, pos3: viz}))}
+                                      title={`Show ${viz}`}
+                                    >
+                                      {viz === 'bar' ? '📊' : viz === 'wordcloud' ? '☁️' : viz === 'network' ? '🕸️' : '🔥'}
+                                    </button>
+                                  ))}
+                                </div>
+                                <div className='chart-box' style={{minHeight: 240}}>
+                                  {renderVisualization(chartVisualizations.pos3)}
+                                </div>
                               </div>
-                              <div className='chart-box' style={{minHeight: 240}}>
-                                {heatmapData.matrix.length>0 ? <Suspense fallback={<div className='skel block' /> }><Heatmap matrix={heatmapData.matrix} xLabels={heatmapData.xLabels} yLabels={heatmapData.yLabels} /></Suspense> : <div className='skel block' />}
+                              <div style={{position: 'relative'}}>
+                                <div style={{position: 'absolute', top: -32, right: 0, zIndex: 10, display: 'flex', gap: 4}}>
+                                  {['bar','wordcloud','network','heatmap'].map(viz => (
+                                    <button 
+                                      key={viz}
+                                      className='btn secondary' 
+                                      style={{padding:'3px 6px',fontSize:10,background:chartVisualizations.pos4===viz?'var(--c-accent)':'#e2e8f0',color:chartVisualizations.pos4===viz?'#111':'#1e293b'}}
+                                      onClick={()=>setChartVisualizations(prev => ({...prev, pos4: viz}))}
+                                      title={`Show ${viz}`}
+                                    >
+                                      {viz === 'bar' ? '📊' : viz === 'wordcloud' ? '☁️' : viz === 'network' ? '🕸️' : '🔥'}
+                                    </button>
+                                  ))}
+                                </div>
+                                <div className='chart-box' style={{minHeight: 240}}>
+                                  {renderVisualization(chartVisualizations.pos4)}
+                                </div>
                               </div>
                             </>
                           )}
