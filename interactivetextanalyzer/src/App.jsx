@@ -1527,7 +1527,7 @@ export default function App(){
                           <input 
                             type='text' 
                             placeholder='Rename...'
-                            style={{width:100,padding:'2px 6px',fontSize:11,border:'1px solid var(--c-border)',borderRadius:4,background:'var(--c-surface)'}}
+                            style={{width:100,padding:'2px 6px',fontSize:11,border:'1px solid var(--c-border)',borderRadius:4,background:'var(--c-surface)',color:'var(--c-text)'}}
                             onBlur={(e) => {
                               if (e.target.value && e.target.value !== col) {
                                 renameColumn(col, e.target.value)
@@ -1563,7 +1563,7 @@ export default function App(){
                           <select 
                             value={columnTypes[col] || 'text'}
                             onChange={(e) => setColumnTypes(prev => ({ ...prev, [col]: e.target.value }))}
-                            style={{padding:'2px 6px',fontSize:11,border:'1px solid var(--c-border)',borderRadius:4,background:'var(--c-surface)'}}
+                            style={{padding:'2px 6px',fontSize:11,border:'1px solid var(--c-border)',borderRadius:4,background:'var(--c-surface)',color:'var(--c-text)'}}
                           >
                             <option value="text">text</option>
                             <option value="number">number</option>
@@ -1595,7 +1595,7 @@ export default function App(){
                     <div style={{display:'flex',flexWrap:'wrap',gap:8,marginBottom:8}}>
                       <select 
                         id='transform-column-select'
-                        style={{padding:'4px 8px',fontSize:12,border:'1px solid var(--c-border)',borderRadius:4,background:'var(--c-surface)',flex:'1 1 200px',maxWidth:250}}
+                        style={{padding:'4px 8px',fontSize:12,border:'1px solid var(--c-border)',borderRadius:4,background:'var(--c-surface)',color:'var(--c-text)',flex:'1 1 200px',maxWidth:250}}
                       >
                         <option value="">Select column...</option>
                         {currentColumns.map(col => (
@@ -1663,7 +1663,8 @@ export default function App(){
                         fontSize: 13,
                         border: '1px solid var(--c-border)',
                         borderRadius: 6,
-                        background: 'var(--c-surface)'
+                        background: 'var(--c-surface)',
+                        color: 'var(--c-text)'
                       }}
                     />
                     {textSearchFilter && (
