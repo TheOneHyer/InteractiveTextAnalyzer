@@ -1289,7 +1289,13 @@ export default function App(){
       )}
       <aside className={`sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
         <div className='sidebar-header'>
-          {!sidebarCollapsed && '📊 Analyzer'}
+          {!sidebarCollapsed && (
+            <div style={{display:'flex',alignItems:'center',gap:8}}>
+              <img src="/ita-logo.svg" alt="ITA Logo" style={{width:28,height:28}} />
+              <span>ITA</span>
+            </div>
+          )}
+          {sidebarCollapsed && <img src="/ita-logo.svg" alt="ITA Logo" style={{width:28,height:28}} />}
           <button 
             className='sidebar-toggle' 
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
@@ -2044,7 +2050,7 @@ export default function App(){
               </div>
             </>
           )}
-          <footer>Interactive Text Analyzer • {libsLoaded? 'NER Ready':'NER Lazy'} • Theme: {theme}</footer>
+          <footer>Interactive Text Analyzer • {libsLoaded? 'NER Ready':'NER Lazy'} • Theme: {theme} • Created by <a href="https://github.com/TheOneHyer" target="_blank" rel="noopener noreferrer" style={{color:'var(--c-accent)',textDecoration:'none'}}>Alex Hyer</a></footer>
         </div>
       </div>
     </div>
