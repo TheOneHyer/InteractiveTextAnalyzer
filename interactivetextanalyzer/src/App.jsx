@@ -53,6 +53,12 @@ const loadNlpLibs = async () => {
   return { nlp: compromiseModule }
 }
 
+// Lazy load dependency parsing module
+const loadDependencyParsing = async () => {
+  const module = await import('./utils/dependencyParsing')
+  return module.performDependencyParsing
+}
+
 // Simple PCA implementation for dimensionality reduction (browser-compatible)
 const simplePCA = (vectors) => {
   if (!vectors || vectors.length === 0) return []
@@ -400,6 +406,8 @@ export default function App(){
   const [dimReductionLibs,setDimReductionLibs]=useState({tsne:null,umap:null})
   const [dimReductionMethod,setDimReductionMethod]=useState('tsne') // 'tsne' or 'umap'
   const [dimReductionLoading,setDimReductionLoading]=useState(false)
+  const [dependencyAlgorithm,setDependencyAlgorithm]=useState('eisner') // 'eisner', 'chu-liu', or 'arc-standard'
+  const [dependencyResult,setDependencyResult]=useState(null)
   
   // Import preview modal state
   const [showImportModal, setShowImportModal] = useState(false)
@@ -1114,6 +1122,38 @@ export default function App(){
   // Compute embeddings
   const embeddings=useMemo(()=> analysisType==='embeddings'&& textSamples.length>=3? computeDocumentEmbeddings(textSamples,params): null,[analysisType,textSamples,params])
   
+  // Load and compute dependency parsing
+  useEffect(() => {
+    if (analysisType !== 'dependency' || textSamples.length === 0) {
+      setDependencyResult(null)
+      return
+    }
+    
+    let cancelled = false
+    
+    const compute = async () => {
+      try {
+        const performDependencyParsing = await loadDependencyParsing()
+        if (cancelled) return
+        const result = await performDependencyParsing(textSamples, { algorithm: dependencyAlgorithm })
+        if (!cancelled) {
+          setDependencyResult(result)
+        }
+      } catch (error) {
+        console.error('Dependency parsing error:', error)
+        if (!cancelled) {
+          setDependencyResult({ nodes: [], edges: [], sentences: [], error: true })
+        }
+      }
+    }
+    
+    compute()
+    
+    return () => {
+      cancelled = true
+    }
+  }, [analysisType, textSamples, dependencyAlgorithm])
+  
   // Apply dimensionality reduction (async)
   const [embeddingPoints,setEmbeddingPoints]=useState([])
   useEffect(()=>{
@@ -1148,7 +1188,15 @@ export default function App(){
   const statUniqueTerms=tfidf? tfidf.aggregate.length : (ngrams.length || entities.length)
 
   const wordCloudData=useMemo(()=>{ if(analysisType==='tfidf'&&tfidf) return tfidf.aggregate.map(t=>({text:t.term,value:t.score})); if(analysisType==='ngram') return ngrams.map(g=>({text:g.gram,value:g.count})); if(analysisType==='ner') return entities.map(e=>({text:e.value,value:e.count})); if(analysisType==='assoc'&&associations) return associations.items.map(i=>({text:i.item,value:i.support})); return []},[analysisType,tfidf,ngrams,entities,associations])
-  const networkData=useMemo(()=> analysisType==='assoc'&&associations? {nodes:associations.items.slice(0,50).map(i=>({id:i.item,value:i.support})), edges:associations.pairs.filter(p=>p.lift>=1).map(p=>({source:p.a,target:p.b,value:p.lift}))}:{nodes:[],edges:[]},[analysisType,associations])
+  const networkData=useMemo(()=> {
+    if (analysisType==='assoc'&&associations) {
+      return {nodes:associations.items.slice(0,50).map(i=>({id:i.item,value:i.support})), edges:associations.pairs.filter(p=>p.lift>=1).map(p=>({source:p.a,target:p.b,value:p.lift}))}
+    }
+    if (analysisType==='dependency'&&dependencyResult) {
+      return {nodes:dependencyResult.nodes, edges:dependencyResult.edges}
+    }
+    return {nodes:[],edges:[]}
+  },[analysisType,associations,dependencyResult])
   const heatmapData=useMemo(()=>{ 
     if(analysisType==='tfidf'&&tfidf){ 
       const top=tfidf.aggregate.slice(0,20).map(t=>t.term); 
@@ -1329,7 +1377,7 @@ export default function App(){
       URL.revokeObjectURL(url)
     }
   }
-  const exportAnalysis=()=>{ const payload={analysisType,timestamp:new Date().toISOString(), tfidf:analysisType==='tfidf'?tfidf:undefined, ngrams:analysisType==='ngram'?ngrams:undefined, associations:analysisType==='assoc'?associations:undefined, entities:analysisType==='ner'?entities:undefined, embeddings:analysisType==='embeddings'?{vocab:embeddings?.vocab,points:embeddingPoints,method:dimReductionMethod}:undefined}; const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`analysis_${analysisType}.json`; a.click() }
+  const exportAnalysis=()=>{ const payload={analysisType,timestamp:new Date().toISOString(), tfidf:analysisType==='tfidf'?tfidf:undefined, ngrams:analysisType==='ngram'?ngrams:undefined, associations:analysisType==='assoc'?associations:undefined, entities:analysisType==='ner'?entities:undefined, embeddings:analysisType==='embeddings'?{vocab:embeddings?.vocab,points:embeddingPoints,method:dimReductionMethod}:undefined, dependency:analysisType==='dependency'?{...dependencyResult,algorithm:dependencyAlgorithm}:undefined}; const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`analysis_${analysisType}.json`; a.click() }
 
   // Helper function to check if a visualization is available for current analysis type
   // Complete analysis → visualization mapping:
@@ -1338,6 +1386,7 @@ export default function App(){
   // - assoc: bar, wordcloud, network
   // - ner: bar, wordcloud
   // - embeddings: scatter
+  // - dependency: network
   const isVisualizationAvailable = (vizType) => {
     switch(vizType) {
       case 'bar':
@@ -1345,7 +1394,7 @@ export default function App(){
       case 'wordcloud':
         return analysisType === 'tfidf' || analysisType === 'ngram' || analysisType === 'ner' || analysisType === 'assoc'
       case 'network':
-        return analysisType === 'assoc'
+        return analysisType === 'assoc' || analysisType === 'dependency'
       case 'heatmap':
         return analysisType === 'tfidf'
       case 'scatter':
@@ -1839,6 +1888,7 @@ export default function App(){
                     <option value='assoc'>Association</option>
                     <option value='ner'>NER</option>
                     <option value='embeddings'>Embeddings</option>
+                    <option value='dependency'>Dependency Parsing</option>
                   </select>
                 </label>
                 {analysisType==='ngram' && (
@@ -1866,6 +1916,11 @@ export default function App(){
                     <strong>Embeddings:</strong> Visualizes document relationships in 2D space using dimensionality reduction.
                   </div>
                 )}
+                {analysisType==='dependency' && (
+                  <div className='notice' style={{marginTop:8}}>
+                    <strong>Dependency Parsing:</strong> Analyzes sentence structure by identifying grammatical dependencies between words.
+                  </div>
+                )}
                 {analysisType==='ngram' && <label style={{fontSize:12}}>N Size<input type='number' min={1} max={6} value={ngramN} onChange={e=>setNgramN(Number(e.target.value)||2)} style={{width:'100%',marginTop:4}}/></label>}
                 {analysisType==='assoc' && <label style={{fontSize:12}}>Min Support<input type='number' step={0.01} value={minSupport} onChange={e=>setMinSupport(Math.min(Math.max(Number(e.target.value)||0,0.01),0.8))} style={{width:'100%',marginTop:4}}/></label>}
                 {analysisType==='embeddings' && (
@@ -1874,6 +1929,16 @@ export default function App(){
                     <select value={dimReductionMethod} onChange={e=>setDimReductionMethod(e.target.value)} style={{width:'100%',marginTop:4}}>
                       <option value='tsne'>t-SNE</option>
                       <option value='umap'>UMAP</option>
+                    </select>
+                  </label>
+                )}
+                {analysisType==='dependency' && (
+                  <label style={{fontSize:12}}>
+                    Algorithm
+                    <select value={dependencyAlgorithm} onChange={e=>setDependencyAlgorithm(e.target.value)} style={{width:'100%',marginTop:4}}>
+                      <option value='eisner'>Eisner's Algorithm</option>
+                      <option value='chu-liu'>Chu-Liu/Edmonds</option>
+                      <option value='arc-standard'>Arc-Standard</option>
                     </select>
                   </label>
                 )}
@@ -1887,6 +1952,7 @@ export default function App(){
               {analysisType==='embeddings' && dimReductionLoading && <div className='alert'>Loading dimensionality reduction...</div>}
               {analysisType==='embeddings' && !dimReductionLoading && !dimReductionLibs.loaded && <div className='alert'>Initializing embeddings analysis...</div>}
               {analysisType==='embeddings' && textSamples.length<3 && <div className='alert'>Need at least 3 documents for embeddings analysis</div>}
+              {analysisType==='dependency' && textSamples.length>0 && !dependencyResult && <div className='alert'>Analyzing dependencies...</div>}
               <div className='panel'>
                 <div className='panel-header'>
                   <h3>Live Summary Charts</h3>

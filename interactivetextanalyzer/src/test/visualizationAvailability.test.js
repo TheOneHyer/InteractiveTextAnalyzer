@@ -10,6 +10,7 @@ import { describe, it, expect } from 'vitest'
  * - assoc: bar, wordcloud, network
  * - ner: bar, wordcloud
  * - embeddings: scatter
+ * - dependency: network
  */
 
 // Mock implementation of isVisualizationAvailable function for testing
@@ -20,7 +21,7 @@ const isVisualizationAvailable = (analysisType, vizType) => {
     case 'wordcloud':
       return analysisType === 'tfidf' || analysisType === 'ngram' || analysisType === 'ner' || analysisType === 'assoc'
     case 'network':
-      return analysisType === 'assoc'
+      return analysisType === 'assoc' || analysisType === 'dependency'
     case 'heatmap':
       return analysisType === 'tfidf'
     case 'scatter':
@@ -150,6 +151,30 @@ describe('Visualization Availability - Document Embeddings Analysis', () => {
   })
 })
 
+describe('Visualization Availability - Dependency Parsing Analysis', () => {
+  const analysisType = 'dependency'
+  
+  it('should allow Network Graph for Dependency Parsing', () => {
+    expect(isVisualizationAvailable(analysisType, 'network')).toBe(true)
+  })
+  
+  it('should not allow Bar Chart for Dependency Parsing', () => {
+    expect(isVisualizationAvailable(analysisType, 'bar')).toBe(false)
+  })
+  
+  it('should not allow Word Cloud for Dependency Parsing', () => {
+    expect(isVisualizationAvailable(analysisType, 'wordcloud')).toBe(false)
+  })
+  
+  it('should not allow Heatmap for Dependency Parsing', () => {
+    expect(isVisualizationAvailable(analysisType, 'heatmap')).toBe(false)
+  })
+  
+  it('should not allow Scatter Plot for Dependency Parsing', () => {
+    expect(isVisualizationAvailable(analysisType, 'scatter')).toBe(false)
+  })
+})
+
 describe('Visualization Availability - Edge Cases', () => {
   it('should return false for unknown visualization types', () => {
     expect(isVisualizationAvailable('tfidf', 'unknown')).toBe(false)
@@ -163,7 +188,7 @@ describe('Visualization Availability - Edge Cases', () => {
 })
 
 describe('Visualization Availability - Comprehensive Matrix', () => {
-  const analyses = ['tfidf', 'ngram', 'assoc', 'ner', 'embeddings']
+  const analyses = ['tfidf', 'ngram', 'assoc', 'ner', 'embeddings', 'dependency']
   const visualizations = ['bar', 'wordcloud', 'network', 'heatmap', 'scatter']
   
   // Expected mappings matrix
@@ -172,7 +197,8 @@ describe('Visualization Availability - Comprehensive Matrix', () => {
     'ngram': ['bar', 'wordcloud'],
     'assoc': ['bar', 'wordcloud', 'network'],
     'ner': ['bar', 'wordcloud'],
-    'embeddings': ['scatter']
+    'embeddings': ['scatter'],
+    'dependency': ['network']
   }
   
   analyses.forEach(analysis => {
