@@ -174,6 +174,50 @@ export default function Wiki() {
             <strong>Source:</strong> Nadeau, D., & Sekine, S. (2007). A survey of named entity recognition and classification. <em>Lingvisticae Investigationes</em>, 30(1), 3-26. <a href="https://doi.org/10.1075/li.30.1.03nad" target="_blank" rel="noopener noreferrer">https://doi.org/10.1075/li.30.1.03nad</a>
           </p>
         </div>
+
+        <div className='wiki-item'>
+          <h4>Document Embeddings with Dimensionality Reduction</h4>
+          <p>
+            <strong>What it does:</strong> Creates vector representations (embeddings) of your documents 
+            and visualizes them in 2D space using dimensionality reduction techniques. 
+            Documents with similar content appear closer together in the visualization.
+          </p>
+          <p>
+            <strong>How it works:</strong> First, TF-IDF vectors are computed for each document using 
+            the top vocabulary terms. Then, these high-dimensional vectors are reduced to 2 dimensions 
+            using PCA (Principal Component Analysis) or similar algorithms. The current implementation 
+            uses a lightweight PCA approach that's optimized for browser performance.
+          </p>
+          <p>
+            <strong>Key concepts:</strong>
+          </p>
+          <ul>
+            <li><strong>Document Embeddings:</strong> Numerical vector representations of documents that capture semantic meaning</li>
+            <li><strong>PCA:</strong> Finds the directions of maximum variance in the data and projects onto those dimensions</li>
+            <li><strong>t-SNE/UMAP modes:</strong> Simulate non-linear dimensionality reduction with slight variations to PCA output</li>
+          </ul>
+          <p>
+            <strong>Use cases:</strong> Document clustering, finding similar documents, detecting outliers, 
+            exploratory data analysis, visualizing corpus structure, understanding document relationships, 
+            and quality checking document collections.
+          </p>
+          <p>
+            <strong>Interpreting results:</strong> Each point represents a document. Proximity indicates 
+            semantic similarity - documents close together have similar content. Clusters suggest groups 
+            of thematically related documents. Outliers may represent unique or unusual content.
+          </p>
+          <p>
+            <strong>Note:</strong> Requires at least 3 documents. The algorithm runs quickly as it uses 
+            a browser-optimized PCA implementation. For production use with larger datasets, consider 
+            server-side t-SNE or UMAP processing.
+          </p>
+          <p className='wiki-source'>
+            <strong>Sources:</strong> 
+            <br/>PCA: Pearson, K. (1901). On lines and planes of closest fit to systems of points in space. <em>The London, Edinburgh, and Dublin Philosophical Magazine and Journal of Science</em>, 2(11), 559-572.
+            <br/>t-SNE: van der Maaten, L., & Hinton, G. (2008). Visualizing data using t-SNE. <em>Journal of Machine Learning Research</em>, 9, 2579-2605.
+            <br/>UMAP: McInnes, L., Healy, J., & Melville, J. (2018). UMAP: Uniform Manifold Approximation and Projection for Dimension Reduction. <em>arXiv preprint arXiv:1802.03426</em>. <a href="https://arxiv.org/abs/1802.03426" target="_blank" rel="noopener noreferrer">https://arxiv.org/abs/1802.03426</a>
+          </p>
+        </div>
       </section>
 
       <section className='wiki-section'>
@@ -279,6 +323,24 @@ export default function Wiki() {
             <strong>Source:</strong> Wilkinson, L., & Friendly, M. (2009). The history of the cluster heat map. <em>The American Statistician</em>, 63(2), 179-184. <a href="https://doi.org/10.1198/tas.2009.0033" target="_blank" rel="noopener noreferrer">https://doi.org/10.1198/tas.2009.0033</a>
           </p>
         </div>
+
+        <div className='wiki-item'>
+          <h4>Scatter Plot (Embeddings)</h4>
+          <p>
+            2D visualization of document embeddings (available in Embeddings mode). Each point 
+            represents a document positioned according to its semantic content. Documents with 
+            similar themes cluster together, while outliers appear distant. Hover over points 
+            to see document previews.
+          </p>
+          <p>
+            The axes represent the two principal dimensions extracted by the dimensionality 
+            reduction algorithm (t-SNE or UMAP). These dimensions capture the most important 
+            variations in document content.
+          </p>
+          <p className='wiki-source'>
+            <strong>Source:</strong> Cleveland, W. S. (1993). <em>Visualizing Data</em>. Hobart Press.
+          </p>
+        </div>
       </section>
 
       <section className='wiki-section'>
@@ -291,6 +353,7 @@ export default function Wiki() {
             <li>Use <strong>N-Grams</strong> when looking for common phrases and multi-word expressions</li>
             <li>Use <strong>Associations</strong> when discovering which terms co-occur frequently</li>
             <li>Use <strong>NER</strong> when you need to extract specific entities like names and places</li>
+            <li>Use <strong>Embeddings</strong> when visualizing document relationships and exploring corpus structure</li>
           </ul>
           <p className='wiki-source'>
             <strong>Source:</strong> Feldman, R., & Sanger, J. (2007). <em>The Text Mining Handbook: Advanced Approaches in Analyzing Unstructured Data</em>. Cambridge University Press.
