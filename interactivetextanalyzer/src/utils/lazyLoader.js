@@ -89,7 +89,7 @@ class LazyLoader {
     // If in queue, wait for it to be processed
     const queueItem = this.queue.find(item => item.name === name)
     if (queueItem) {
-      return new Promise((resolve, reject) => {
+      return new Promise((resolve) => {
         const listener = (loadedName, resource) => {
           if (loadedName === name) {
             this.listeners.delete(listener)

@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import lazyLoader from '../utils/lazyLoader'
 
 /**
@@ -50,7 +50,9 @@ export function LazyComponent({ name, fallback, ...props }) {
 
 /**
  * Helper to create lazy component wrappers for easier migration
+ * @type {function}
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function createLazyComponent(name) {
   return (props) => <LazyComponent name={name} {...props} />
 }
