@@ -26,7 +26,7 @@ const getCategoricalValues = (rows, column) => {
 
 // Auto-detect categorical columns based on unique value count
 const detectCategoricalColumns = (rows, columns) => {
-  const detected = {}
+  const detected = []
   columns.forEach(col => {
     const uniqueValues = new Set(
       rows.map(row => row[col])
@@ -35,7 +35,7 @@ const detectCategoricalColumns = (rows, columns) => {
     )
     // Auto-detect as categorical if 5 or fewer unique values
     if (uniqueValues.size > 0 && uniqueValues.size <= 5) {
-      detected[col] = 'categorical'
+      detected.push(col)
     }
   })
   return detected
@@ -128,9 +128,9 @@ describe('Categorical Detection', () => {
       
       const detected = detectCategoricalColumns(rows, columns)
       
-      expect(detected.sentiment).toBe('categorical')
-      expect(detected.category).toBe('categorical')
-      expect(detected.id).toBe('categorical') // 4 unique values
+      expect(detected).toContain('sentiment')
+      expect(detected).toContain('category')
+      expect(detected).toContain('id') // 4 unique values
     })
     
     it('should not detect columns with more than 5 unique values', () => {
@@ -146,8 +146,8 @@ describe('Categorical Detection', () => {
       
       const detected = detectCategoricalColumns(rows, columns)
       
-      expect(detected.review).toBeUndefined() // 6 unique reviews
-      expect(detected.rating).toBeUndefined() // 6 unique ratings
+      expect(detected).not.toContain('review') // 6 unique reviews
+      expect(detected).not.toContain('rating') // 6 unique ratings
     })
     
     it('should handle empty or null values correctly', () => {
@@ -161,8 +161,8 @@ describe('Categorical Detection', () => {
       
       const detected = detectCategoricalColumns(rows, columns)
       
-      expect(detected.status).toBe('categorical')
-      expect(detected.empty).toBeUndefined() // All empty/null values
+      expect(detected).toContain('status')
+      expect(detected).not.toContain('empty') // All empty/null values
     })
     
     it('should normalize boolean-like values when counting', () => {
@@ -178,7 +178,7 @@ describe('Categorical Detection', () => {
       const detected = detectCategoricalColumns(rows, columns)
       
       // Should detect 2 unique normalized values (yes/no)
-      expect(detected.bool).toBe('categorical')
+      expect(detected).toContain('bool')
     })
     
     it('should handle exactly 5 unique values (boundary case)', () => {
@@ -193,7 +193,7 @@ describe('Categorical Detection', () => {
       
       const detected = detectCategoricalColumns(rows, columns)
       
-      expect(detected.rating).toBe('categorical')
+      expect(detected).toContain('rating')
     })
     
     it('should handle exactly 6 unique values (boundary case)', () => {
@@ -209,16 +209,37 @@ describe('Categorical Detection', () => {
       
       const detected = detectCategoricalColumns(rows, columns)
       
-      expect(detected.rating).toBeUndefined() // More than 5
+      expect(detected).not.toContain('rating') // More than 5
     })
     
-    it('should return empty object when no categorical columns detected', () => {
+    it('should return empty array when no categorical columns detected', () => {
       const rows = Array.from({ length: 10 }, (_, i) => ({ id: i, value: `value${i}` }))
       const columns = ['id', 'value']
       
       const detected = detectCategoricalColumns(rows, columns)
       
-      expect(Object.keys(detected)).toHaveLength(0)
+      expect(detected).toHaveLength(0)
+    })
+    
+    it('should return column names, not change column types', () => {
+      const rows = [
+        { status: 'active', count: 1 },
+        { status: 'inactive', count: 2 },
+        { status: 'pending', count: 3 }
+      ]
+      const columns = ['status', 'count']
+      
+      const detected = detectCategoricalColumns(rows, columns)
+      
+      // Should return an array of column names
+      expect(Array.isArray(detected)).toBe(true)
+      expect(detected).toContain('status')
+      expect(detected).toContain('count')
+      
+      // Should NOT return an object with type assignments like { status: 'categorical' }
+      // Instead it should be an array like ['status', 'count']
+      expect(detected[0]).toBe('status')
+      expect(detected[1]).toBe('count')
     })
   })
   

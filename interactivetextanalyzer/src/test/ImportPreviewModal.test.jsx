@@ -853,12 +853,14 @@ describe('ImportPreviewModal', () => {
     const importButton = screen.getByText('Import Data')
     fireEvent.click(importButton)
     
-    // Mixed single-word content with < 10 unique values should be detected as categorical
+    // Mixed single-word content with < 10 unique values should be flagged as categorical
+    // but type should remain 'text'
     expect(onConfirm).toHaveBeenCalledWith(
       expect.objectContaining({
         columnTypes: expect.objectContaining({
-          value: 'categorical'
-        })
+          value: 'text'
+        }),
+        categoricalColumns: expect.arrayContaining(['value'])
       })
     )
   })
