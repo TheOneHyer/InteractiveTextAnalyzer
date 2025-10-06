@@ -93,28 +93,6 @@ footer { text-align:center; padding:18px 0 30px; font-size:11px; color:var(--c-s
 .virtual-container { max-height:420px; overflow:auto; position:relative; }
 .virtual-spacer { position:relative; width:100%; }
 
-/* Side-by-side layout for editor sections */
-.editor-sections-container {
-  display: flex;
-  gap: 20px;
-  flex-wrap: wrap;
-}
-
-.editor-sections-container > div {
-  flex: 1;
-  min-width: 400px;
-}
-
-@media (max-width: 900px) {
-  .editor-sections-container {
-    flex-direction: column;
-  }
-  
-  .editor-sections-container > div {
-    min-width: 0;
-  }
-}
-
 .theme-toggle-container { display:flex; align-items:center; gap:8px; }
 
 /* Tooltip styles */

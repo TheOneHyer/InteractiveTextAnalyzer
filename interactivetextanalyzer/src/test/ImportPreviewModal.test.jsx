@@ -104,7 +104,8 @@ describe('ImportPreviewModal', () => {
       />
     )
     
-    const closeButton = screen.getByText('×')
+    const allCloseButtons = screen.getAllByRole('button', { name: '×' })
+    const closeButton = allCloseButtons.find(btn => btn.className === 'close-btn')
     fireEvent.click(closeButton)
     
     expect(onClose).toHaveBeenCalledTimes(1)
@@ -614,28 +615,31 @@ describe('ImportPreviewModal', () => {
       />
     )
     
-    // Initially, all 4 columns should be visible
+    // With removeBlankColumns defaulting to true, should show 3 of 4 columns immediately
     let previewText = screen.getByText(/showing .* columns/)
-    expect(previewText.textContent).toMatch(/4 of 4 columns/)
+    expect(previewText.textContent).toMatch(/3 of 4 columns/)
     
-    // Enable removeBlankColumns
+    // Verify checkbox is checked by default
     const blankColumnsCheckbox = screen.getByLabelText('Remove blank columns (all rows empty)')
+    expect(blankColumnsCheckbox).toBeChecked()
+    
+    // Disable removeBlankColumns
     fireEvent.click(blankColumnsCheckbox)
     
     await waitFor(() => {
-      expect(blankColumnsCheckbox).toBeChecked()
+      expect(blankColumnsCheckbox).not.toBeChecked()
     })
     
-    // Now should show 3 of 4 columns (empty column removed)
+    // Now should show all 4 columns
     previewText = screen.getByText(/showing .* columns/)
-    expect(previewText.textContent).toMatch(/3 of 4 columns/)
+    expect(previewText.textContent).toMatch(/4 of 4 columns/)
     
     const importButton = screen.getByText('Import Data')
     fireEvent.click(importButton)
     
     expect(onConfirm).toHaveBeenCalledWith(
       expect.objectContaining({
-        removeBlankColumns: true
+        removeBlankColumns: false  // Toggled off in the test
       })
     )
   })
@@ -666,13 +670,9 @@ describe('ImportPreviewModal', () => {
       />
     )
     
-    // Enable removeBlankColumns
+    // removeBlankColumns is now checked by default
     const blankColumnsCheckbox = screen.getByLabelText('Remove blank columns (all rows empty)')
-    fireEvent.click(blankColumnsCheckbox)
-    
-    await waitFor(() => {
-      expect(blankColumnsCheckbox).toBeChecked()
-    })
+    expect(blankColumnsCheckbox).toBeChecked()
     
     // All 3 columns should still be visible (notes has one non-blank value)
     const previewText = screen.getByText(/showing .* columns/)
