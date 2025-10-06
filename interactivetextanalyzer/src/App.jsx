@@ -28,7 +28,7 @@ const loadNlpLibs = async () => {
 }
 
 // Simple PCA implementation for dimensionality reduction (browser-compatible)
-const simplePCA = (vectors, dimensions = 2) => {
+const simplePCA = (vectors) => {
   if (!vectors || vectors.length === 0) return []
   
   const n = vectors.length
@@ -214,7 +214,7 @@ const applyDimensionalityReduction = async (vectors, method, libs) => {
   try {
     // For now, we use PCA for all methods as it's browser-compatible
     // In a production app, you could conditionally load heavier libraries
-    const result = libs.pca(vectors, 2)
+    const result = libs.pca(vectors)
     
     // Add small random jitter if method is 'tsne' or 'umap' to simulate different algorithms
     if (method === 'tsne') {
@@ -730,88 +730,6 @@ export default function App(){
     URL.revokeObjectURL(url)
   }
   const exportAnalysis=()=>{ const payload={analysisType,timestamp:new Date().toISOString(), tfidf:analysisType==='tfidf'?tfidf:undefined, ngrams:analysisType==='ngram'?ngrams:undefined, associations:analysisType==='assoc'?associations:undefined, entities:analysisType==='ner'?entities:undefined, embeddings:analysisType==='embeddings'?{vocab:embeddings?.vocab,points:embeddingPoints,method:dimReductionMethod}:undefined}; const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`analysis_${analysisType}.json`; a.click() }
-
-  // Maximize modal functions
-  const openMaximizeModal = (title, content) => {
-    setModalTitle(title)
-    setModalContent(content)
-    setModalOpen(true)
-  }
-
-  const closeMaximizeModal = () => {
-    setModalOpen(false)
-    setModalContent(null)
-  }
-
-  const maximizeCharts = () => {
-    const content = (
-      <>
-        <div className='chart-box' style={{minHeight: chartLayout === 'single' ? '100%' : 300}}>
-          {barData.length>0 ? <ResponsiveContainer width='100%' height='100%'><BarChart data={barData} margin={{top:10,right:10,bottom:10,left:0}}><XAxis dataKey='name' hide={barData.length>6} tick={{fontSize:11}} interval={0} angle={-20} textAnchor='end'/><YAxis tick={{fontSize:11}} /><Tooltip wrapperStyle={{fontSize:12}}/><Bar dataKey={analysisType==='tfidf'?'score': analysisType==='ngram'?'freq': analysisType==='assoc'?'lift':'count'} radius={[6,6,0,0]} fill='#0f172a'>{barData.map((_,i)=><Cell key={i} fill={['#0f172a','#ff9900','#0284c7','#475569','#06b6d4','#f59e0b'][i%6]} />)}</Bar></BarChart></ResponsiveContainer> : <div className='skel block' />}
-        </div>
-        {chartLayout !== 'single' && (
-          <>
-            <div className='chart-box' style={{minHeight: 300}}>
-              {wordCloudData.length>0 ? <Suspense fallback={<div className='skel block' /> }><WordCloud data={wordCloudData} /></Suspense> : <div className='skel block' />}
-            </div>
-            {chartLayout === 'grid' && (
-              <>
-                <div className='chart-box' style={{minHeight: 300}}>
-                  {networkData.nodes.length>0 ? <Suspense fallback={<div className='skel block' /> }><NetworkGraph nodes={networkData.nodes} edges={networkData.edges} weightedLines={weightedLines} /></Suspense> : <div className='skel block' />}
-                </div>
-                <div className='chart-box' style={{minHeight: 300}}>
-                  {heatmapData.matrix.length>0 ? <Suspense fallback={<div className='skel block' /> }><Heatmap matrix={heatmapData.matrix} xLabels={heatmapData.xLabels} yLabels={heatmapData.yLabels} /></Suspense> : <div className='skel block' />}
-                </div>
-              </>
-            )}
-          </>
-        )}
-      </>
-    )
-    openMaximizeModal('Live Summary Charts', content)
-  }
-
-  const maximizeSingleVisual = (type) => {
-    let content = null
-    let title = ''
-    
-    switch(type) {
-      case 'wordcloud':
-        title = 'Word Cloud'
-        content = wordCloudData.length>0 ? (
-          <div className='chart-box' style={{width: '100%', height: '100%', minHeight: 500}}>
-            <Suspense fallback={<div className='skel block' />}>
-              <WordCloud data={wordCloudData} width={800} height={600} />
-            </Suspense>
-          </div>
-        ) : <div>No data available</div>
-        break
-      case 'network':
-        title = 'Network Graph'
-        content = networkData.nodes.length>0 ? (
-          <div className='chart-box' style={{width: '100%', height: '100%', minHeight: 500}}>
-            <Suspense fallback={<div className='skel block' />}>
-              <NetworkGraph nodes={networkData.nodes} edges={networkData.edges} weightedLines={weightedLines} width={900} height={650} />
-            </Suspense>
-          </div>
-        ) : <div>No data available</div>
-        break
-      case 'heatmap':
-        title = 'Heatmap'
-        content = heatmapData.matrix.length>0 ? (
-          <div className='chart-box' style={{width: '100%', height: '100%', overflow: 'auto'}}>
-            <Suspense fallback={<div className='skel block' />}>
-              <Heatmap matrix={heatmapData.matrix} xLabels={heatmapData.xLabels} yLabels={heatmapData.yLabels} />
-            </Suspense>
-          </div>
-        ) : <div>No data available</div>
-        break
-      default:
-        return
-    }
-    
-    openMaximizeModal(title, content)
-  }
 
   // Maximize modal functions
   const openMaximizeModal = (title, content) => {
