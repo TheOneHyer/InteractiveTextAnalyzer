@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import './ImportPreviewModal.css'
 
-const COLUMN_TYPES = ['text', 'number', 'date', 'boolean', 'categorical']
+const COLUMN_TYPES = ['text', 'number', 'date', 'boolean']
 
 // Normalize value with synonym detection
 const normalizeValue = (val) => {
@@ -77,9 +77,7 @@ const detectColumnType = (rows, column, sampleSize = 10) => {
   })
   if (isDateish) return 'date'
   
-  // Check for categorical (after numeric and date checks)
-  if (detectCategorical(rows, column)) return 'categorical'
-  
+  // Don't return 'categorical' as a type - it will be flagged separately
   return 'text'
 }
 
@@ -137,6 +135,7 @@ function ImportPreviewModal({
   const [removeEmptyRows, setRemoveEmptyRows] = useState(true)
   const [ignoredRows, setIgnoredRows] = useState([])
   const [removeAfterIncomplete, setRemoveAfterIncomplete] = useState(false)
+  const [categoricalColumns, setCategoricalColumns] = useState([]) // Columns flagged as categorical
   const [categoricalFilters, setCategoricalFilters] = useState({}) // { columnName: [selected values] }
 
   const sheets = Object.keys(workbookData)
@@ -149,14 +148,25 @@ function ImportPreviewModal({
   useEffect(() => {
     if (currentData.rows.length > 0 && currentData.columns.length > 0) {
       const detectedTypes = {}
+      const detectedCategorical = []
       currentData.columns.forEach(col => {
         // Only auto-detect if not already set by user
         if (!columnTypes[col]) {
           detectedTypes[col] = detectColumnType(currentData.rows, col)
         }
+        // Auto-detect categorical columns
+        if (detectCategorical(currentData.rows, col)) {
+          detectedCategorical.push(col)
+        }
       })
       if (Object.keys(detectedTypes).length > 0) {
         setColumnTypes(prev => ({ ...prev, ...detectedTypes }))
+      }
+      if (detectedCategorical.length > 0) {
+        setCategoricalColumns(prev => {
+          const combined = [...new Set([...prev, ...detectedCategorical])]
+          return combined
+        })
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -350,6 +360,7 @@ function ImportPreviewModal({
       fileType,
       hiddenColumns,
       columnTypes,
+      categoricalColumns,
       markedColumns,
       skipFirstRows,
       removeAfterBlank,
@@ -555,14 +566,14 @@ function ImportPreviewModal({
 
           {/* Categorical Filters */}
           {(() => {
-            const categoricalColumns = processedData.columns.filter(col => 
-              (columnTypes[col] === 'categorical' || columnTypes[col] === 'boolean')
+            const categCols = processedData.columns.filter(col => 
+              (categoricalColumns.includes(col) || columnTypes[col] === 'boolean')
             )
-            return categoricalColumns.length > 0 ? (
+            return categCols.length > 0 ? (
               <div className="import-section">
                 <label>Categorical Filters</label>
                 <div className="categorical-filters">
-                  {categoricalColumns.map(col => {
+                  {categCols.map(col => {
                     const values = getCategoricalValuesForColumn(col)
                     const selectedValues = categoricalFilters[col] || []
                     return (

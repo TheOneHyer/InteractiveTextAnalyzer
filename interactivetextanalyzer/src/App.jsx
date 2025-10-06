@@ -409,6 +409,7 @@ export default function App(){
   
   // Column types and categorical filters
   const [columnTypes, setColumnTypes] = useState({})
+  const [categoricalColumns, setCategoricalColumns] = useState([]) // Columns flagged as categorical
   const [categoricalFilters, setCategoricalFilters] = useState({})
   
   // View state and versioning
@@ -807,7 +808,7 @@ export default function App(){
     const firstSheet = parsed.worksheets[0]?.name
     if (firstSheet && obj[firstSheet]) {
       const detected = detectCategoricalColumns(obj[firstSheet].rows, obj[firstSheet].columns)
-      setColumnTypes(detected)
+      setCategoricalColumns(detected)
     }
   }
 
@@ -845,7 +846,7 @@ export default function App(){
 
   const handleImportConfirm = (config) => {
     // Apply the configuration and load the data
-    const { processedData, hiddenColumns: importHiddenColumns, markedColumns, columnTypes: importColumnTypes, categoricalFilters: importCategoricalFilters } = config
+    const { processedData, hiddenColumns: importHiddenColumns, markedColumns, columnTypes: importColumnTypes, categoricalColumns: importCategoricalColumns, categoricalFilters: importCategoricalFilters } = config
     
     // Reconstruct workbook data with processed data
     const finalData = {}
@@ -868,6 +869,7 @@ export default function App(){
     setSelectedColumns(markedColumns)
     setHiddenColumns(importHiddenColumns)
     setColumnTypes(importColumnTypes || {})
+    setCategoricalColumns(importCategoricalColumns || [])
     setCategoricalFilters(importCategoricalFilters || {})
     setRenames({})
     setShowImportModal(false)
@@ -876,7 +878,7 @@ export default function App(){
 
   // Auto-detect categorical columns based on unique value count
   const detectCategoricalColumns = useCallback((rows, columns) => {
-    const detected = {}
+    const detected = []
     columns.forEach(col => {
       const uniqueValues = new Set(
         rows.map(row => row[col])
@@ -885,7 +887,7 @@ export default function App(){
       )
       // Auto-detect as categorical if 5 or fewer unique values
       if (uniqueValues.size > 0 && uniqueValues.size <= 5) {
-        detected[col] = 'categorical'
+        detected.push(col)
       }
     })
     return detected
@@ -1433,13 +1435,13 @@ export default function App(){
               )}
               {/* Categorical Filters */}
               {(() => {
-                const categoricalColumns = currentColumns.filter(col => 
-                  columnTypes[col] === 'categorical' || columnTypes[col] === 'boolean'
+                const categCols = currentColumns.filter(col => 
+                  categoricalColumns.includes(col) || columnTypes[col] === 'boolean'
                 )
-                return categoricalColumns.length > 0 ? (
+                return categCols.length > 0 ? (
                   <div className='box'>
                     <h4>Data Filters</h4>
-                    {categoricalColumns.map(col => {
+                    {categCols.map(col => {
                       const values = getCategoricalValues(rawRows, col)
                       const selectedValues = categoricalFilters[col] || []
                       return (
@@ -1805,7 +1807,10 @@ export default function App(){
                         style={{fontSize:11,padding:'2px 8px',marginLeft:8}}
                         onClick={() => {
                           const detected = detectCategoricalColumns(currentRows, currentColumns)
-                          setColumnTypes(prev => ({ ...prev, ...detected }))
+                          setCategoricalColumns(prev => {
+                            const combined = [...new Set([...prev, ...detected])]
+                            return combined
+                          })
                         }}
                       >
                         Auto-Detect Categorical
@@ -1824,7 +1829,6 @@ export default function App(){
                             <option value="number">number</option>
                             <option value="date">date</option>
                             <option value="boolean">boolean</option>
-                            <option value="categorical">categorical</option>
                           </select>
                         </div>
                       ))}
@@ -1840,6 +1844,22 @@ export default function App(){
                       columns={currentColumns} 
                       selectedColumns={selectedColumns} 
                       toggleColumn={selectColumnForText} 
+                    />
+                  </div>
+                )}
+                {/* Categorical Column Selection */}
+                {currentColumns.length > 0 && (
+                  <div style={{marginBottom:20}}>
+                    <h4 style={{marginBottom:10}}>Categorical Columns</h4>
+                    <p style={{fontSize:12,color:'var(--c-text-muted)',marginBottom:8}}>Flag columns for categorical filtering (keeps original data type)</p>
+                    <SimpleColumnSelector 
+                      columns={currentColumns} 
+                      selectedColumns={categoricalColumns} 
+                      toggleColumn={(col) => {
+                        setCategoricalColumns(prev => 
+                          prev.includes(col) ? prev.filter(c => c !== col) : [...prev, col]
+                        )
+                      }} 
                     />
                   </div>
                 )}
@@ -1940,13 +1960,13 @@ export default function App(){
                 )}
                 {/* Categorical Filters in Editor */}
                 {(() => {
-                  const categoricalColumns = currentColumns.filter(col => 
-                    columnTypes[col] === 'categorical' || columnTypes[col] === 'boolean'
+                  const categCols = currentColumns.filter(col => 
+                    categoricalColumns.includes(col) || columnTypes[col] === 'boolean'
                   )
-                  return categoricalColumns.length > 0 ? (
+                  return categCols.length > 0 ? (
                     <div style={{marginBottom:20}}>
                       <h4 style={{marginBottom:10}}>Categorical Filters</h4>
-                      {categoricalColumns.map(col => {
+                      {categCols.map(col => {
                         const values = getCategoricalValues(rawRows, col)
                         const selectedValues = categoricalFilters[col] || []
                         return (
