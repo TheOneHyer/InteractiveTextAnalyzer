@@ -77,11 +77,17 @@ export function initializeLazyLoading() {
   lazyLoader.register('ScatterPlot', () => import('../components/ScatterPlot'), 4)
   lazyLoader.register('Wiki', () => import('../components/Wiki'), 5)
   
-  // Register NLP library with lower priority (loads last)
+  // Register NLP library with lower priority
   lazyLoader.register('compromise', async () => {
     const module = await import('compromise')
     return module.default || module
   }, 10)
+
+  // Register summarization pipeline with lowest priority (loads last due to size)
+  lazyLoader.register('summarization', async () => {
+    const module = await import('./summarizationEngine')
+    return module
+  }, 100)
 
   // Start loading after a brief delay to not interfere with initial render
   lazyLoader.startAfterDelay(100)

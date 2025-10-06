@@ -401,6 +401,18 @@ export default function App(){
   const [dimReductionMethod,setDimReductionMethod]=useState('tsne') // 'tsne' or 'umap'
   const [dimReductionLoading,setDimReductionLoading]=useState(false)
   
+  // Summarization state
+  const [summaryLoading, setSummaryLoading] = useState(false)
+  const [summaryResult, setSummaryResult] = useState(null)
+  const [summaryOptions, setSummaryOptions] = useState({
+    maxLength: 130,
+    minLength: 30,
+    doSample: false,
+    temperature: 1.0,
+    topK: 50,
+    topP: 1.0
+  })
+  
   // Import preview modal state
   const [showImportModal, setShowImportModal] = useState(false)
   const [pendingImportData, setPendingImportData] = useState(null)
@@ -1142,6 +1154,31 @@ export default function App(){
     compute()
   },[analysisType,embeddings,dimReductionLibs,dimReductionMethod,textSamples])
 
+  // Generate summary when in summary mode
+  useEffect(() => {
+    if (analysisType !== 'summary' || textSamples.length === 0) {
+      setSummaryResult(null)
+      setSummaryLoading(false)
+      return
+    }
+
+    const generateSummaryAsync = async () => {
+      setSummaryLoading(true)
+      try {
+        const summaryModule = await lazyLoader.get('summarization')
+        const result = await summaryModule.summarizeMultipleTexts(textSamples, summaryOptions)
+        setSummaryResult(result)
+      } catch (error) {
+        console.error('Summary generation error:', error)
+        setSummaryResult(null)
+      } finally {
+        setSummaryLoading(false)
+      }
+    }
+
+    generateSummaryAsync()
+  }, [analysisType, textSamples, summaryOptions])
+
   // Derived quick stats
   const statDocs=textSamples.length
   const statTokens=useMemo(()=> textSamples.join(' ').split(/\s+/).filter(Boolean).length,[textSamples])
@@ -1329,7 +1366,7 @@ export default function App(){
       URL.revokeObjectURL(url)
     }
   }
-  const exportAnalysis=()=>{ const payload={analysisType,timestamp:new Date().toISOString(), tfidf:analysisType==='tfidf'?tfidf:undefined, ngrams:analysisType==='ngram'?ngrams:undefined, associations:analysisType==='assoc'?associations:undefined, entities:analysisType==='ner'?entities:undefined, embeddings:analysisType==='embeddings'?{vocab:embeddings?.vocab,points:embeddingPoints,method:dimReductionMethod}:undefined}; const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`analysis_${analysisType}.json`; a.click() }
+  const exportAnalysis=()=>{ const payload={analysisType,timestamp:new Date().toISOString(), tfidf:analysisType==='tfidf'?tfidf:undefined, ngrams:analysisType==='ngram'?ngrams:undefined, associations:analysisType==='assoc'?associations:undefined, entities:analysisType==='ner'?entities:undefined, embeddings:analysisType==='embeddings'?{vocab:embeddings?.vocab,points:embeddingPoints,method:dimReductionMethod}:undefined, summary:analysisType==='summary'?summaryResult:undefined}; const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`analysis_${analysisType}.json`; a.click() }
 
   // Helper function to check if a visualization is available for current analysis type
   // Complete analysis → visualization mapping:
@@ -1839,6 +1876,7 @@ export default function App(){
                     <option value='assoc'>Association</option>
                     <option value='ner'>NER</option>
                     <option value='embeddings'>Embeddings</option>
+                    <option value='summary'>Summary</option>
                   </select>
                 </label>
                 {analysisType==='ngram' && (
@@ -1866,6 +1904,11 @@ export default function App(){
                     <strong>Embeddings:</strong> Visualizes document relationships in 2D space using dimensionality reduction.
                   </div>
                 )}
+                {analysisType==='summary' && (
+                  <div className='notice' style={{marginTop:8}}>
+                    <strong>Summary:</strong> Generates concise summaries using DistilBART-CNN model running locally in your browser.
+                  </div>
+                )}
                 {analysisType==='ngram' && <label style={{fontSize:12}}>N Size<input type='number' min={1} max={6} value={ngramN} onChange={e=>setNgramN(Number(e.target.value)||2)} style={{width:'100%',marginTop:4}}/></label>}
                 {analysisType==='assoc' && <label style={{fontSize:12}}>Min Support<input type='number' step={0.01} value={minSupport} onChange={e=>setMinSupport(Math.min(Math.max(Number(e.target.value)||0,0.01),0.8))} style={{width:'100%',marginTop:4}}/></label>}
                 {analysisType==='embeddings' && (
@@ -1877,6 +1920,79 @@ export default function App(){
                     </select>
                   </label>
                 )}
+                {analysisType==='summary' && (
+                  <>
+                    <label style={{fontSize:12}}>
+                      Max Length
+                      <input 
+                        type='number' 
+                        min={50} 
+                        max={300} 
+                        value={summaryOptions.maxLength} 
+                        onChange={e=>setSummaryOptions({...summaryOptions, maxLength: Number(e.target.value)||130})} 
+                        style={{width:'100%',marginTop:4}}
+                      />
+                    </label>
+                    <label style={{fontSize:12}}>
+                      Min Length
+                      <input 
+                        type='number' 
+                        min={10} 
+                        max={100} 
+                        value={summaryOptions.minLength} 
+                        onChange={e=>setSummaryOptions({...summaryOptions, minLength: Number(e.target.value)||30})} 
+                        style={{width:'100%',marginTop:4}}
+                      />
+                    </label>
+                    <label style={{fontSize:12}}>
+                      <input 
+                        type='checkbox' 
+                        checked={summaryOptions.doSample} 
+                        onChange={e=>setSummaryOptions({...summaryOptions, doSample: e.target.checked})} 
+                      /> 
+                      Enable Sampling
+                    </label>
+                    {summaryOptions.doSample && (
+                      <>
+                        <label style={{fontSize:12}}>
+                          Temperature ({summaryOptions.temperature})
+                          <input 
+                            type='range' 
+                            min={0.1} 
+                            max={2.0} 
+                            step={0.1} 
+                            value={summaryOptions.temperature} 
+                            onChange={e=>setSummaryOptions({...summaryOptions, temperature: Number(e.target.value)})} 
+                            style={{width:'100%',marginTop:4}}
+                          />
+                        </label>
+                        <label style={{fontSize:12}}>
+                          Top K
+                          <input 
+                            type='number' 
+                            min={1} 
+                            max={100} 
+                            value={summaryOptions.topK} 
+                            onChange={e=>setSummaryOptions({...summaryOptions, topK: Number(e.target.value)||50})} 
+                            style={{width:'100%',marginTop:4}}
+                          />
+                        </label>
+                        <label style={{fontSize:12}}>
+                          Top P ({summaryOptions.topP})
+                          <input 
+                            type='range' 
+                            min={0.1} 
+                            max={1.0} 
+                            step={0.1} 
+                            value={summaryOptions.topP} 
+                            onChange={e=>setSummaryOptions({...summaryOptions, topP: Number(e.target.value)})} 
+                            style={{width:'100%',marginTop:4}}
+                          />
+                        </label>
+                      </>
+                    )}
+                  </>
+                )}
                 <label style={{fontSize:12}}><input type='checkbox' checked={enableStemming} onChange={e=>setEnableStemming(e.target.checked)} /> Stemming (light)</label>
                 <textarea rows={3} placeholder='Custom stopwords' value={stopwordInput} onChange={e=>setStopwordInput(e.target.value)} />
                 <div className='notice'>Stopwords: {effectiveStopwords.size}</div>
@@ -1887,6 +2003,9 @@ export default function App(){
               {analysisType==='embeddings' && dimReductionLoading && <div className='alert'>Loading dimensionality reduction...</div>}
               {analysisType==='embeddings' && !dimReductionLoading && !dimReductionLibs.loaded && <div className='alert'>Initializing embeddings analysis...</div>}
               {analysisType==='embeddings' && textSamples.length<3 && <div className='alert'>Need at least 3 documents for embeddings analysis</div>}
+              {analysisType==='summary' && summaryLoading && <div className='alert'>Generating summary...</div>}
+              {analysisType==='summary' && !summaryLoading && !summaryResult && textSamples.length>0 && <div className='alert'>Initializing summarization model...</div>}
+              {analysisType !== 'summary' && (
               <div className='panel'>
                 <div className='panel-header'>
                   <h3>Live Summary Charts</h3>
@@ -1944,6 +2063,7 @@ export default function App(){
                   )}
                 </div>
               </div>
+              )}
               <div className='panel'>
                 <div className='panel-header'>
                   <h3>Details</h3>
@@ -2007,6 +2127,21 @@ export default function App(){
                         Each point represents a document in semantic space. Documents with similar content are positioned closer together.
                       </p>
                     </>}
+                    {analysisType==='summary' && summaryResult && <>
+                      <h3>Summary</h3>
+                      <div className='notice' style={{padding: '12px', background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: '6px', lineHeight: '1.6'}}>
+                        {summaryResult.summaryText}
+                      </div>
+                      <div style={{marginTop: 16}}>
+                        <h4 style={{fontSize: 13, marginBottom: 8}}>Compression Details</h4>
+                        <div className='notice' style={{fontSize: 12}}>
+                          <p><strong>Input:</strong> {summaryResult.totalInputWords} words ({summaryResult.totalInputLength} chars)</p>
+                          <p><strong>Output:</strong> {summaryResult.outputWords} words ({summaryResult.outputLength} chars)</p>
+                          <p><strong>Compression ratio:</strong> {(summaryResult.totalInputWords / summaryResult.outputWords).toFixed(2)}:1</p>
+                          <p><strong>Documents:</strong> {summaryResult.documentCount}</p>
+                        </div>
+                      </div>
+                    </>}
                   </div>
                   <div style={{flex:'1 1 320px',minWidth:300}} className='result-section'>
                     {analysisType==='assoc' && associations && <>
@@ -2033,6 +2168,30 @@ export default function App(){
                     </>}
                     {analysisType==='ngram' && <div className='notice'>Switch visualization mode for graphs.</div>}
                     {analysisType==='ner' && <div className='notice'>Aggregated entity counts shown.</div>}
+                    {analysisType==='summary' && summaryResult && <>
+                      <h3>Model Details</h3>
+                      <div className='notice'>
+                        <p><strong>Model:</strong> {summaryResult.model}</p>
+                        <p><strong>Framework:</strong> Transformers.js</p>
+                        <p><strong>Acceleration:</strong> WebGL (GPU when available)</p>
+                        <p><strong>Execution time:</strong> {summaryResult.executionTime}ms</p>
+                      </div>
+                      <div style={{marginTop: 16}}>
+                        <h4 style={{fontSize: 13, marginBottom: 8}}>Generation Parameters</h4>
+                        <div className='notice' style={{fontSize: 12}}>
+                          <p><strong>Max length:</strong> {summaryResult.parameters.maxLength}</p>
+                          <p><strong>Min length:</strong> {summaryResult.parameters.minLength}</p>
+                          <p><strong>Sampling:</strong> {summaryResult.parameters.doSample ? 'Enabled' : 'Disabled'}</p>
+                          {summaryResult.parameters.doSample && (
+                            <>
+                              <p><strong>Temperature:</strong> {summaryResult.parameters.temperature}</p>
+                              <p><strong>Top-K:</strong> {summaryResult.parameters.topK}</p>
+                              <p><strong>Top-P:</strong> {summaryResult.parameters.topP}</p>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </>}
                   </div>
                   <div style={{flex:'1 1 420px',minWidth:360}} className='result-section'>
                     <div style={{marginBottom:12,display:'flex',gap:6,flexWrap:'wrap',alignItems:'center',justifyContent:'space-between'}}>
