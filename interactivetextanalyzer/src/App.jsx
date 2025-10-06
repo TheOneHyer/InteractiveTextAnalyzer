@@ -322,6 +322,59 @@ function SimpleColumnSelector({ columns, selectedColumns, toggleColumn }) {
   )
 }
 
+function HistoryModal({ isOpen, onClose, versionManager, onJumpToVersion }) {
+  if (!isOpen) return null
+  
+  const historyItems = versionManager.getHistoryWithSummaries()
+  
+  return (
+    <div className='modal-overlay' onClick={onClose}>
+      <div className='modal-content' onClick={(e) => e.stopPropagation()} style={{maxWidth: 600, maxHeight: '80vh', overflow: 'auto'}}>
+        <div className='modal-header'>
+          <h2>Version History</h2>
+          <button className='modal-close' onClick={onClose}>×</button>
+        </div>
+        <div className='modal-body'>
+          <p style={{fontSize: 13, color: 'var(--c-text-muted)', marginBottom: 16}}>
+            Click on any version to jump to that point in history. Current version is highlighted.
+          </p>
+          <div style={{display: 'flex', flexDirection: 'column', gap: 8}}>
+            {historyItems.map((item) => (
+              <button
+                key={item.index}
+                className='btn'
+                onClick={() => onJumpToVersion(item.index)}
+                style={{
+                  padding: '12px 16px',
+                  textAlign: 'left',
+                  background: item.isCurrent ? 'var(--c-accent)' : 'var(--c-surface)',
+                  border: item.isCurrent ? '2px solid var(--c-accent)' : '1px solid var(--c-border)',
+                  color: item.isCurrent ? '#111' : 'var(--c-text)',
+                  fontWeight: item.isCurrent ? 600 : 400,
+                  cursor: 'pointer'
+                }}
+              >
+                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                  <span>
+                    <strong>Version {item.index + 1}</strong>
+                    {item.isCurrent && ' (Current)'}
+                  </span>
+                  <span style={{fontSize: 12, opacity: 0.7}}>
+                    {item.index === 0 ? 'Original' : `${historyItems.length - item.index - 1} steps ago`}
+                  </span>
+                </div>
+                <div style={{fontSize: 13, marginTop: 4, opacity: 0.8}}>
+                  {item.summary}
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 const LOCAL_KEY='ita_state_v1'
 const ROW_HEIGHT = 26
 const VIRTUAL_OVERSCAN = 8
@@ -361,6 +414,11 @@ export default function App(){
   const [activeView, setActiveView] = useState('editor')
   const versionManager = useRef(new DataVersionManager())
   const [historyInfo, setHistoryInfo] = useState({ canUndo: false, canRedo: false })
+  const [showHistoryModal, setShowHistoryModal] = useState(false)
+  
+  // Editor view text search filter
+  const [textSearchFilter, setTextSearchFilter] = useState('')
+  const [showExportMenu, setShowExportMenu] = useState(false)
   
   // Dashboard layout state
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
@@ -598,6 +656,9 @@ export default function App(){
 
   const rawRows=useMemo(()=> activeSheet==='__ALL__'? Object.values(workbookData).flatMap(s=>s.rows): (activeSheet && workbookData[activeSheet]?.rows)||[],[activeSheet,workbookData])
   
+  const currentColumns=useMemo(()=> activeSheet==='__ALL__'? [...new Set(Object.values(workbookData).flatMap(s=>s.columns))] : (activeSheet && workbookData[activeSheet]?.columns)||[],[activeSheet,workbookData])
+  const displayedColumns=currentColumns.filter(c=>!hiddenColumns.includes(c))
+  
   // Apply categorical filters to rows
   const currentRows = useMemo(() => {
     let filtered = rawRows
@@ -614,11 +675,21 @@ export default function App(){
       }
     })
     
+    // Apply text search filter (only in editor view)
+    if (activeView === 'editor' && textSearchFilter.trim()) {
+      const searchLower = textSearchFilter.toLowerCase().trim()
+      const columnsToSearch = currentColumns.filter(c => !hiddenColumns.includes(c))
+      filtered = filtered.filter(row => {
+        return columnsToSearch.some(col => {
+          const val = row[col]
+          if (val === null || val === undefined) return false
+          return String(val).toLowerCase().includes(searchLower)
+        })
+      })
+    }
+    
     return filtered
-  }, [rawRows, categoricalFilters])
-  
-  const currentColumns=useMemo(()=> activeSheet==='__ALL__'? [...new Set(Object.values(workbookData).flatMap(s=>s.columns))] : (activeSheet && workbookData[activeSheet]?.columns)||[],[activeSheet,workbookData])
-  const displayedColumns=currentColumns.filter(c=>!hiddenColumns.includes(c))
+  }, [rawRows, categoricalFilters, activeView, textSearchFilter, currentColumns, hiddenColumns])
   const textSamples=useMemo(()=> !selectedColumns.length? [] : currentRows.map(r=>selectedColumns.map(c=>r[c]).join(' ')),[currentRows,selectedColumns])
   const stemmer=useMemo(()=> enableStemming? buildStem(): (t)=>t,[enableStemming])
   const params=useMemo(()=>({stopwords:effectiveStopwords,stem:enableStemming,stemmer,n:ngramN}),[effectiveStopwords,enableStemming,stemmer,ngramN])
@@ -759,8 +830,34 @@ export default function App(){
       rowIndices
     })
   }
+  
+  const transformColumn = (columnName, transformType) => {
+    applyTransformation({
+      type: 'TRANSFORM_COLUMN',
+      sheetName: activeSheet || '__ALL__',
+      columnName,
+      transformType
+    })
+  }
+  
+  const transformAll = (transformType) => {
+    applyTransformation({
+      type: 'TRANSFORM_ALL',
+      sheetName: activeSheet || '__ALL__',
+      transformType
+    })
+  }
+  
+  const jumpToHistoryVersion = (index) => {
+    const versionData = versionManager.current.jumpToVersion(index)
+    if (versionData) {
+      setWorkbookData(versionData)
+      setHistoryInfo(versionManager.current.getHistoryInfo())
+      setShowHistoryModal(false)
+    }
+  }
 
-  const exportTransformed=async()=>{ 
+  const exportTransformed=async(format='xlsx')=>{ 
     const cols=displayedColumns
     const data=currentRows.map(r=>{
       const o={}
@@ -768,25 +865,56 @@ export default function App(){
       return o
     })
     
-    const workbook = new ExcelJS.Workbook()
-    const worksheet = workbook.addWorksheet('Transformed')
-    
-    if (data.length > 0) {
-      worksheet.columns = cols.map(col => ({ 
-        header: renames[col] || col, 
-        key: renames[col] || col 
-      }))
-      data.forEach(row => worksheet.addRow(row))
+    if (format === 'csv') {
+      // Export as CSV
+      const headers = cols.map(col => renames[col] || col)
+      const csvRows = [headers.join(',')]
+      
+      data.forEach(row => {
+        const values = cols.map(col => {
+          const key = renames[col] || col
+          const val = row[key]
+          // Escape quotes and wrap in quotes if contains comma or quote
+          if (val === null || val === undefined) return ''
+          const str = String(val)
+          if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+            return `"${str.replace(/"/g, '""')}"`
+          }
+          return str
+        })
+        csvRows.push(values.join(','))
+      })
+      
+      const csvContent = csvRows.join('\n')
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'transformed.csv'
+      a.click()
+      URL.revokeObjectURL(url)
+    } else {
+      // Export as Excel
+      const workbook = new ExcelJS.Workbook()
+      const worksheet = workbook.addWorksheet('Transformed')
+      
+      if (data.length > 0) {
+        worksheet.columns = cols.map(col => ({ 
+          header: renames[col] || col, 
+          key: renames[col] || col 
+        }))
+        data.forEach(row => worksheet.addRow(row))
+      }
+      
+      const buffer = await workbook.xlsx.writeBuffer()
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'transformed.xlsx'
+      a.click()
+      URL.revokeObjectURL(url)
     }
-    
-    const buffer = await workbook.xlsx.writeBuffer()
-    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'transformed.xlsx'
-    a.click()
-    URL.revokeObjectURL(url)
   }
   const exportAnalysis=()=>{ const payload={analysisType,timestamp:new Date().toISOString(), tfidf:analysisType==='tfidf'?tfidf:undefined, ngrams:analysisType==='ngram'?ngrams:undefined, associations:analysisType==='assoc'?associations:undefined, entities:analysisType==='ner'?entities:undefined, embeddings:analysisType==='embeddings'?{vocab:embeddings?.vocab,points:embeddingPoints,method:dimReductionMethod}:undefined}; const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`analysis_${analysisType}.json`; a.click() }
 
@@ -905,6 +1033,15 @@ export default function App(){
           detectedFileType={pendingFileType}
         />
       )}
+      {showHistoryModal && (
+        <HistoryModal
+          isOpen={showHistoryModal}
+          onClose={() => setShowHistoryModal(false)}
+          versionManager={versionManager.current}
+          onJumpToVersion={jumpToHistoryVersion}
+          currentIndex={historyInfo.currentIndex}
+        />
+      )}
       <aside className={`sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
         <div className='sidebar-header'>
           {!sidebarCollapsed && '📊 Analyzer'}
@@ -938,10 +1075,54 @@ export default function App(){
               <>
                 <button className='btn outline' onClick={handleUndo} disabled={!historyInfo.canUndo}>Undo</button>
                 <button className='btn outline' onClick={handleRedo} disabled={!historyInfo.canRedo}>Redo</button>
+                <button className='btn outline' onClick={() => setShowHistoryModal(true)} disabled={!versionManager.current.originalData}>History</button>
                 <button className='btn outline' onClick={handleResetToOriginal} disabled={!versionManager.current.originalData}>Reset</button>
               </>
             )}
-            <button className='btn outline' onClick={exportTransformed} disabled={!currentRows.length}>Export Data</button>
+            <div style={{position: 'relative'}}>
+              <button 
+                className='btn outline' 
+                onClick={() => setShowExportMenu(!showExportMenu)} 
+                disabled={!currentRows.length}
+              >
+                Export Data {showExportMenu ? '▲' : '▼'}
+              </button>
+              {showExportMenu && (
+                <div style={{
+                  position: 'absolute',
+                  top: '100%',
+                  right: 0,
+                  marginTop: 4,
+                  background: 'var(--c-surface)',
+                  border: '1px solid var(--c-border)',
+                  borderRadius: 8,
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                  zIndex: 1000,
+                  minWidth: 150
+                }}>
+                  <button 
+                    className='btn' 
+                    style={{width: '100%', textAlign: 'left', padding: '8px 16px', border: 'none', borderRadius: 0, borderBottom: '1px solid var(--c-border)'}}
+                    onClick={() => {
+                      exportTransformed('xlsx')
+                      setShowExportMenu(false)
+                    }}
+                  >
+                    📊 Excel (.xlsx)
+                  </button>
+                  <button 
+                    className='btn' 
+                    style={{width: '100%', textAlign: 'left', padding: '8px 16px', border: 'none', borderRadius: 0}}
+                    onClick={() => {
+                      exportTransformed('csv')
+                      setShowExportMenu(false)
+                    }}
+                  >
+                    📄 CSV (.csv)
+                  </button>
+                </div>
+              )}
+            </div>
             {activeView === 'dashboard' && <button className='btn accent' onClick={exportAnalysis} disabled={!textSamples.length}>Export Analysis</button>}
           </div>
         </div>
@@ -1395,6 +1576,112 @@ export default function App(){
                     </div>
                   </div>
                 )}
+                {/* Analysis Column Selection */}
+                {currentColumns.length > 0 && (
+                  <div style={{marginBottom:20}}>
+                    <h4 style={{marginBottom:10}}>Analysis Columns</h4>
+                    <p style={{fontSize:12,color:'var(--c-text-muted)',marginBottom:8}}>Select columns to use for text analysis when switching to Analyzer view</p>
+                    <SimpleColumnSelector 
+                      columns={currentColumns} 
+                      selectedColumns={selectedColumns} 
+                      toggleColumn={selectColumnForText} 
+                    />
+                  </div>
+                )}
+                {/* Text Case Transformation */}
+                {currentColumns.length > 0 && (
+                  <div style={{marginBottom:20}}>
+                    <h4 style={{marginBottom:10}}>Text Transformations</h4>
+                    <div style={{display:'flex',flexWrap:'wrap',gap:8,marginBottom:8}}>
+                      <select 
+                        id='transform-column-select'
+                        style={{padding:'4px 8px',fontSize:12,border:'1px solid var(--c-border)',borderRadius:4,background:'var(--c-surface)',flex:'1 1 200px',maxWidth:250}}
+                      >
+                        <option value="">Select column...</option>
+                        {currentColumns.map(col => (
+                          <option key={col} value={col}>{col}</option>
+                        ))}
+                      </select>
+                      <button 
+                        className='btn secondary' 
+                        style={{fontSize:12,padding:'4px 12px'}}
+                        onClick={() => {
+                          const select = document.getElementById('transform-column-select')
+                          if (select.value) {
+                            transformColumn(select.value, 'uppercase')
+                          }
+                        }}
+                      >
+                        ↑ UPPERCASE Column
+                      </button>
+                      <button 
+                        className='btn secondary' 
+                        style={{fontSize:12,padding:'4px 12px'}}
+                        onClick={() => {
+                          const select = document.getElementById('transform-column-select')
+                          if (select.value) {
+                            transformColumn(select.value, 'lowercase')
+                          }
+                        }}
+                      >
+                        ↓ lowercase Column
+                      </button>
+                    </div>
+                    <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
+                      <button 
+                        className='btn secondary' 
+                        style={{fontSize:12,padding:'4px 12px'}}
+                        onClick={() => transformAll('uppercase')}
+                        disabled={currentRows.length === 0}
+                      >
+                        ↑ UPPERCASE All ({activeSheet === '__ALL__' ? 'All Sheets' : activeSheet || 'Current Sheet'})
+                      </button>
+                      <button 
+                        className='btn secondary' 
+                        style={{fontSize:12,padding:'4px 12px'}}
+                        onClick={() => transformAll('lowercase')}
+                        disabled={currentRows.length === 0}
+                      >
+                        ↓ lowercase All ({activeSheet === '__ALL__' ? 'All Sheets' : activeSheet || 'Current Sheet'})
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {/* Text Search Filter */}
+                {currentColumns.length > 0 && (
+                  <div style={{marginBottom:20}}>
+                    <h4 style={{marginBottom:10}}>Text Search Filter</h4>
+                    <input 
+                      type='text'
+                      placeholder='Search across all columns...'
+                      value={textSearchFilter}
+                      onChange={(e) => setTextSearchFilter(e.target.value)}
+                      style={{
+                        width: '100%',
+                        maxWidth: 500,
+                        padding: '8px 12px',
+                        fontSize: 13,
+                        border: '1px solid var(--c-border)',
+                        borderRadius: 6,
+                        background: 'var(--c-surface)'
+                      }}
+                    />
+                    {textSearchFilter && (
+                      <div style={{marginTop: 6, fontSize: 12, color: 'var(--c-text-muted)'}}>
+                        Showing {currentRows.length} of {rawRows.length} rows
+                        {currentRows.length !== rawRows.length && (
+                          <button 
+                            className='btn secondary' 
+                            style={{fontSize:11,padding:'2px 8px',marginLeft:8}}
+                            onClick={() => setTextSearchFilter('')}
+                          >
+                            Clear
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
                 {/* Categorical Filters in Editor */}
                 {(() => {
                   const categoricalColumns = currentColumns.filter(col => 
@@ -1402,7 +1689,7 @@ export default function App(){
                   )
                   return categoricalColumns.length > 0 ? (
                     <div style={{marginBottom:20}}>
-                      <h4 style={{marginBottom:10}}>Data Filters</h4>
+                      <h4 style={{marginBottom:10}}>Categorical Filters</h4>
                       {categoricalColumns.map(col => {
                         const values = getCategoricalValues(rawRows, col)
                         const selectedValues = categoricalFilters[col] || []
