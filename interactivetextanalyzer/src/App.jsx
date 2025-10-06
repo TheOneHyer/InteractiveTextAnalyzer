@@ -430,6 +430,26 @@ export default function App(){
   const [modalContent, setModalContent] = useState(null)
   const [modalTitle, setModalTitle] = useState('')
   const [weightedLines, setWeightedLines] = useState(false)
+  
+  // Visualization selection for each chart position
+  const [chartVisualizations, setChartVisualizations] = useState({
+    pos1: 'bar',      // Position 1: always visible (bar/wordcloud/network/heatmap)
+    pos2: 'wordcloud', // Position 2: visible in side-by-side and grid
+    pos3: 'network',  // Position 3: visible in grid only
+    pos4: 'heatmap'   // Position 4: visible in grid only
+  })
+  
+  // Track which visualization selector dropdown is open
+  const [openVizSelector, setOpenVizSelector] = useState(null) // null, 'pos1', 'pos2', 'pos3', 'pos4'
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      if (openVizSelector) setOpenVizSelector(null)
+    }
+    document.addEventListener('click', handleClickOutside)
+    return () => document.removeEventListener('click', handleClickOutside)
+  }, [openVizSelector])
 
   // Initialize lazy loading system on mount
   useEffect(() => {
@@ -1311,6 +1331,152 @@ export default function App(){
   }
   const exportAnalysis=()=>{ const payload={analysisType,timestamp:new Date().toISOString(), tfidf:analysisType==='tfidf'?tfidf:undefined, ngrams:analysisType==='ngram'?ngrams:undefined, associations:analysisType==='assoc'?associations:undefined, entities:analysisType==='ner'?entities:undefined, embeddings:analysisType==='embeddings'?{vocab:embeddings?.vocab,points:embeddingPoints,method:dimReductionMethod}:undefined}; const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`analysis_${analysisType}.json`; a.click() }
 
+  // Helper function to check if a visualization is available for current analysis type
+  const isVisualizationAvailable = (vizType) => {
+    switch(vizType) {
+      case 'bar':
+        return true // Available for all analysis types
+      case 'wordcloud':
+        return analysisType === 'tfidf' || analysisType === 'ngram' || analysisType === 'ner' || analysisType === 'assoc'
+      case 'network':
+        return analysisType === 'assoc'
+      case 'heatmap':
+        return analysisType === 'tfidf'
+      default:
+        return false
+    }
+  }
+
+  // Helper function to get visualization display name
+  const getVisualizationName = (type) => {
+    const names = {
+      bar: 'Bar Chart',
+      wordcloud: 'Word Cloud',
+      network: 'Network Graph',
+      heatmap: 'Heatmap'
+    }
+    return names[type] || type
+  }
+
+  // Helper function to render a visualization based on type
+  const renderVisualization = (type) => {
+    switch(type) {
+      case 'bar':
+        return barData.length>0 ? (
+          <ResponsiveContainer width='100%' height='100%'>
+            <BarChart data={barData} margin={{top:10,right:10,bottom:10,left:0}}>
+              <XAxis dataKey='name' hide={barData.length>6} tick={{fontSize:11}} interval={0} angle={-20} textAnchor='end'/>
+              <YAxis tick={{fontSize:11}} />
+              <Tooltip wrapperStyle={{fontSize:12}}/>
+              <Bar dataKey={analysisType==='tfidf'?'score': analysisType==='ngram'?'freq': analysisType==='assoc'?'lift':'count'} radius={[6,6,0,0]} fill='#0f172a'>
+                {barData.map((_,i)=><Cell key={i} fill={['#0f172a','#ff9900','#0284c7','#475569','#06b6d4','#f59e0b'][i%6]} />)}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        ) : <div className='skel block' />
+      case 'wordcloud':
+        return wordCloudData.length>0 ? (
+          <Suspense fallback={<div className='skel block' />}>
+            <WordCloud data={wordCloudData} />
+          </Suspense>
+        ) : <div className='skel block' />
+      case 'network':
+        return networkData.nodes.length>0 ? (
+          <Suspense fallback={<div className='skel block' />}>
+            <NetworkGraph nodes={networkData.nodes} edges={networkData.edges} weightedLines={weightedLines} />
+          </Suspense>
+        ) : <div className='skel block' />
+      case 'heatmap':
+        return heatmapData.matrix.length>0 ? (
+          <Suspense fallback={<div className='skel block' />}>
+            <Heatmap matrix={heatmapData.matrix} xLabels={heatmapData.xLabels} yLabels={heatmapData.yLabels} />
+          </Suspense>
+        ) : <div className='skel block' />
+      default:
+        return <div className='skel block' />
+    }
+  }
+
+  // Visualization selector component
+  const VisualizationSelector = ({ position, currentViz }) => {
+    const isOpen = openVizSelector === position
+    const visualizations = ['bar', 'wordcloud', 'network', 'heatmap']
+    
+    return (
+      <div style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
+        <button
+          className='btn secondary'
+          style={{
+            padding: '4px 10px',
+            fontSize: 11,
+            fontWeight: 600,
+            background: 'var(--c-surface)',
+            border: '1px solid var(--c-border)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4
+          }}
+          onClick={() => setOpenVizSelector(isOpen ? null : position)}
+        >
+          {getVisualizationName(currentViz)}
+          <span style={{ fontSize: 8 }}>▼</span>
+        </button>
+        {isOpen && (
+          <div
+            style={{
+              position: 'absolute',
+              top: '100%',
+              left: 0,
+              marginTop: 4,
+              background: 'var(--c-surface)',
+              border: '1px solid var(--c-border)',
+              borderRadius: 8,
+              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+              zIndex: 1000,
+              minWidth: 140
+            }}
+          >
+            {visualizations.map(viz => {
+              const isAvailable = isVisualizationAvailable(viz)
+              const isSelected = currentViz === viz
+              return (
+                <button
+                  key={viz}
+                  className='btn'
+                  style={{
+                    display: 'block',
+                    width: '100%',
+                    textAlign: 'left',
+                    padding: '8px 12px',
+                    fontSize: 12,
+                    border: 'none',
+                    background: isSelected ? 'var(--c-accent)' : 'transparent',
+                    color: isAvailable ? (isSelected ? '#111' : 'var(--c-text)') : 'var(--c-subtle)',
+                    cursor: isAvailable ? 'pointer' : 'not-allowed',
+                    opacity: isAvailable ? 1 : 0.5,
+                    borderRadius: 0,
+                    fontWeight: isSelected ? 600 : 400
+                  }}
+                  onClick={() => {
+                    if (isAvailable) {
+                      setChartVisualizations(prev => ({ ...prev, [position]: viz }))
+                      setOpenVizSelector(null)
+                    }
+                  }}
+                  disabled={!isAvailable}
+                  title={!isAvailable ? `Not available for ${analysisType} analysis` : ''}
+                >
+                  {getVisualizationName(viz)}
+                </button>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    )
+  }
+
   // Maximize modal functions
   const openMaximizeModal = (title, content) => {
     setModalTitle(title)
@@ -1327,20 +1493,20 @@ export default function App(){
     const content = (
       <>
         <div className='chart-box' style={{minHeight: chartLayout === 'single' ? '100%' : 300}}>
-          {barData.length>0 ? <ResponsiveContainer width='100%' height='100%'><BarChart data={barData} margin={{top:10,right:10,bottom:10,left:0}}><XAxis dataKey='name' hide={barData.length>6} tick={{fontSize:11}} interval={0} angle={-20} textAnchor='end'/><YAxis tick={{fontSize:11}} /><Tooltip wrapperStyle={{fontSize:12}}/><Bar dataKey={analysisType==='tfidf'?'score': analysisType==='ngram'?'freq': analysisType==='assoc'?'lift':'count'} radius={[6,6,0,0]} fill='#0f172a'>{barData.map((_,i)=><Cell key={i} fill={['#0f172a','#ff9900','#0284c7','#475569','#06b6d4','#f59e0b'][i%6]} />)}</Bar></BarChart></ResponsiveContainer> : <div className='skel block' />}
+          {renderVisualization(chartVisualizations.pos1)}
         </div>
         {chartLayout !== 'single' && (
           <>
             <div className='chart-box' style={{minHeight: 300}}>
-              {wordCloudData.length>0 ? <Suspense fallback={<div className='skel block' /> }><WordCloud data={wordCloudData} /></Suspense> : <div className='skel block' />}
+              {renderVisualization(chartVisualizations.pos2)}
             </div>
             {chartLayout === 'grid' && (
               <>
                 <div className='chart-box' style={{minHeight: 300}}>
-                  {networkData.nodes.length>0 ? <Suspense fallback={<div className='skel block' /> }><NetworkGraph nodes={networkData.nodes} edges={networkData.edges} weightedLines={weightedLines} /></Suspense> : <div className='skel block' />}
+                  {renderVisualization(chartVisualizations.pos3)}
                 </div>
                 <div className='chart-box' style={{minHeight: 300}}>
-                  {heatmapData.matrix.length>0 ? <Suspense fallback={<div className='skel block' /> }><Heatmap matrix={heatmapData.matrix} xLabels={heatmapData.xLabels} yLabels={heatmapData.yLabels} /></Suspense> : <div className='skel block' />}
+                  {renderVisualization(chartVisualizations.pos4)}
                 </div>
               </>
             )}
@@ -1735,24 +1901,33 @@ export default function App(){
                     </div>
                   ) : (
                     <>
-                      <div className='chart-box' style={{minHeight: chartLayout === 'single' ? 320 : 240}}>
-                        {barData.length>0 ? <ResponsiveContainer width='100%' height='100%'><BarChart data={barData} margin={{top:10,right:10,bottom:10,left:0}}><XAxis dataKey='name' hide={barData.length>6} tick={{fontSize:11}} interval={0} angle={-20} textAnchor='end'/><YAxis tick={{fontSize:11}} /><Tooltip wrapperStyle={{fontSize:12}}/><Bar dataKey={analysisType==='tfidf'?'score': analysisType==='ngram'?'freq': analysisType==='assoc'?'lift':'count'} radius={[6,6,0,0]} fill='#0f172a'>{barData.map((_,i)=><Cell key={i} fill={['#0f172a','#ff9900','#0284c7','#475569','#06b6d4','#f59e0b'][i%6]} />)}</Bar></BarChart></ResponsiveContainer> : <div className='skel block' />}
+                      <div style={{display: 'flex', flexDirection: 'column', gap: 8}}>
+                        <VisualizationSelector position='pos1' currentViz={chartVisualizations.pos1} />
+                        <div className='chart-box' style={{minHeight: chartLayout === 'single' ? 320 : 240}}>
+                          {renderVisualization(chartVisualizations.pos1)}
+                        </div>
                       </div>
                       {chartLayout !== 'single' && (
                         <>
-                          <div className='chart-box' style={{minHeight: 240}}>
-                            {networkData.nodes.length>0 ? <NetworkGraph nodes={networkData.nodes} edges={networkData.edges} weightedLines={weightedLines} /> : <div className='skel block' />}
-                          </div>
-                          <div className='chart-box' style={{minHeight: 240}}>
-                            {heatmapData.matrix.length>0 ? <Heatmap matrix={heatmapData.matrix} xLabels={heatmapData.xLabels} yLabels={heatmapData.yLabels} /> : <div className='skel block' />}
+                          <div style={{display: 'flex', flexDirection: 'column', gap: 8}}>
+                            <VisualizationSelector position='pos2' currentViz={chartVisualizations.pos2} />
+                            <div className='chart-box' style={{minHeight: 240}}>
+                              {renderVisualization(chartVisualizations.pos2)}
+                            </div>
                           </div>
                           {chartLayout === 'grid' && (
                             <>
-                              <div className='chart-box' style={{minHeight: 240}}>
-                                {networkData.nodes.length>0 ? <Suspense fallback={<div className='skel block' /> }><NetworkGraph nodes={networkData.nodes} edges={networkData.edges} weightedLines={weightedLines} /></Suspense> : <div className='skel block' />}
+                              <div style={{display: 'flex', flexDirection: 'column', gap: 8}}>
+                                <VisualizationSelector position='pos3' currentViz={chartVisualizations.pos3} />
+                                <div className='chart-box' style={{minHeight: 240}}>
+                                  {renderVisualization(chartVisualizations.pos3)}
+                                </div>
                               </div>
-                              <div className='chart-box' style={{minHeight: 240}}>
-                                {heatmapData.matrix.length>0 ? <Suspense fallback={<div className='skel block' /> }><Heatmap matrix={heatmapData.matrix} xLabels={heatmapData.xLabels} yLabels={heatmapData.yLabels} /></Suspense> : <div className='skel block' />}
+                              <div style={{display: 'flex', flexDirection: 'column', gap: 8}}>
+                                <VisualizationSelector position='pos4' currentViz={chartVisualizations.pos4} />
+                                <div className='chart-box' style={{minHeight: 240}}>
+                                  {renderVisualization(chartVisualizations.pos4)}
+                                </div>
                               </div>
                             </>
                           )}
