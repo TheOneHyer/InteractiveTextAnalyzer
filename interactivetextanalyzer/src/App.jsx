@@ -418,6 +418,7 @@ export default function App(){
   
   // Editor view text search filter
   const [textSearchFilter, setTextSearchFilter] = useState('')
+  const [showExportMenu, setShowExportMenu] = useState(false)
   
   // Dashboard layout state
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
@@ -856,7 +857,7 @@ export default function App(){
     }
   }
 
-  const exportTransformed=async()=>{ 
+  const exportTransformed=async(format='xlsx')=>{ 
     const cols=displayedColumns
     const data=currentRows.map(r=>{
       const o={}
@@ -864,25 +865,56 @@ export default function App(){
       return o
     })
     
-    const workbook = new ExcelJS.Workbook()
-    const worksheet = workbook.addWorksheet('Transformed')
-    
-    if (data.length > 0) {
-      worksheet.columns = cols.map(col => ({ 
-        header: renames[col] || col, 
-        key: renames[col] || col 
-      }))
-      data.forEach(row => worksheet.addRow(row))
+    if (format === 'csv') {
+      // Export as CSV
+      const headers = cols.map(col => renames[col] || col)
+      const csvRows = [headers.join(',')]
+      
+      data.forEach(row => {
+        const values = cols.map(col => {
+          const key = renames[col] || col
+          const val = row[key]
+          // Escape quotes and wrap in quotes if contains comma or quote
+          if (val === null || val === undefined) return ''
+          const str = String(val)
+          if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+            return `"${str.replace(/"/g, '""')}"`
+          }
+          return str
+        })
+        csvRows.push(values.join(','))
+      })
+      
+      const csvContent = csvRows.join('\n')
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'transformed.csv'
+      a.click()
+      URL.revokeObjectURL(url)
+    } else {
+      // Export as Excel
+      const workbook = new ExcelJS.Workbook()
+      const worksheet = workbook.addWorksheet('Transformed')
+      
+      if (data.length > 0) {
+        worksheet.columns = cols.map(col => ({ 
+          header: renames[col] || col, 
+          key: renames[col] || col 
+        }))
+        data.forEach(row => worksheet.addRow(row))
+      }
+      
+      const buffer = await workbook.xlsx.writeBuffer()
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'transformed.xlsx'
+      a.click()
+      URL.revokeObjectURL(url)
     }
-    
-    const buffer = await workbook.xlsx.writeBuffer()
-    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'transformed.xlsx'
-    a.click()
-    URL.revokeObjectURL(url)
   }
   const exportAnalysis=()=>{ const payload={analysisType,timestamp:new Date().toISOString(), tfidf:analysisType==='tfidf'?tfidf:undefined, ngrams:analysisType==='ngram'?ngrams:undefined, associations:analysisType==='assoc'?associations:undefined, entities:analysisType==='ner'?entities:undefined, embeddings:analysisType==='embeddings'?{vocab:embeddings?.vocab,points:embeddingPoints,method:dimReductionMethod}:undefined}; const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`analysis_${analysisType}.json`; a.click() }
 
@@ -1047,7 +1079,50 @@ export default function App(){
                 <button className='btn outline' onClick={handleResetToOriginal} disabled={!versionManager.current.originalData}>Reset</button>
               </>
             )}
-            <button className='btn outline' onClick={exportTransformed} disabled={!currentRows.length}>Export Data</button>
+            <div style={{position: 'relative'}}>
+              <button 
+                className='btn outline' 
+                onClick={() => setShowExportMenu(!showExportMenu)} 
+                disabled={!currentRows.length}
+              >
+                Export Data {showExportMenu ? '▲' : '▼'}
+              </button>
+              {showExportMenu && (
+                <div style={{
+                  position: 'absolute',
+                  top: '100%',
+                  right: 0,
+                  marginTop: 4,
+                  background: 'var(--c-surface)',
+                  border: '1px solid var(--c-border)',
+                  borderRadius: 8,
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                  zIndex: 1000,
+                  minWidth: 150
+                }}>
+                  <button 
+                    className='btn' 
+                    style={{width: '100%', textAlign: 'left', padding: '8px 16px', border: 'none', borderRadius: 0, borderBottom: '1px solid var(--c-border)'}}
+                    onClick={() => {
+                      exportTransformed('xlsx')
+                      setShowExportMenu(false)
+                    }}
+                  >
+                    📊 Excel (.xlsx)
+                  </button>
+                  <button 
+                    className='btn' 
+                    style={{width: '100%', textAlign: 'left', padding: '8px 16px', border: 'none', borderRadius: 0}}
+                    onClick={() => {
+                      exportTransformed('csv')
+                      setShowExportMenu(false)
+                    }}
+                  >
+                    📄 CSV (.csv)
+                  </button>
+                </div>
+              )}
+            </div>
             {activeView === 'dashboard' && <button className='btn accent' onClick={exportAnalysis} disabled={!textSamples.length}>Export Analysis</button>}
           </div>
         </div>
