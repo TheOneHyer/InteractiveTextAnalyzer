@@ -122,6 +122,102 @@ export class DataVersionManager {
       canRedo: this.canRedo()
     }
   }
+
+  /**
+   * Get history with summaries
+   */
+  getHistoryWithSummaries() {
+    return this.history.map((data, index) => {
+      const summary = this.generateSummary(data, index)
+      return {
+        index,
+        isCurrent: index === this.currentIndex,
+        summary
+      }
+    })
+  }
+
+  /**
+   * Generate a brief summary for a version
+   */
+  generateSummary(data, index) {
+    if (index === 0) {
+      return 'Initial state'
+    }
+    
+    if (index === this.currentIndex) {
+      return 'Current state'
+    }
+    
+    // Compare with previous version to detect changes
+    if (index > 0) {
+      const prev = this.history[index - 1]
+      const changes = []
+      
+      Object.keys(data).forEach(sheetName => {
+        if (!prev[sheetName]) {
+          changes.push(`Added sheet: ${sheetName}`)
+        } else {
+          const prevSheet = prev[sheetName]
+          const currSheet = data[sheetName]
+          
+          // Check for column changes
+          if (prevSheet.columns.length !== currSheet.columns.length) {
+            const diff = currSheet.columns.length - prevSheet.columns.length
+            if (diff > 0) {
+              changes.push(`+${diff} column(s)`)
+            } else {
+              changes.push(`${diff} column(s)`)
+            }
+          } else {
+            // Check for renamed columns
+            const renamed = currSheet.columns.filter(col => !prevSheet.columns.includes(col))
+            if (renamed.length > 0) {
+              changes.push(`Renamed column`)
+            }
+          }
+          
+          // Check for row changes
+          if (prevSheet.rows.length !== currSheet.rows.length) {
+            const diff = currSheet.rows.length - prevSheet.rows.length
+            if (diff > 0) {
+              changes.push(`+${diff} row(s)`)
+            } else {
+              changes.push(`${diff} row(s)`)
+            }
+          }
+          
+          // Check for data changes
+          if (prevSheet.rows.length > 0 && currSheet.rows.length > 0) {
+            const samplePrevRow = JSON.stringify(prevSheet.rows[0])
+            const sampleCurrRow = JSON.stringify(currSheet.rows[0])
+            if (samplePrevRow !== sampleCurrRow && changes.length === 0) {
+              changes.push('Modified data')
+            }
+          }
+        }
+      })
+      
+      if (changes.length === 0) {
+        return 'No changes'
+      }
+      
+      return changes.slice(0, 2).join(', ')
+    }
+    
+    return `Version ${index + 1}`
+  }
+
+  /**
+   * Jump to a specific version in history
+   */
+  jumpToVersion(index) {
+    if (index >= 0 && index < this.history.length) {
+      this.currentIndex = index
+      return this.getCurrent()
+    }
+    return null
+  }
 }
 
 /**
@@ -182,6 +278,52 @@ export function applyDataTransformation(currentData, transformation) {
           row[transformation.columnName] = transformation.value
         }
       }
+      break
+      
+    case 'TRANSFORM_COLUMN':
+      Object.keys(newData).forEach(sheetName => {
+        if (transformation.sheetName === sheetName || transformation.sheetName === '__ALL__') {
+          const { columnName, transformType } = transformation
+          newData[sheetName].rows = newData[sheetName].rows.map(row => {
+            const newRow = { ...row }
+            if (newRow[columnName] !== null && newRow[columnName] !== undefined) {
+              const value = String(newRow[columnName])
+              if (transformType === 'uppercase') {
+                newRow[columnName] = value.toUpperCase()
+              } else if (transformType === 'lowercase') {
+                newRow[columnName] = value.toLowerCase()
+              }
+            }
+            return newRow
+          })
+        }
+      })
+      break
+      
+    case 'TRANSFORM_ALL':
+      Object.keys(newData).forEach(sheetName => {
+        if (transformation.sheetName === sheetName || transformation.sheetName === '__ALL__') {
+          const { transformType } = transformation
+          newData[sheetName].rows = newData[sheetName].rows.map(row => {
+            const newRow = {}
+            Object.keys(row).forEach(key => {
+              if (row[key] !== null && row[key] !== undefined) {
+                const value = String(row[key])
+                if (transformType === 'uppercase') {
+                  newRow[key] = value.toUpperCase()
+                } else if (transformType === 'lowercase') {
+                  newRow[key] = value.toLowerCase()
+                } else {
+                  newRow[key] = row[key]
+                }
+              } else {
+                newRow[key] = row[key]
+              }
+            })
+            return newRow
+          })
+        }
+      })
       break
       
     default:
