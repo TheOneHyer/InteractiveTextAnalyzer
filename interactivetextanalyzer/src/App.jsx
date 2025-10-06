@@ -1759,8 +1759,17 @@ export default function App(){
                 </div>
                 <div style={{marginBottom:20}}>
                   <h4 style={{marginBottom:10}}>Data Source</h4>
-                  <input type='file' accept='.xlsx,.xls,.csv' onChange={handleFile} />
-                  <div style={{display:'flex',gap:6,flexWrap:'wrap',marginTop:8}}>
+                  <input 
+                    type='file' 
+                    id='file-upload-input'
+                    accept='.xlsx,.xls,.csv' 
+                    onChange={handleFile}
+                    style={{display:'none'}}
+                  />
+                  <label htmlFor='file-upload-input' className='btn secondary' style={{display:'inline-block',cursor:'pointer',background:'#e2e8f0',marginBottom:8}}>
+                    Choose File
+                  </label>
+                  <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
                     <button className='btn secondary' style={{background:'#e2e8f0'}} onClick={()=>fetch(new URL('sample-data.csv', import.meta.env.BASE_URL)).then(r=>r.text()).then(txt=>{const p=parseCsv(txt); versionManager.current.initialize(p); setHistoryInfo(versionManager.current.getHistoryInfo()); setWorkbookData({'Sample CSV':p}); setActiveSheet('Sample CSV'); setSelectedColumns([]); setHiddenColumns([]); setRenames({}) })}>Load CSV Sample</button>
                     <button className='btn secondary' style={{background:'#e2e8f0'}} onClick={loadSampleExcel}>Load Excel Sample</button>
                   </div>
@@ -1768,49 +1777,13 @@ export default function App(){
                 <div style={{marginBottom:16}}>
                   {Object.keys(workbookData).length>0 && <SheetSelector sheets={Object.keys(workbookData)} activeSheet={activeSheet} setActiveSheet={setActiveSheet} />}
                 </div>
-                {currentColumns.length > 0 && (
-                  <div style={{marginBottom:20}}>
-                    <h4 style={{marginBottom:10}}>Column Management</h4>
-                    <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
-                      {currentColumns.map(col => (
-                        <div key={col} style={{display:'flex',alignItems:'center',gap:6,background:'var(--c-bg)',padding:'6px 10px',borderRadius:8,border:'1px solid var(--c-border)'}}>
-                          <span style={{fontSize:13}}>{col}</span>
-                          <input 
-                            type='text' 
-                            placeholder='Rename...'
-                            style={{width:100,padding:'2px 6px',fontSize:11,border:'1px solid var(--c-border)',borderRadius:4,background:'var(--c-surface)',color:'var(--c-text)'}}
-                            onBlur={(e) => {
-                              if (e.target.value && e.target.value !== col) {
-                                renameColumn(col, e.target.value)
-                                e.target.value = ''
-                              }
-                            }}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                e.target.blur()
-                              }
-                            }}
-                          />
-                          <button 
-                            className='btn' 
-                            style={{padding:'2px 6px',fontSize:11,background:'var(--c-danger)',color:'#fff'}}
-                            onClick={() => deleteColumn(col)}
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {/* Column Type Management */}
-                {currentColumns.length > 0 && (
-                  <div style={{marginBottom:20}}>
-                    <h4 style={{marginBottom:10}}>
-                      Column Types
+                <div style={{marginBottom:20}}>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
+                    <h4 style={{margin:0}}>Column Management</h4>
+                    {currentColumns.length > 0 && (
                       <button 
                         className='btn secondary' 
-                        style={{fontSize:11,padding:'2px 8px',marginLeft:8}}
+                        style={{fontSize:11,padding:'4px 10px'}}
                         onClick={() => {
                           const detected = detectCategoricalColumns(currentRows, currentColumns)
                           setCategoricalColumns(prev => {
@@ -1821,149 +1794,228 @@ export default function App(){
                       >
                         Auto-Detect Categorical
                       </button>
-                    </h4>
-                    <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
-                      {currentColumns.map(col => (
-                        <div key={col} style={{display:'flex',alignItems:'center',gap:6,background:'var(--c-bg)',padding:'6px 10px',borderRadius:8,border:'1px solid var(--c-border)'}}>
-                          <span style={{fontSize:13,fontWeight:500}}>{col}</span>
-                          <select 
-                            value={columnTypes[col] || 'text'}
-                            onChange={(e) => setColumnTypes(prev => ({ ...prev, [col]: e.target.value }))}
-                            style={{padding:'2px 6px',fontSize:11,border:'1px solid var(--c-border)',borderRadius:4,background:'var(--c-surface)',color:'var(--c-text)'}}
-                          >
-                            <option value="text">text</option>
-                            <option value="number">number</option>
-                            <option value="date">date</option>
-                            <option value="boolean">boolean</option>
-                          </select>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {/* Analysis Column Selection */}
-                {currentColumns.length > 0 && (
-                  <div style={{marginBottom:20}}>
-                    <h4 style={{marginBottom:10}}>Analysis Columns</h4>
-                    <p style={{fontSize:12,color:'var(--c-text-muted)',marginBottom:8}}>Select columns to use for text analysis when switching to Analyzer view</p>
-                    <SimpleColumnSelector 
-                      columns={currentColumns} 
-                      selectedColumns={selectedColumns} 
-                      toggleColumn={selectColumnForText} 
-                    />
-                  </div>
-                )}
-                {/* Categorical Column Selection */}
-                {currentColumns.length > 0 && (
-                  <div style={{marginBottom:20}}>
-                    <h4 style={{marginBottom:10}}>Categorical Columns</h4>
-                    <p style={{fontSize:12,color:'var(--c-text-muted)',marginBottom:8}}>Flag columns for categorical filtering (keeps original data type)</p>
-                    <SimpleColumnSelector 
-                      columns={currentColumns} 
-                      selectedColumns={categoricalColumns} 
-                      toggleColumn={(col) => {
-                        setCategoricalColumns(prev => 
-                          prev.includes(col) ? prev.filter(c => c !== col) : [...prev, col]
-                        )
-                      }} 
-                    />
-                  </div>
-                )}
-                {/* Text Case Transformation */}
-                {currentColumns.length > 0 && (
-                  <div style={{marginBottom:20}}>
-                    <h4 style={{marginBottom:10}}>Text Transformations</h4>
-                    <div style={{display:'flex',flexWrap:'wrap',gap:8,marginBottom:8}}>
-                      <select 
-                        id='transform-column-select'
-                        style={{padding:'4px 8px',fontSize:12,border:'1px solid var(--c-border)',borderRadius:4,background:'var(--c-surface)',color:'var(--c-text)',flex:'1 1 200px',maxWidth:250}}
-                      >
-                        <option value="">Select column...</option>
-                        {currentColumns.map(col => (
-                          <option key={col} value={col}>{col}</option>
-                        ))}
-                      </select>
-                      <button 
-                        className='btn secondary' 
-                        style={{fontSize:12,padding:'4px 12px'}}
-                        onClick={() => {
-                          const select = document.getElementById('transform-column-select')
-                          if (select.value) {
-                            transformColumn(select.value, 'uppercase')
-                          }
-                        }}
-                      >
-                        ↑ UPPERCASE Column
-                      </button>
-                      <button 
-                        className='btn secondary' 
-                        style={{fontSize:12,padding:'4px 12px'}}
-                        onClick={() => {
-                          const select = document.getElementById('transform-column-select')
-                          if (select.value) {
-                            transformColumn(select.value, 'lowercase')
-                          }
-                        }}
-                      >
-                        ↓ lowercase Column
-                      </button>
-                    </div>
-                    <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
-                      <button 
-                        className='btn secondary' 
-                        style={{fontSize:12,padding:'4px 12px'}}
-                        onClick={() => transformAll('uppercase')}
-                        disabled={currentRows.length === 0}
-                      >
-                        ↑ UPPERCASE All ({activeSheet === '__ALL__' ? 'All Sheets' : activeSheet || 'Current Sheet'})
-                      </button>
-                      <button 
-                        className='btn secondary' 
-                        style={{fontSize:12,padding:'4px 12px'}}
-                        onClick={() => transformAll('lowercase')}
-                        disabled={currentRows.length === 0}
-                      >
-                        ↓ lowercase All ({activeSheet === '__ALL__' ? 'All Sheets' : activeSheet || 'Current Sheet'})
-                      </button>
-                    </div>
-                  </div>
-                )}
-                {/* Text Search Filter */}
-                {currentColumns.length > 0 && (
-                  <div style={{marginBottom:20}}>
-                    <h4 style={{marginBottom:10}}>Text Search Filter</h4>
-                    <input 
-                      type='text'
-                      placeholder='Search across all columns...'
-                      value={textSearchFilter}
-                      onChange={(e) => setTextSearchFilter(e.target.value)}
-                      style={{
-                        width: '100%',
-                        maxWidth: 500,
-                        padding: '8px 12px',
-                        fontSize: 13,
-                        border: '1px solid var(--c-border)',
-                        borderRadius: 6,
-                        background: 'var(--c-surface)',
-                        color: 'var(--c-text)'
-                      }}
-                    />
-                    {textSearchFilter && (
-                      <div style={{marginTop: 6, fontSize: 12, color: 'var(--c-text-muted)'}}>
-                        Showing {currentRows.length} of {rawRows.length} rows
-                        {currentRows.length !== rawRows.length && (
-                          <button 
-                            className='btn secondary' 
-                            style={{fontSize:11,padding:'2px 8px',marginLeft:8}}
-                            onClick={() => setTextSearchFilter('')}
-                          >
-                            Clear
-                          </button>
-                        )}
-                      </div>
                     )}
                   </div>
-                )}
+                  {currentColumns.length > 0 ? (
+                    <div style={{maxHeight:400,overflowY:'auto'}}>
+                      <table className='column-mgmt-table'>
+                        <thead>
+                          <tr>
+                            <th>Column Name</th>
+                            <th>Analyze</th>
+                            <th>Categorical</th>
+                            <th>Type</th>
+                            <th>Edit Name</th>
+                            <th>Delete</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {currentColumns.map(col => {
+                            const isAnalyze = selectedColumns.includes(col)
+                            const isCategorical = categoricalColumns.includes(col)
+                            return (
+                            <tr key={col}>
+                              <td style={{fontWeight:500}}>{col}</td>
+                              <td style={{textAlign:'center'}}>
+                                <input 
+                                  type='checkbox'
+                                  className='column-mgmt-checkbox'
+                                  checked={isAnalyze}
+                                  onChange={() => {
+                                    if (isCategorical) {
+                                      // Remove from categorical and add to analyze
+                                      setCategoricalColumns(prev => prev.filter(c => c !== col))
+                                      selectColumnForText(col)
+                                    } else {
+                                      selectColumnForText(col)
+                                    }
+                                  }}
+                                  title='Select for text analysis'
+                                  style={{
+                                    opacity: isCategorical && !isAnalyze ? 0.3 : 1,
+                                    cursor: 'pointer'
+                                  }}
+                                />
+                              </td>
+                              <td style={{textAlign:'center'}}>
+                                <input 
+                                  type='checkbox'
+                                  className='column-mgmt-checkbox'
+                                  checked={isCategorical}
+                                  onChange={() => {
+                                    if (isAnalyze) {
+                                      // Remove from analyze and add to categorical
+                                      selectColumnForText(col)
+                                      setCategoricalColumns(prev => 
+                                        prev.includes(col) ? prev.filter(c => c !== col) : [...prev, col]
+                                      )
+                                    } else {
+                                      setCategoricalColumns(prev => 
+                                        prev.includes(col) ? prev.filter(c => c !== col) : [...prev, col]
+                                      )
+                                    }
+                                  }}
+                                  title='Flag as categorical for filtering'
+                                  style={{
+                                    opacity: isAnalyze && !isCategorical ? 0.3 : 1,
+                                    cursor: 'pointer'
+                                  }}
+                                />
+                              </td>
+                              <td>
+                                <select 
+                                  value={columnTypes[col] || 'text'}
+                                  onChange={(e) => setColumnTypes(prev => ({ ...prev, [col]: e.target.value }))}
+                                >
+                                  <option value="text">text</option>
+                                  <option value="number">number</option>
+                                  <option value="date">date</option>
+                                  <option value="boolean">boolean</option>
+                                </select>
+                              </td>
+                              <td>
+                                <input 
+                                  type='text' 
+                                  placeholder='New name...'
+                                  onBlur={(e) => {
+                                    if (e.target.value && e.target.value !== col) {
+                                      renameColumn(col, e.target.value)
+                                      e.target.value = ''
+                                    }
+                                  }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      e.target.blur()
+                                    }
+                                  }}
+                                />
+                              </td>
+                              <td style={{textAlign:'center'}}>
+                                <button 
+                                  className='column-mgmt-delete-btn'
+                                  onClick={() => deleteColumn(col)}
+                                >
+                                  Delete
+                                </button>
+                              </td>
+                            </tr>
+                          )})}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className='column-mgmt-empty'>
+                      No Data
+                    </div>
+                  )}
+                </div>
+                {/* Text Case Transformation */}
+                <div style={{marginBottom:20}}>
+                  <h4 style={{marginBottom:10}}>Text Transformations</h4>
+                  {currentColumns.length > 0 ? (
+                    <>
+                      <div style={{display:'flex',flexWrap:'wrap',gap:8,marginBottom:8}}>
+                        <select 
+                          id='transform-column-select'
+                          style={{padding:'4px 8px',fontSize:12,border:'1px solid var(--c-border)',borderRadius:4,background:'var(--c-surface)',color:'var(--c-text)',flex:'1 1 200px',maxWidth:250}}
+                        >
+                          <option value="">Select column...</option>
+                          {currentColumns.map(col => (
+                            <option key={col} value={col}>{col}</option>
+                          ))}
+                        </select>
+                        <button 
+                          className='btn secondary' 
+                          style={{fontSize:12,padding:'4px 12px'}}
+                          onClick={() => {
+                            const select = document.getElementById('transform-column-select')
+                            if (select.value) {
+                              transformColumn(select.value, 'uppercase')
+                            }
+                          }}
+                        >
+                          ↑ UPPERCASE Column
+                        </button>
+                        <button 
+                          className='btn secondary' 
+                          style={{fontSize:12,padding:'4px 12px'}}
+                          onClick={() => {
+                            const select = document.getElementById('transform-column-select')
+                            if (select.value) {
+                              transformColumn(select.value, 'lowercase')
+                            }
+                          }}
+                        >
+                          ↓ lowercase Column
+                        </button>
+                      </div>
+                      <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
+                        <button 
+                          className='btn secondary' 
+                          style={{fontSize:12,padding:'4px 12px'}}
+                          onClick={() => transformAll('uppercase')}
+                          disabled={currentRows.length === 0}
+                        >
+                          ↑ UPPERCASE All ({activeSheet === '__ALL__' ? 'All Sheets' : activeSheet || 'Current Sheet'})
+                        </button>
+                        <button 
+                          className='btn secondary' 
+                          style={{fontSize:12,padding:'4px 12px'}}
+                          onClick={() => transformAll('lowercase')}
+                          disabled={currentRows.length === 0}
+                        >
+                          ↓ lowercase All ({activeSheet === '__ALL__' ? 'All Sheets' : activeSheet || 'Current Sheet'})
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <div className='column-mgmt-empty'>
+                      No Data
+                    </div>
+                  )}
+                </div>
+                {/* Text Search Filter */}
+                <div style={{marginBottom:20}}>
+                  <h4 style={{marginBottom:10}}>Text Search Filter</h4>
+                  {currentColumns.length > 0 ? (
+                    <>
+                      <input 
+                        type='text'
+                        placeholder='Search across all columns...'
+                        value={textSearchFilter}
+                        onChange={(e) => setTextSearchFilter(e.target.value)}
+                        style={{
+                          width: '100%',
+                          maxWidth: 500,
+                          padding: '8px 12px',
+                          fontSize: 13,
+                          border: '1px solid var(--c-border)',
+                          borderRadius: 6,
+                          background: 'var(--c-surface)',
+                          color: 'var(--c-text)'
+                        }}
+                      />
+                      {textSearchFilter && (
+                        <div style={{marginTop: 6, fontSize: 12, color: 'var(--c-text-muted)'}}>
+                          Showing {currentRows.length} of {rawRows.length} rows
+                          {currentRows.length !== rawRows.length && (
+                            <button 
+                              className='btn secondary' 
+                              style={{fontSize:11,padding:'2px 8px',marginLeft:8}}
+                              onClick={() => setTextSearchFilter('')}
+                            >
+                              Clear
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className='column-mgmt-empty'>
+                      No Data
+                    </div>
+                  )}
+                </div>
                 {/* Categorical Filters in Editor */}
                 {(() => {
                   const categCols = currentColumns.filter(col => 
