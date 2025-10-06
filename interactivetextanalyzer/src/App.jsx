@@ -1,17 +1,17 @@
-import { useState, useMemo, useEffect, useCallback, lazy, Suspense, useRef } from 'react'
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import './App.css'
 import ExcelJS from 'exceljs'
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts'
 import ImportPreviewModal from './components/ImportPreviewModal'
 import { DataVersionManager, applyDataTransformation } from './utils/dataVersioning'
+import { initializeLazyLoading } from './utils/useLazyLoader'
+import { createLazyComponent } from './components/LazyComponent'
 
-// Code-split heavy visualization pieces
-const WordCloud = lazy(()=>import('./components/WordCloud'))
-const NetworkGraph = lazy(()=>import('./components/NetworkGraph'))
-const Heatmap = lazy(()=>import('./components/Heatmap'))
-const ScatterPlot = lazy(()=>import('./components/ScatterPlot'))
-const VisualModal = lazy(()=>import('./components/VisualModal'))
-const Wiki = lazy(()=>import('./components/Wiki'))
+// Code-split heavy visualization pieces using centralized lazy loader
+const WordCloud = createLazyComponent('WordCloud')
+const NetworkGraph = createLazyComponent('NetworkGraph')
+const Heatmap = createLazyComponent('Heatmap')
+const Wiki = createLazyComponent('Wiki')
 
 // Lightweight tokenization utilities (replace heavy natural for ngram + assoc)
 const tokenize = (text) => text.toLowerCase().split(/[^a-z0-9']+/).filter(Boolean)
@@ -20,11 +20,35 @@ const buildStem = () => {
   return (w) => { if(cache.has(w)) return cache.get(w); const s = w.replace(/(ing|ed|ly|s)$/,''); cache.set(w,s); return s }
 }
 
+// Normalize value with synonym detection (for categorical filtering)
+const normalizeValue = (val) => {
+  if (val === null || val === undefined) return null
+  const str = String(val).toLowerCase().trim()
+  
+  // Map synonyms for common boolean-like values
+  const synonymMap = {
+    'y': 'yes', 'yes': 'yes', 'true': 'yes', '1': 'yes', 't': 'yes',
+    'n': 'no', 'no': 'no', 'false': 'no', '0': 'no', 'f': 'no'
+  }
+  
+  return synonymMap[str] || str
+}
+
+// Get unique categorical values for a column
+const getCategoricalValues = (rows, column) => {
+  const values = rows
+    .map(row => row[column])
+    .filter(val => val !== null && val !== undefined && String(val).trim() !== '')
+  
+  const uniqueNormalized = new Set(values.map(normalizeValue))
+  return Array.from(uniqueNormalized).sort()
+}
+
 // Lazy load only compromise for NER when needed
-let compromiseRef = null
+import lazyLoader from './utils/lazyLoader'
 const loadNlpLibs = async () => {
-  if(!compromiseRef) compromiseRef = (await import('compromise')).default || (await import('compromise'))
-  return { nlp: compromiseRef }
+  const compromiseModule = await lazyLoader.get('compromise')
+  return { nlp: compromiseModule }
 }
 
 // Simple PCA implementation for dimensionality reduction (browser-compatible)
@@ -328,6 +352,10 @@ export default function App(){
   const [pendingFileName, setPendingFileName] = useState('')
   const [pendingFileType, setPendingFileType] = useState('')
   
+  // Column types and categorical filters
+  const [columnTypes, setColumnTypes] = useState({})
+  const [categoricalFilters, setCategoricalFilters] = useState({})
+  
   // View state and versioning
   const [activeView, setActiveView] = useState('dashboard')
   const versionManager = useRef(new DataVersionManager())
@@ -341,6 +369,11 @@ export default function App(){
   const [modalContent, setModalContent] = useState(null)
   const [modalTitle, setModalTitle] = useState('')
   const [weightedLines, setWeightedLines] = useState(false)
+
+  // Initialize lazy loading system on mount
+  useEffect(() => {
+    initializeLazyLoading()
+  }, [])
 
   // Restore settings (no eval)
   useEffect(()=>{ try { const s=JSON.parse(localStorage.getItem(LOCAL_KEY)||'{}');
@@ -528,7 +561,7 @@ export default function App(){
 
   const handleImportConfirm = (config) => {
     // Apply the configuration and load the data
-    const { processedData, hiddenColumns: importHiddenColumns, markedColumns } = config
+    const { processedData, hiddenColumns: importHiddenColumns, markedColumns, columnTypes: importColumnTypes, categoricalFilters: importCategoricalFilters } = config
     
     // Reconstruct workbook data with processed data
     const finalData = {}
@@ -550,6 +583,8 @@ export default function App(){
     setActiveSheet(Object.keys(finalData)[0] || null)
     setSelectedColumns(markedColumns)
     setHiddenColumns(importHiddenColumns)
+    setColumnTypes(importColumnTypes || {})
+    setCategoricalFilters(importCategoricalFilters || {})
     setRenames({})
     setShowImportModal(false)
     setPendingImportData(null)
@@ -560,7 +595,27 @@ export default function App(){
     setPendingImportData(null)
   }
 
-  const currentRows=useMemo(()=> activeSheet==='__ALL__'? Object.values(workbookData).flatMap(s=>s.rows): (activeSheet && workbookData[activeSheet]?.rows)||[],[activeSheet,workbookData])
+  const rawRows=useMemo(()=> activeSheet==='__ALL__'? Object.values(workbookData).flatMap(s=>s.rows): (activeSheet && workbookData[activeSheet]?.rows)||[],[activeSheet,workbookData])
+  
+  // Apply categorical filters to rows
+  const currentRows = useMemo(() => {
+    let filtered = rawRows
+    
+    // Apply categorical filters
+    Object.entries(categoricalFilters).forEach(([col, selectedValues]) => {
+      if (selectedValues && selectedValues.length > 0) {
+        filtered = filtered.filter(row => {
+          const val = row[col]
+          if (val === null || val === undefined) return false
+          const normalized = normalizeValue(val)
+          return selectedValues.includes(normalized)
+        })
+      }
+    })
+    
+    return filtered
+  }, [rawRows, categoricalFilters])
+  
   const currentColumns=useMemo(()=> activeSheet==='__ALL__'? [...new Set(Object.values(workbookData).flatMap(s=>s.columns))] : (activeSheet && workbookData[activeSheet]?.columns)||[],[activeSheet,workbookData])
   const displayedColumns=currentColumns.filter(c=>!hiddenColumns.includes(c))
   const textSamples=useMemo(()=> !selectedColumns.length? [] : currentRows.map(r=>selectedColumns.map(c=>r[c]).join(' ')),[currentRows,selectedColumns])
@@ -637,8 +692,10 @@ export default function App(){
   const barData=useMemo(()=>{ if(analysisType==='assoc'&&associations) return associations.pairs.slice(0,8).map(p=>({ name:`${p.a}+${p.b}`, lift:+p.lift.toFixed(2) })); if(analysisType==='tfidf'&&tfidf) return tfidf.aggregate.slice(0,8).map(t=>({ name:t.term, score:+t.score.toFixed(2) })); if(analysisType==='ngram') return ngrams.slice(0,8).map(g=>({ name:g.gram, freq:g.count })); if(analysisType==='ner') return entities.slice(0,8).map(e=>({ name:e.value, count:e.count })); return [] },[analysisType,associations,tfidf,ngrams,entities])
 
   // Mutators
-  const _toggleHide=col=>setHiddenColumns(h=>h.includes(col)? h.filter(c=>c!==col):[...h,col])
-  const _setRename=(col,name)=>setRenames(r=>({...r,[col]:name}))
+  // eslint-disable-next-line no-unused-vars
+  const toggleHide=col=>setHiddenColumns(h=>h.includes(col)? h.filter(c=>c!==col):[...h,col])
+  // eslint-disable-next-line no-unused-vars
+  const setRename=(col,name)=>setRenames(r=>({...r,[col]:name}))
   const selectColumnForText=col=>setSelectedColumns(p=>p.includes(col)? p.filter(c=>c!==col):[...p,col])
   
   // Undo/Redo handlers
@@ -693,7 +750,8 @@ export default function App(){
     }
   }
   
-  const _deleteRows = (rowIndices) => {
+  // eslint-disable-next-line no-unused-vars
+  const deleteRows = (rowIndices) => {
     applyTransformation({
       type: 'DELETE_ROW',
       sheetName: activeSheet || '__ALL__',
@@ -957,6 +1015,63 @@ export default function App(){
                   <div className='notice'>Select columns for text analysis</div>
                 </div>
               )}
+              {/* Categorical Filters */}
+              {(() => {
+                const categoricalColumns = currentColumns.filter(col => 
+                  columnTypes[col] === 'categorical' || columnTypes[col] === 'boolean'
+                )
+                return categoricalColumns.length > 0 ? (
+                  <div className='box'>
+                    <h4>Data Filters</h4>
+                    {categoricalColumns.map(col => {
+                      const values = getCategoricalValues(rawRows, col)
+                      const selectedValues = categoricalFilters[col] || []
+                      return (
+                        <div key={col} style={{marginBottom:12}}>
+                          <label style={{fontSize:12,fontWeight:600,display:'block',marginBottom:4}}>{col}</label>
+                          <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+                            {values.map(value => {
+                              const isSelected = selectedValues.length === 0 || selectedValues.includes(value)
+                              return (
+                                <button
+                                  key={value}
+                                  className='btn secondary'
+                                  style={{
+                                    padding:'4px 10px',
+                                    fontSize:11,
+                                    background: isSelected ? 'var(--c-accent)' : '#e2e8f0',
+                                    color: isSelected ? '#111' : '#1e293b'
+                                  }}
+                                  onClick={() => {
+                                    setCategoricalFilters(prev => {
+                                      const current = prev[col] || []
+                                      const updated = current.includes(value)
+                                        ? current.filter(v => v !== value)
+                                        : [...current, value]
+                                      return { ...prev, [col]: updated }
+                                    })
+                                  }}
+                                >
+                                  {value}
+                                </button>
+                              )
+                            })}
+                          </div>
+                          {selectedValues.length > 0 && (
+                            <button 
+                              className='btn secondary' 
+                              style={{fontSize:11,padding:'2px 8px',marginTop:4}}
+                              onClick={() => setCategoricalFilters(prev => ({ ...prev, [col]: [] }))}
+                            >
+                              Clear Filter
+                            </button>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                ) : null
+              })()}
               <div className='box'>
                 <h4>Analysis Settings</h4>
                 <label style={{fontSize:12}}>
@@ -1054,10 +1169,10 @@ export default function App(){
                       {chartLayout !== 'single' && (
                         <>
                           <div className='chart-box' style={{minHeight: 240}}>
-                            {networkData.nodes.length>0 ? <Suspense fallback={<div className='skel block' /> }><NetworkGraph nodes={networkData.nodes} edges={networkData.edges} weightedLines={weightedLines} /></Suspense> : <div className='skel block' />}
+                            {networkData.nodes.length>0 ? <NetworkGraph nodes={networkData.nodes} edges={networkData.edges} weightedLines={weightedLines} /> : <div className='skel block' />}
                           </div>
                           <div className='chart-box' style={{minHeight: 240}}>
-                            {heatmapData.matrix.length>0 ? <Suspense fallback={<div className='skel block' /> }><Heatmap matrix={heatmapData.matrix} xLabels={heatmapData.xLabels} yLabels={heatmapData.yLabels} /></Suspense> : <div className='skel block' />}
+                            {heatmapData.matrix.length>0 ? <Heatmap matrix={heatmapData.matrix} xLabels={heatmapData.xLabels} yLabels={heatmapData.yLabels} /> : <div className='skel block' />}
                           </div>
                           {chartLayout === 'grid' && (
                             <>
@@ -1181,9 +1296,9 @@ export default function App(){
                         </button>
                       )}
                     </div>
-                    {viewMode==='wordcloud' && <Suspense fallback={<div className='skel block' style={{height:300}} /> }><WordCloud data={wordCloudData} /></Suspense>}
-                    {viewMode==='network' && <Suspense fallback={<div className='skel block' style={{height:300}} /> }><NetworkGraph nodes={networkData.nodes} edges={networkData.edges} weightedLines={weightedLines} /></Suspense>}
-                    {viewMode==='heatmap' && <Suspense fallback={<div className='skel block' style={{height:300}} /> }><Heatmap matrix={heatmapData.matrix} xLabels={heatmapData.xLabels} yLabels={heatmapData.yLabels} /></Suspense>}
+                    {viewMode==='wordcloud' && <WordCloud data={wordCloudData} />}
+                    {viewMode==='network' && <NetworkGraph nodes={networkData.nodes} edges={networkData.edges} weightedLines={weightedLines} />}
+                    {viewMode==='heatmap' && <Heatmap matrix={heatmapData.matrix} xLabels={heatmapData.xLabels} yLabels={heatmapData.yLabels} />}
                     {viewMode==='list' && <div className='notice'>Choose a visualization mode.</div>}
                   </div>
                 </div>
@@ -1209,9 +1324,7 @@ export default function App(){
           </>
           ) : activeView === 'wiki' ? (
             /* Wiki View */
-            <Suspense fallback={<div className='skel block' style={{height:400}} />}>
-              <Wiki />
-            </Suspense>
+            <Wiki />
           ) : (
             /* Editor View */
             <>
@@ -1258,6 +1371,87 @@ export default function App(){
                     </div>
                   </div>
                 )}
+                {/* Column Type Management */}
+                {currentColumns.length > 0 && (
+                  <div style={{marginBottom:20}}>
+                    <h4 style={{marginBottom:10}}>Column Types</h4>
+                    <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
+                      {currentColumns.map(col => (
+                        <div key={col} style={{display:'flex',alignItems:'center',gap:6,background:'var(--c-bg)',padding:'6px 10px',borderRadius:8,border:'1px solid var(--c-border)'}}>
+                          <span style={{fontSize:13,fontWeight:500}}>{col}</span>
+                          <select 
+                            value={columnTypes[col] || 'text'}
+                            onChange={(e) => setColumnTypes(prev => ({ ...prev, [col]: e.target.value }))}
+                            style={{padding:'2px 6px',fontSize:11,border:'1px solid var(--c-border)',borderRadius:4,background:'var(--c-surface)'}}
+                          >
+                            <option value="text">text</option>
+                            <option value="number">number</option>
+                            <option value="date">date</option>
+                            <option value="boolean">boolean</option>
+                            <option value="categorical">categorical</option>
+                          </select>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {/* Categorical Filters in Editor */}
+                {(() => {
+                  const categoricalColumns = currentColumns.filter(col => 
+                    columnTypes[col] === 'categorical' || columnTypes[col] === 'boolean'
+                  )
+                  return categoricalColumns.length > 0 ? (
+                    <div style={{marginBottom:20}}>
+                      <h4 style={{marginBottom:10}}>Data Filters</h4>
+                      {categoricalColumns.map(col => {
+                        const values = getCategoricalValues(rawRows, col)
+                        const selectedValues = categoricalFilters[col] || []
+                        return (
+                          <div key={col} style={{marginBottom:12}}>
+                            <label style={{fontSize:12,fontWeight:600,display:'block',marginBottom:4}}>{col}</label>
+                            <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+                              {values.map(value => {
+                                const isSelected = selectedValues.length === 0 || selectedValues.includes(value)
+                                return (
+                                  <button
+                                    key={value}
+                                    className='btn secondary'
+                                    style={{
+                                      padding:'4px 10px',
+                                      fontSize:11,
+                                      background: isSelected ? 'var(--c-accent)' : '#e2e8f0',
+                                      color: isSelected ? '#111' : '#1e293b'
+                                    }}
+                                    onClick={() => {
+                                      setCategoricalFilters(prev => {
+                                        const current = prev[col] || []
+                                        const updated = current.includes(value)
+                                          ? current.filter(v => v !== value)
+                                          : [...current, value]
+                                        return { ...prev, [col]: updated }
+                                      })
+                                    }}
+                                  >
+                                    {value}
+                                  </button>
+                                )
+                              })}
+                            </div>
+                            {selectedValues.length > 0 && (
+                              <button 
+                                className='btn secondary' 
+                                style={{fontSize:11,padding:'2px 8px',marginTop:4}}
+                                onClick={() => setCategoricalFilters(prev => ({ ...prev, [col]: [] }))}
+                              >
+                                Clear Filter
+                              </button>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  ) : null
+                })()}
                 {currentRows.length > 0 && (
                   <div>
                     <h4 style={{marginBottom:10}}>Data Preview</h4>

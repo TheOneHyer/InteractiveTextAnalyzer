@@ -367,6 +367,74 @@
   background: var(--c-surface);
 }
 
+/* Categorical Filters */
+.categorical-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: var(--c-bg);
+  border: 1px solid var(--c-border);
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.categorical-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: 8px;
+}
+
+.categorical-filter-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.categorical-filter-header strong {
+  font-size: 13px;
+  color: var(--c-text);
+}
+
+.categorical-filter-values {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.categorical-filter-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: var(--c-bg);
+  border: 1px solid var(--c-border);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.15s;
+  user-select: none;
+}
+
+.categorical-filter-option:hover {
+  background: var(--c-surface);
+  border-color: var(--c-accent);
+}
+
+.categorical-filter-option input[type="checkbox"] {
+  cursor: pointer;
+  width: 14px;
+  height: 14px;
+}
+
+.categorical-filter-option span {
+  color: var(--c-text);
+}
+
 .preview-table {
   width: 100%;
   border-collapse: collapse;
