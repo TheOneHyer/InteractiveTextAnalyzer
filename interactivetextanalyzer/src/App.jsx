@@ -438,6 +438,18 @@ export default function App(){
     pos3: 'network',  // Position 3: visible in grid only
     pos4: 'heatmap'   // Position 4: visible in grid only
   })
+  
+  // Track which visualization selector dropdown is open
+  const [openVizSelector, setOpenVizSelector] = useState(null) // null, 'pos1', 'pos2', 'pos3', 'pos4'
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      if (openVizSelector) setOpenVizSelector(null)
+    }
+    document.addEventListener('click', handleClickOutside)
+    return () => document.removeEventListener('click', handleClickOutside)
+  }, [openVizSelector])
 
   // Initialize lazy loading system on mount
   useEffect(() => {
@@ -1319,6 +1331,33 @@ export default function App(){
   }
   const exportAnalysis=()=>{ const payload={analysisType,timestamp:new Date().toISOString(), tfidf:analysisType==='tfidf'?tfidf:undefined, ngrams:analysisType==='ngram'?ngrams:undefined, associations:analysisType==='assoc'?associations:undefined, entities:analysisType==='ner'?entities:undefined, embeddings:analysisType==='embeddings'?{vocab:embeddings?.vocab,points:embeddingPoints,method:dimReductionMethod}:undefined}; const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`analysis_${analysisType}.json`; a.click() }
 
+  // Helper function to check if a visualization is available for current analysis type
+  const isVisualizationAvailable = (vizType) => {
+    switch(vizType) {
+      case 'bar':
+        return true // Available for all analysis types
+      case 'wordcloud':
+        return analysisType === 'tfidf' || analysisType === 'ngram' || analysisType === 'ner' || analysisType === 'assoc'
+      case 'network':
+        return analysisType === 'assoc'
+      case 'heatmap':
+        return analysisType === 'tfidf'
+      default:
+        return false
+    }
+  }
+
+  // Helper function to get visualization display name
+  const getVisualizationName = (type) => {
+    const names = {
+      bar: 'Bar Chart',
+      wordcloud: 'Word Cloud',
+      network: 'Network Graph',
+      heatmap: 'Heatmap'
+    }
+    return names[type] || type
+  }
+
   // Helper function to render a visualization based on type
   const renderVisualization = (type) => {
     switch(type) {
@@ -1356,6 +1395,86 @@ export default function App(){
       default:
         return <div className='skel block' />
     }
+  }
+
+  // Visualization selector component
+  const VisualizationSelector = ({ position, currentViz }) => {
+    const isOpen = openVizSelector === position
+    const visualizations = ['bar', 'wordcloud', 'network', 'heatmap']
+    
+    return (
+      <div style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
+        <button
+          className='btn secondary'
+          style={{
+            padding: '4px 10px',
+            fontSize: 11,
+            fontWeight: 600,
+            background: 'var(--c-surface)',
+            border: '1px solid var(--c-border)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4
+          }}
+          onClick={() => setOpenVizSelector(isOpen ? null : position)}
+        >
+          {getVisualizationName(currentViz)}
+          <span style={{ fontSize: 8 }}>▼</span>
+        </button>
+        {isOpen && (
+          <div
+            style={{
+              position: 'absolute',
+              top: '100%',
+              left: 0,
+              marginTop: 4,
+              background: 'var(--c-surface)',
+              border: '1px solid var(--c-border)',
+              borderRadius: 8,
+              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+              zIndex: 1000,
+              minWidth: 140
+            }}
+          >
+            {visualizations.map(viz => {
+              const isAvailable = isVisualizationAvailable(viz)
+              const isSelected = currentViz === viz
+              return (
+                <button
+                  key={viz}
+                  className='btn'
+                  style={{
+                    display: 'block',
+                    width: '100%',
+                    textAlign: 'left',
+                    padding: '8px 12px',
+                    fontSize: 12,
+                    border: 'none',
+                    background: isSelected ? 'var(--c-accent)' : 'transparent',
+                    color: isAvailable ? (isSelected ? '#111' : 'var(--c-text)') : 'var(--c-subtle)',
+                    cursor: isAvailable ? 'pointer' : 'not-allowed',
+                    opacity: isAvailable ? 1 : 0.5,
+                    borderRadius: 0,
+                    fontWeight: isSelected ? 600 : 400
+                  }}
+                  onClick={() => {
+                    if (isAvailable) {
+                      setChartVisualizations(prev => ({ ...prev, [position]: viz }))
+                      setOpenVizSelector(null)
+                    }
+                  }}
+                  disabled={!isAvailable}
+                  title={!isAvailable ? `Not available for ${analysisType} analysis` : ''}
+                >
+                  {getVisualizationName(viz)}
+                </button>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    )
   }
 
   // Maximize modal functions
@@ -1782,78 +1901,30 @@ export default function App(){
                     </div>
                   ) : (
                     <>
-                      <div style={{position: 'relative'}}>
-                        <div style={{position: 'absolute', top: -32, right: 0, zIndex: 10, display: 'flex', gap: 4}}>
-                          {['bar','wordcloud','network','heatmap'].map(viz => (
-                            <button 
-                              key={viz}
-                              className='btn secondary' 
-                              style={{padding:'3px 6px',fontSize:10,background:chartVisualizations.pos1===viz?'var(--c-accent)':'#e2e8f0',color:chartVisualizations.pos1===viz?'#111':'#1e293b'}}
-                              onClick={()=>setChartVisualizations(prev => ({...prev, pos1: viz}))}
-                              title={`Show ${viz}`}
-                            >
-                              {viz === 'bar' ? '📊' : viz === 'wordcloud' ? '☁️' : viz === 'network' ? '🕸️' : '🔥'}
-                            </button>
-                          ))}
-                        </div>
+                      <div style={{display: 'flex', flexDirection: 'column', gap: 8}}>
+                        <VisualizationSelector position='pos1' currentViz={chartVisualizations.pos1} />
                         <div className='chart-box' style={{minHeight: chartLayout === 'single' ? 320 : 240}}>
                           {renderVisualization(chartVisualizations.pos1)}
                         </div>
                       </div>
                       {chartLayout !== 'single' && (
                         <>
-                          <div style={{position: 'relative'}}>
-                            <div style={{position: 'absolute', top: -32, right: 0, zIndex: 10, display: 'flex', gap: 4}}>
-                              {['bar','wordcloud','network','heatmap'].map(viz => (
-                                <button 
-                                  key={viz}
-                                  className='btn secondary' 
-                                  style={{padding:'3px 6px',fontSize:10,background:chartVisualizations.pos2===viz?'var(--c-accent)':'#e2e8f0',color:chartVisualizations.pos2===viz?'#111':'#1e293b'}}
-                                  onClick={()=>setChartVisualizations(prev => ({...prev, pos2: viz}))}
-                                  title={`Show ${viz}`}
-                                >
-                                  {viz === 'bar' ? '📊' : viz === 'wordcloud' ? '☁️' : viz === 'network' ? '🕸️' : '🔥'}
-                                </button>
-                              ))}
-                            </div>
+                          <div style={{display: 'flex', flexDirection: 'column', gap: 8}}>
+                            <VisualizationSelector position='pos2' currentViz={chartVisualizations.pos2} />
                             <div className='chart-box' style={{minHeight: 240}}>
                               {renderVisualization(chartVisualizations.pos2)}
                             </div>
                           </div>
                           {chartLayout === 'grid' && (
                             <>
-                              <div style={{position: 'relative'}}>
-                                <div style={{position: 'absolute', top: -32, right: 0, zIndex: 10, display: 'flex', gap: 4}}>
-                                  {['bar','wordcloud','network','heatmap'].map(viz => (
-                                    <button 
-                                      key={viz}
-                                      className='btn secondary' 
-                                      style={{padding:'3px 6px',fontSize:10,background:chartVisualizations.pos3===viz?'var(--c-accent)':'#e2e8f0',color:chartVisualizations.pos3===viz?'#111':'#1e293b'}}
-                                      onClick={()=>setChartVisualizations(prev => ({...prev, pos3: viz}))}
-                                      title={`Show ${viz}`}
-                                    >
-                                      {viz === 'bar' ? '📊' : viz === 'wordcloud' ? '☁️' : viz === 'network' ? '🕸️' : '🔥'}
-                                    </button>
-                                  ))}
-                                </div>
+                              <div style={{display: 'flex', flexDirection: 'column', gap: 8}}>
+                                <VisualizationSelector position='pos3' currentViz={chartVisualizations.pos3} />
                                 <div className='chart-box' style={{minHeight: 240}}>
                                   {renderVisualization(chartVisualizations.pos3)}
                                 </div>
                               </div>
-                              <div style={{position: 'relative'}}>
-                                <div style={{position: 'absolute', top: -32, right: 0, zIndex: 10, display: 'flex', gap: 4}}>
-                                  {['bar','wordcloud','network','heatmap'].map(viz => (
-                                    <button 
-                                      key={viz}
-                                      className='btn secondary' 
-                                      style={{padding:'3px 6px',fontSize:10,background:chartVisualizations.pos4===viz?'var(--c-accent)':'#e2e8f0',color:chartVisualizations.pos4===viz?'#111':'#1e293b'}}
-                                      onClick={()=>setChartVisualizations(prev => ({...prev, pos4: viz}))}
-                                      title={`Show ${viz}`}
-                                    >
-                                      {viz === 'bar' ? '📊' : viz === 'wordcloud' ? '☁️' : viz === 'network' ? '🕸️' : '🔥'}
-                                    </button>
-                                  ))}
-                                </div>
+                              <div style={{display: 'flex', flexDirection: 'column', gap: 8}}>
+                                <VisualizationSelector position='pos4' currentViz={chartVisualizations.pos4} />
                                 <div className='chart-box' style={{minHeight: 240}}>
                                   {renderVisualization(chartVisualizations.pos4)}
                                 </div>
