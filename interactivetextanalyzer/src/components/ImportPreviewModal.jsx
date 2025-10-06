@@ -1,7 +1,44 @@
 import { useState, useMemo, useEffect } from 'react'
 import './ImportPreviewModal.css'
 
-const COLUMN_TYPES = ['text', 'number', 'date', 'boolean']
+const COLUMN_TYPES = ['text', 'number', 'date', 'boolean', 'categorical']
+
+// Normalize value with synonym detection
+const normalizeValue = (val) => {
+  if (val === null || val === undefined) return null
+  const str = String(val).toLowerCase().trim()
+  
+  // Map synonyms for common boolean-like values
+  const synonymMap = {
+    'y': 'yes', 'yes': 'yes', 'true': 'yes', '1': 'yes', 't': 'yes',
+    'n': 'no', 'no': 'no', 'false': 'no', '0': 'no', 'f': 'no'
+  }
+  
+  return synonymMap[str] || str
+}
+
+// Helper function to detect if column is categorical
+const detectCategorical = (rows, column) => {
+  const values = rows
+    .map(row => row[column])
+    .filter(val => val !== null && val !== undefined && String(val).trim() !== '')
+  
+  if (values.length === 0) return false
+  
+  // Check if all values are single words (or empty)
+  const allSingleWord = values.every(val => {
+    const str = String(val).trim()
+    return str.split(/\s+/).length === 1
+  })
+  
+  if (!allSingleWord) return false
+  
+  // Get unique normalized values
+  const uniqueNormalized = new Set(values.map(normalizeValue))
+  
+  // Categorical if less than 10 unique normalized values
+  return uniqueNormalized.size < 10 && uniqueNormalized.size > 0
+}
 
 // Helper function to detect data type from sample values
 const detectColumnType = (rows, column, sampleSize = 10) => {
@@ -13,21 +50,21 @@ const detectColumnType = (rows, column, sampleSize = 10) => {
   
   if (samples.length === 0) return 'text'
   
-  // Check for boolean
+  // Check for boolean first (subset of categorical)
   const booleanValues = ['true', 'false', 'yes', 'no', '1', '0', 't', 'f', 'y', 'n']
   const isBooleanish = samples.every(val => 
     booleanValues.includes(String(val).toLowerCase().trim())
   )
   if (isBooleanish) return 'boolean'
   
-  // Check for number
+  // Check for number (before categorical)
   const isNumeric = samples.every(val => {
     const str = String(val).trim()
     return !isNaN(str) && !isNaN(parseFloat(str))
   })
   if (isNumeric) return 'number'
   
-  // Check for date patterns
+  // Check for date patterns (before categorical)
   const datePatterns = [
     /^\d{4}-\d{2}-\d{2}/, // YYYY-MM-DD
     /^\d{2}\/\d{2}\/\d{4}/, // MM/DD/YYYY
@@ -40,7 +77,20 @@ const detectColumnType = (rows, column, sampleSize = 10) => {
   })
   if (isDateish) return 'date'
   
+  // Check for categorical (after numeric and date checks)
+  if (detectCategorical(rows, column)) return 'categorical'
+  
   return 'text'
+}
+
+// Get unique values for a categorical column
+const getCategoricalValues = (rows, column) => {
+  const values = rows
+    .map(row => row[column])
+    .filter(val => val !== null && val !== undefined && String(val).trim() !== '')
+  
+  const uniqueNormalized = new Set(values.map(normalizeValue))
+  return Array.from(uniqueNormalized).sort()
 }
 
 
@@ -87,6 +137,7 @@ function ImportPreviewModal({
   const [removeEmptyRows, setRemoveEmptyRows] = useState(true)
   const [ignoredRows, setIgnoredRows] = useState([])
   const [removeAfterIncomplete, setRemoveAfterIncomplete] = useState(false)
+  const [categoricalFilters, setCategoricalFilters] = useState({}) // { columnName: [selected values] }
 
   const sheets = Object.keys(workbookData)
   const currentData = useMemo(() => 
@@ -213,8 +264,20 @@ function ImportPreviewModal({
       })
     }
 
+    // Apply categorical filters
+    Object.entries(categoricalFilters).forEach(([col, selectedValues]) => {
+      if (selectedValues && selectedValues.length > 0 && columns.includes(col)) {
+        rows = rows.filter(row => {
+          const val = row[col]
+          if (val === null || val === undefined) return false
+          const normalized = normalizeValue(val)
+          return selectedValues.includes(normalized)
+        })
+      }
+    })
+
     return { rows, columns, columnGroups }
-  }, [currentData, skipFirstRows, removeEmptyRows, removeAfterBlank, removeBlankColumns, trimWhitespace, autoDetectSynonyms, hiddenColumns, removeAfterIncomplete])
+  }, [currentData, skipFirstRows, removeEmptyRows, removeAfterBlank, removeBlankColumns, trimWhitespace, autoDetectSynonyms, hiddenColumns, removeAfterIncomplete, categoricalFilters])
 
   const displayRows = processedData.rows.slice(0, rowsToShow)
   const displayColumns = processedData.columns.filter(col => !hiddenColumns.includes(col))
@@ -268,6 +331,20 @@ function ImportPreviewModal({
     setColumnTypes(prev => ({ ...prev, [col]: type }))
   }
 
+  const toggleCategoricalFilter = (col, value) => {
+    setCategoricalFilters(prev => {
+      const current = prev[col] || []
+      const updated = current.includes(value)
+        ? current.filter(v => v !== value)
+        : [...current, value]
+      return { ...prev, [col]: updated }
+    })
+  }
+
+  const getCategoricalValuesForColumn = (col) => {
+    return getCategoricalValues(currentData.rows, col)
+  }
+
   const handleConfirm = () => {
     const config = {
       fileType,
@@ -281,6 +358,7 @@ function ImportPreviewModal({
       removeEmptyRows,
       ignoredRows,
       removeAfterIncomplete,
+      categoricalFilters,
       processedData
     }
     onConfirm(config)
@@ -474,6 +552,53 @@ function ImportPreviewModal({
               </div>
             </div>
           </div>
+
+          {/* Categorical Filters */}
+          {(() => {
+            const categoricalColumns = processedData.columns.filter(col => 
+              (columnTypes[col] === 'categorical' || columnTypes[col] === 'boolean')
+            )
+            return categoricalColumns.length > 0 ? (
+              <div className="import-section">
+                <label>Categorical Filters</label>
+                <div className="categorical-filters">
+                  {categoricalColumns.map(col => {
+                    const values = getCategoricalValuesForColumn(col)
+                    const selectedValues = categoricalFilters[col] || []
+                    return (
+                      <div key={col} className="categorical-filter-group">
+                        <div className="categorical-filter-header">
+                          <strong>{col}</strong>
+                          <span className="subtle">({values.length} unique)</span>
+                        </div>
+                        <div className="categorical-filter-values">
+                          {values.map(value => (
+                            <label key={value} className="categorical-filter-option">
+                              <input
+                                type="checkbox"
+                                checked={selectedValues.length === 0 || selectedValues.includes(value)}
+                                onChange={() => toggleCategoricalFilter(col, value)}
+                              />
+                              <span>{value}</span>
+                            </label>
+                          ))}
+                        </div>
+                        {selectedValues.length > 0 && (
+                          <button 
+                            className="btn secondary" 
+                            style={{ fontSize: 11, padding: '2px 8px', marginTop: 4 }}
+                            onClick={() => setCategoricalFilters(prev => ({ ...prev, [col]: [] }))}
+                          >
+                            Clear Filter
+                          </button>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            ) : null
+          })()}
 
           {/* Data Preview */}
           <div className="import-section">
