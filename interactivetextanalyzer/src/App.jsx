@@ -1,16 +1,17 @@
-import { useState, useMemo, useEffect, useCallback, lazy, Suspense, useRef } from 'react'
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import './App.css'
 import ExcelJS from 'exceljs'
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts'
 import ImportPreviewModal from './components/ImportPreviewModal'
 import { DataVersionManager, applyDataTransformation } from './utils/dataVersioning'
+import { initializeLazyLoading } from './utils/useLazyLoader'
+import { createLazyComponent } from './components/LazyComponent'
 
-// Code-split heavy visualization pieces
-const WordCloud = lazy(()=>import('./components/WordCloud'))
-const NetworkGraph = lazy(()=>import('./components/NetworkGraph'))
-const Heatmap = lazy(()=>import('./components/Heatmap'))
-const VisualModal = lazy(()=>import('./components/VisualModal'))
-const Wiki = lazy(()=>import('./components/Wiki'))
+// Code-split heavy visualization pieces using centralized lazy loader
+const WordCloud = createLazyComponent('WordCloud')
+const NetworkGraph = createLazyComponent('NetworkGraph')
+const Heatmap = createLazyComponent('Heatmap')
+const Wiki = createLazyComponent('Wiki')
 
 // Lightweight tokenization utilities (replace heavy natural for ngram + assoc)
 const tokenize = (text) => text.toLowerCase().split(/[^a-z0-9']+/).filter(Boolean)
@@ -44,10 +45,10 @@ const getCategoricalValues = (rows, column) => {
 }
 
 // Lazy load only compromise for NER when needed
-let compromiseRef = null
+import lazyLoader from './utils/lazyLoader'
 const loadNlpLibs = async () => {
-  if(!compromiseRef) compromiseRef = (await import('compromise')).default || (await import('compromise'))
-  return { nlp: compromiseRef }
+  const compromiseModule = await lazyLoader.get('compromise')
+  return { nlp: compromiseModule }
 }
 
 const DEFAULT_STOPWORDS = new Set(['the','a','an','and','or','but','if','then','else','of','to','in','on','for','with','this','that','it','is','are','was','were','be','as','by','at','from'])
@@ -235,6 +236,11 @@ export default function App(){
   const [modalContent, setModalContent] = useState(null)
   const [modalTitle, setModalTitle] = useState('')
   const [weightedLines, setWeightedLines] = useState(false)
+
+  // Initialize lazy loading system on mount
+  useEffect(() => {
+    initializeLazyLoading()
+  }, [])
 
   // Restore settings (no eval)
   useEffect(()=>{ try { const s=JSON.parse(localStorage.getItem(LOCAL_KEY)||'{}');
@@ -961,15 +967,15 @@ export default function App(){
                   {chartLayout !== 'single' && (
                     <>
                       <div className='chart-box' style={{minHeight: 240}}>
-                        {wordCloudData.length>0 ? <Suspense fallback={<div className='skel block' /> }><WordCloud data={wordCloudData} /></Suspense> : <div className='skel block' />}
+                        {wordCloudData.length>0 ? <WordCloud data={wordCloudData} /> : <div className='skel block' />}
                       </div>
                       {chartLayout === 'grid' && (
                         <>
                           <div className='chart-box' style={{minHeight: 240}}>
-                            {networkData.nodes.length>0 ? <Suspense fallback={<div className='skel block' /> }><NetworkGraph nodes={networkData.nodes} edges={networkData.edges} weightedLines={weightedLines} /></Suspense> : <div className='skel block' />}
+                            {networkData.nodes.length>0 ? <NetworkGraph nodes={networkData.nodes} edges={networkData.edges} weightedLines={weightedLines} /> : <div className='skel block' />}
                           </div>
                           <div className='chart-box' style={{minHeight: 240}}>
-                            {heatmapData.matrix.length>0 ? <Suspense fallback={<div className='skel block' /> }><Heatmap matrix={heatmapData.matrix} xLabels={heatmapData.xLabels} yLabels={heatmapData.yLabels} /></Suspense> : <div className='skel block' />}
+                            {heatmapData.matrix.length>0 ? <Heatmap matrix={heatmapData.matrix} xLabels={heatmapData.xLabels} yLabels={heatmapData.yLabels} /> : <div className='skel block' />}
                           </div>
                         </>
                       )}
@@ -1071,9 +1077,9 @@ export default function App(){
                         </button>
                       )}
                     </div>
-                    {viewMode==='wordcloud' && <Suspense fallback={<div className='skel block' style={{height:300}} /> }><WordCloud data={wordCloudData} /></Suspense>}
-                    {viewMode==='network' && <Suspense fallback={<div className='skel block' style={{height:300}} /> }><NetworkGraph nodes={networkData.nodes} edges={networkData.edges} weightedLines={weightedLines} /></Suspense>}
-                    {viewMode==='heatmap' && <Suspense fallback={<div className='skel block' style={{height:300}} /> }><Heatmap matrix={heatmapData.matrix} xLabels={heatmapData.xLabels} yLabels={heatmapData.yLabels} /></Suspense>}
+                    {viewMode==='wordcloud' && <WordCloud data={wordCloudData} />}
+                    {viewMode==='network' && <NetworkGraph nodes={networkData.nodes} edges={networkData.edges} weightedLines={weightedLines} />}
+                    {viewMode==='heatmap' && <Heatmap matrix={heatmapData.matrix} xLabels={heatmapData.xLabels} yLabels={heatmapData.yLabels} />}
                     {viewMode==='list' && <div className='notice'>Choose a visualization mode.</div>}
                   </div>
                 </div>
@@ -1099,9 +1105,7 @@ export default function App(){
           </>
           ) : activeView === 'wiki' ? (
             /* Wiki View */
-            <Suspense fallback={<div className='skel block' style={{height:400}} />}>
-              <Wiki />
-            </Suspense>
+            <Wiki />
           ) : (
             /* Editor View */
             <>
