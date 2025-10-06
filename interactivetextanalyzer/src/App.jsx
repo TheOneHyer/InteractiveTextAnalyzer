@@ -433,7 +433,7 @@ export default function App(){
   
   // Visualization selection for each chart position
   const [chartVisualizations, setChartVisualizations] = useState({
-    pos1: 'bar',      // Position 1: always visible (bar/wordcloud/network/heatmap)
+    pos1: 'bar',      // Position 1: always visible (bar/wordcloud/network/heatmap/scatter)
     pos2: 'wordcloud', // Position 2: visible in side-by-side and grid
     pos3: 'network',  // Position 3: visible in grid only
     pos4: 'heatmap'   // Position 4: visible in grid only
@@ -1332,16 +1332,24 @@ export default function App(){
   const exportAnalysis=()=>{ const payload={analysisType,timestamp:new Date().toISOString(), tfidf:analysisType==='tfidf'?tfidf:undefined, ngrams:analysisType==='ngram'?ngrams:undefined, associations:analysisType==='assoc'?associations:undefined, entities:analysisType==='ner'?entities:undefined, embeddings:analysisType==='embeddings'?{vocab:embeddings?.vocab,points:embeddingPoints,method:dimReductionMethod}:undefined}; const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`analysis_${analysisType}.json`; a.click() }
 
   // Helper function to check if a visualization is available for current analysis type
+  // Complete analysis → visualization mapping:
+  // - tfidf: bar, wordcloud, heatmap
+  // - ngram: bar, wordcloud
+  // - assoc: bar, wordcloud, network
+  // - ner: bar, wordcloud
+  // - embeddings: scatter
   const isVisualizationAvailable = (vizType) => {
     switch(vizType) {
       case 'bar':
-        return true // Available for all analysis types
+        return analysisType === 'tfidf' || analysisType === 'ngram' || analysisType === 'ner' || analysisType === 'assoc'
       case 'wordcloud':
         return analysisType === 'tfidf' || analysisType === 'ngram' || analysisType === 'ner' || analysisType === 'assoc'
       case 'network':
         return analysisType === 'assoc'
       case 'heatmap':
         return analysisType === 'tfidf'
+      case 'scatter':
+        return analysisType === 'embeddings'
       default:
         return false
     }
@@ -1353,7 +1361,8 @@ export default function App(){
       bar: 'Bar Chart',
       wordcloud: 'Word Cloud',
       network: 'Network Graph',
-      heatmap: 'Heatmap'
+      heatmap: 'Heatmap',
+      scatter: 'Scatter Plot'
     }
     return names[type] || type
   }
@@ -1392,6 +1401,12 @@ export default function App(){
             <Heatmap matrix={heatmapData.matrix} xLabels={heatmapData.xLabels} yLabels={heatmapData.yLabels} />
           </Suspense>
         ) : <div className='skel block' />
+      case 'scatter':
+        return embeddingPoints.length>0 ? (
+          <Suspense fallback={<div className='skel block' />}>
+            <ScatterPlot data={embeddingPoints} xLabel={`${dimReductionMethod.toUpperCase()} Dimension 1`} yLabel={`${dimReductionMethod.toUpperCase()} Dimension 2`} />
+          </Suspense>
+        ) : <div className='skel block' />
       default:
         return <div className='skel block' />
     }
@@ -1400,7 +1415,7 @@ export default function App(){
   // Visualization selector component
   const VisualizationSelector = ({ position, currentViz }) => {
     const isOpen = openVizSelector === position
-    const visualizations = ['bar', 'wordcloud', 'network', 'heatmap']
+    const visualizations = ['bar', 'wordcloud', 'network', 'heatmap', 'scatter']
     
     return (
       <div style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
@@ -1895,42 +1910,34 @@ export default function App(){
                   gridTemplateColumns: chartLayout === 'single' ? '1fr' : chartLayout === 'side-by-side' ? 'repeat(2, 1fr)' : 'repeat(2, 1fr)',
                   gridTemplateRows: chartLayout === 'grid' ? 'repeat(2, 1fr)' : 'auto'
                 }}>
-                  {analysisType === 'embeddings' ? (
-                    <div className='chart-box' style={{minHeight: 420, gridColumn: chartLayout === 'single' ? '1' : 'span 2'}}>
-                      {embeddingPoints.length>0 ? <Suspense fallback={<div className='skel block' /> }><ScatterPlot data={embeddingPoints} xLabel={`${dimReductionMethod.toUpperCase()} Dimension 1`} yLabel={`${dimReductionMethod.toUpperCase()} Dimension 2`} /></Suspense> : <div className='skel block' />}
+                  <div style={{display: 'flex', flexDirection: 'column', gap: 8}}>
+                    <VisualizationSelector position='pos1' currentViz={chartVisualizations.pos1} />
+                    <div className='chart-box' style={{minHeight: chartLayout === 'single' ? 320 : 240}}>
+                      {renderVisualization(chartVisualizations.pos1)}
                     </div>
-                  ) : (
+                  </div>
+                  {chartLayout !== 'single' && (
                     <>
                       <div style={{display: 'flex', flexDirection: 'column', gap: 8}}>
-                        <VisualizationSelector position='pos1' currentViz={chartVisualizations.pos1} />
-                        <div className='chart-box' style={{minHeight: chartLayout === 'single' ? 320 : 240}}>
-                          {renderVisualization(chartVisualizations.pos1)}
+                        <VisualizationSelector position='pos2' currentViz={chartVisualizations.pos2} />
+                        <div className='chart-box' style={{minHeight: 240}}>
+                          {renderVisualization(chartVisualizations.pos2)}
                         </div>
                       </div>
-                      {chartLayout !== 'single' && (
+                      {chartLayout === 'grid' && (
                         <>
                           <div style={{display: 'flex', flexDirection: 'column', gap: 8}}>
-                            <VisualizationSelector position='pos2' currentViz={chartVisualizations.pos2} />
+                            <VisualizationSelector position='pos3' currentViz={chartVisualizations.pos3} />
                             <div className='chart-box' style={{minHeight: 240}}>
-                              {renderVisualization(chartVisualizations.pos2)}
+                              {renderVisualization(chartVisualizations.pos3)}
                             </div>
                           </div>
-                          {chartLayout === 'grid' && (
-                            <>
-                              <div style={{display: 'flex', flexDirection: 'column', gap: 8}}>
-                                <VisualizationSelector position='pos3' currentViz={chartVisualizations.pos3} />
-                                <div className='chart-box' style={{minHeight: 240}}>
-                                  {renderVisualization(chartVisualizations.pos3)}
-                                </div>
-                              </div>
-                              <div style={{display: 'flex', flexDirection: 'column', gap: 8}}>
-                                <VisualizationSelector position='pos4' currentViz={chartVisualizations.pos4} />
-                                <div className='chart-box' style={{minHeight: 240}}>
-                                  {renderVisualization(chartVisualizations.pos4)}
-                                </div>
-                              </div>
-                            </>
-                          )}
+                          <div style={{display: 'flex', flexDirection: 'column', gap: 8}}>
+                            <VisualizationSelector position='pos4' currentViz={chartVisualizations.pos4} />
+                            <div className='chart-box' style={{minHeight: 240}}>
+                              {renderVisualization(chartVisualizations.pos4)}
+                            </div>
+                          </div>
                         </>
                       )}
                     </>
