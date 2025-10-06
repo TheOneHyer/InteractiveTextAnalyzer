@@ -784,6 +784,154 @@ export default function App(){
     sheet1.columns = Object.keys(reviewData[0]).map(key => ({ header: key, key }))
     reviewData.forEach(row => sheet1.addRow(row))
     
+    // Q1 - More negative reviews using like/dislike vocabulary
+    const q1Data = [
+      {id:1,category:'Books',review:'I really dislike the weak character development',sentiment:'negative'},
+      {id:2,category:'Electronics',review:'Did not like how quickly it broke',sentiment:'negative'},
+      {id:3,category:'Restaurants',review:'Disliked the cold food and poor service',sentiment:'negative'},
+      {id:4,category:'Hotels',review:'Cannot like a place with such dirty rooms',sentiment:'negative'},
+      {id:5,category:'Movies',review:'Hard to like with such terrible acting',sentiment:'negative'},
+      {id:6,category:'Software',review:'Dislike the constant crashes and bugs',sentiment:'negative'},
+      {id:7,category:'Games',review:'Do not like the pay-to-win mechanics',sentiment:'negative'},
+      {id:8,category:'Books',review:'Disliked how predictable the plot was',sentiment:'negative'},
+      {id:9,category:'Electronics',review:'Did not like the poor battery life',sentiment:'negative'},
+      {id:10,category:'Restaurants',review:'Dislike waiting an hour for mediocre food',sentiment:'negative'},
+      {id:11,category:'Hotels',review:'Cannot like the noisy environment',sentiment:'negative'},
+      {id:12,category:'Movies',review:'Dislike the boring storyline',sentiment:'negative'},
+      {id:13,category:'Software',review:'Do not like the confusing interface',sentiment:'negative'},
+      {id:14,category:'Games',review:'Disliked the unfair difficulty spikes',sentiment:'negative'},
+      {id:15,category:'Books',review:'I like the cover but dislike everything else',sentiment:'negative'},
+      {id:16,category:'Electronics',review:'Like the idea but dislike the execution',sentiment:'negative'},
+      {id:17,category:'Restaurants',review:'Liked the decor but disliked the taste',sentiment:'negative'},
+      {id:18,category:'Hotels',review:'Like the location but dislike the staff',sentiment:'negative'},
+      {id:19,category:'Movies',review:'I might like it if not for the ending',sentiment:'negative'},
+      {id:20,category:'Software',review:'Dislike the steep learning curve',sentiment:'negative'},
+      {id:21,category:'Games',review:'Cannot like games with such bad graphics',sentiment:'negative'},
+      {id:22,category:'Books',review:'Dislike the slow pacing throughout',sentiment:'negative'},
+      {id:23,category:'Electronics',review:'Do not like products that overheat',sentiment:'negative'},
+      {id:24,category:'Restaurants',review:'Disliked the limited menu options',sentiment:'negative'},
+      {id:25,category:'Hotels',review:'Like nothing about this disappointing stay',sentiment:'negative'},
+      {id:26,category:'Movies',review:'Dislike movies that waste my time',sentiment:'negative'},
+      {id:27,category:'Software',review:'Did not like the expensive subscription',sentiment:'negative'},
+      {id:28,category:'Games',review:'Dislike the toxic community',sentiment:'negative'},
+      {id:29,category:'Books',review:'Cannot like books with plot holes',sentiment:'negative'},
+      {id:30,category:'Electronics',review:'Disliked the cheap build quality',sentiment:'negative'}
+    ]
+    const sheetQ1 = workbook.addWorksheet('Q1')
+    sheetQ1.columns = Object.keys(q1Data[0]).map(key => ({ header: key, key }))
+    q1Data.forEach(row => sheetQ1.addRow(row))
+    
+    // Q2 - More neutral reviews using enjoy/bored vocabulary
+    const q2Data = [
+      {id:1,category:'Books',review:'Neither enjoyed nor was bored by the narrative',sentiment:'neutral'},
+      {id:2,category:'Electronics',review:'Did not enjoy it much but not bored either',sentiment:'neutral'},
+      {id:3,category:'Restaurants',review:'The meal was fine, neither enjoyable nor boring',sentiment:'neutral'},
+      {id:4,category:'Hotels',review:'Stayed there, not particularly enjoyable or boring',sentiment:'neutral'},
+      {id:5,category:'Movies',review:'Watched it, felt neither enjoyment nor boredom',sentiment:'neutral'},
+      {id:6,category:'Software',review:'Used it for work, neither enjoyed nor got bored',sentiment:'neutral'},
+      {id:7,category:'Games',review:'Played for a while, not boring but not enjoying',sentiment:'neutral'},
+      {id:8,category:'Books',review:'Read it through without much enjoyment or boredom',sentiment:'neutral'},
+      {id:9,category:'Electronics',review:'Functions as expected, no real enjoyment factor',sentiment:'neutral'},
+      {id:10,category:'Restaurants',review:'Ate there once, neither boring nor enjoyable',sentiment:'neutral'},
+      {id:11,category:'Hotels',review:'Checked in and out, nothing enjoyable or boring',sentiment:'neutral'},
+      {id:12,category:'Movies',review:'Saw it in theaters, felt neutral about enjoyment',sentiment:'neutral'},
+      {id:13,category:'Software',review:'Adequate tool, not boring but not enjoyable',sentiment:'neutral'},
+      {id:14,category:'Games',review:'Tried it out, no strong feelings of boredom or enjoyment',sentiment:'neutral'},
+      {id:15,category:'Books',review:'Finished reading, was neither bored nor particularly enjoyed',sentiment:'neutral'},
+      {id:16,category:'Electronics',review:'Does the job without being boring or enjoyable',sentiment:'neutral'},
+      {id:17,category:'Restaurants',review:'Standard dining experience, no boredom or enjoyment',sentiment:'neutral'},
+      {id:18,category:'Hotels',review:'Typical stay, nothing to enjoy or be bored about',sentiment:'neutral'},
+      {id:19,category:'Movies',review:'Average film, neither enjoyable nor boring',sentiment:'neutral'},
+      {id:20,category:'Software',review:'Basic features work, not bored but not enjoying',sentiment:'neutral'},
+      {id:21,category:'Games',review:'Played a few levels, neutral on enjoyment and boredom',sentiment:'neutral'},
+      {id:22,category:'Books',review:'Got through it, neither enjoyed the plot nor was bored',sentiment:'neutral'},
+      {id:23,category:'Electronics',review:'Serves its purpose, no enjoyment or boredom',sentiment:'neutral'},
+      {id:24,category:'Restaurants',review:'Ordered takeout, felt neutral about the experience',sentiment:'neutral'},
+      {id:25,category:'Hotels',review:'One night stay, nothing enjoyable or boring to report',sentiment:'neutral'},
+      {id:26,category:'Movies',review:'Runtime passed, neither bored nor truly enjoyed',sentiment:'neutral'},
+      {id:27,category:'Software',review:'Completed tasks, no feelings of boredom or enjoyment',sentiment:'neutral'},
+      {id:28,category:'Games',review:'Beat the campaign, neutral on overall enjoyment',sentiment:'neutral'},
+      {id:29,category:'Books',review:'Read all chapters, did not bore me or bring enjoyment',sentiment:'neutral'},
+      {id:30,category:'Electronics',review:'Used it daily, neither boring nor particularly enjoyable',sentiment:'neutral'}
+    ]
+    const sheetQ2 = workbook.addWorksheet('Q2')
+    sheetQ2.columns = Object.keys(q2Data[0]).map(key => ({ header: key, key }))
+    q2Data.forEach(row => sheetQ2.addRow(row))
+    
+    // Q3 - More positive reviews using love/adore vocabulary
+    const q3Data = [
+      {id:1,category:'Books',review:'I absolutely love the captivating storyline',sentiment:'positive'},
+      {id:2,category:'Electronics',review:'Adore how well this device performs',sentiment:'positive'},
+      {id:3,category:'Restaurants',review:'Love the incredible flavors and presentation',sentiment:'positive'},
+      {id:4,category:'Hotels',review:'Adored our wonderful stay at this place',sentiment:'positive'},
+      {id:5,category:'Movies',review:'Love the brilliant cinematography and acting',sentiment:'positive'},
+      {id:6,category:'Software',review:'Absolutely adore the intuitive interface',sentiment:'positive'},
+      {id:7,category:'Games',review:'Love the immersive gameplay mechanics',sentiment:'positive'},
+      {id:8,category:'Books',review:'Adore the beautiful prose and depth',sentiment:'positive'},
+      {id:9,category:'Electronics',review:'Love the sleek design and features',sentiment:'positive'},
+      {id:10,category:'Restaurants',review:'Adored the exceptional service and ambiance',sentiment:'positive'},
+      {id:11,category:'Hotels',review:'Love the luxurious amenities provided',sentiment:'positive'},
+      {id:12,category:'Movies',review:'Absolutely love the emotional impact',sentiment:'positive'},
+      {id:13,category:'Software',review:'Adore how it streamlines my workflow',sentiment:'positive'},
+      {id:14,category:'Games',review:'Love the creative level design',sentiment:'positive'},
+      {id:15,category:'Books',review:'I love and adore every page of this masterpiece',sentiment:'positive'},
+      {id:16,category:'Electronics',review:'Adore the premium quality and reliability',sentiment:'positive'},
+      {id:17,category:'Restaurants',review:'Love the authentic cuisine and atmosphere',sentiment:'positive'},
+      {id:18,category:'Hotels',review:'Absolutely adored the stunning views',sentiment:'positive'},
+      {id:19,category:'Movies',review:'Love how it exceeded all expectations',sentiment:'positive'},
+      {id:20,category:'Software',review:'Adore the powerful features it offers',sentiment:'positive'},
+      {id:21,category:'Games',review:'Love the engaging story and characters',sentiment:'positive'},
+      {id:22,category:'Books',review:'Adore the thoughtful themes explored',sentiment:'positive'},
+      {id:23,category:'Electronics',review:'Love how durable and long-lasting it is',sentiment:'positive'},
+      {id:24,category:'Restaurants',review:'Absolutely love the creative menu items',sentiment:'positive'},
+      {id:25,category:'Hotels',review:'Adore the attentive and friendly staff',sentiment:'positive'},
+      {id:26,category:'Movies',review:'Love the perfect balance of drama and humor',sentiment:'positive'},
+      {id:27,category:'Software',review:'Adore the seamless integration capabilities',sentiment:'positive'},
+      {id:28,category:'Games',review:'Love the high replay value',sentiment:'positive'},
+      {id:29,category:'Books',review:'Absolutely adore the satisfying conclusion',sentiment:'positive'},
+      {id:30,category:'Electronics',review:'Love every aspect of this amazing product',sentiment:'positive'}
+    ]
+    const sheetQ3 = workbook.addWorksheet('Q3')
+    sheetQ3.columns = Object.keys(q3Data[0]).map(key => ({ header: key, key }))
+    q3Data.forEach(row => sheetQ3.addRow(row))
+    
+    // Q4 - Even mix of positive, neutral, and negative using appreciate/hate vocabulary
+    const q4Data = [
+      {id:1,category:'Books',review:'I appreciate the effort but hate the execution',sentiment:'negative'},
+      {id:2,category:'Electronics',review:'Appreciate the design and really love using it',sentiment:'positive'},
+      {id:3,category:'Restaurants',review:'The service was acceptable, nothing to appreciate or hate',sentiment:'neutral'},
+      {id:4,category:'Hotels',review:'Hate the noise but appreciate the location',sentiment:'negative'},
+      {id:5,category:'Movies',review:'Really appreciate the unique cinematography',sentiment:'positive'},
+      {id:6,category:'Software',review:'Neither appreciate nor hate its functionality',sentiment:'neutral'},
+      {id:7,category:'Games',review:'Hate the bugs but appreciate the concept',sentiment:'negative'},
+      {id:8,category:'Books',review:'Appreciate the writing style very much',sentiment:'positive'},
+      {id:9,category:'Electronics',review:'Standard quality, nothing to hate or appreciate',sentiment:'neutral'},
+      {id:10,category:'Restaurants',review:'Hate waiting but appreciate the final dish',sentiment:'positive'},
+      {id:11,category:'Hotels',review:'Do not appreciate the hidden fees, hate that practice',sentiment:'negative'},
+      {id:12,category:'Movies',review:'Appreciate the director vision shown throughout',sentiment:'positive'},
+      {id:13,category:'Software',review:'Used it once, neither hate it nor appreciate it',sentiment:'neutral'},
+      {id:14,category:'Games',review:'Appreciate the graphics, hate the gameplay',sentiment:'negative'},
+      {id:15,category:'Books',review:'Truly appreciate the historical research done',sentiment:'positive'},
+      {id:16,category:'Electronics',review:'It works fine, no strong appreciation or hatred',sentiment:'neutral'},
+      {id:17,category:'Restaurants',review:'Hate the menu prices, nothing to appreciate',sentiment:'negative'},
+      {id:18,category:'Hotels',review:'Appreciate the cleanliness and comfort provided',sentiment:'positive'},
+      {id:19,category:'Movies',review:'Neutral experience, did not appreciate or hate it',sentiment:'neutral'},
+      {id:20,category:'Software',review:'Hate the subscription model entirely',sentiment:'negative'},
+      {id:21,category:'Games',review:'Appreciate the attention to detail',sentiment:'positive'},
+      {id:22,category:'Books',review:'Regular book, nothing special to appreciate',sentiment:'neutral'},
+      {id:23,category:'Electronics',review:'Hate how it breaks so easily',sentiment:'negative'},
+      {id:24,category:'Restaurants',review:'Appreciate the fresh ingredients used',sentiment:'positive'},
+      {id:25,category:'Hotels',review:'Stayed there, neither appreciated nor hated aspects',sentiment:'neutral'},
+      {id:26,category:'Movies',review:'Hate the predictable plot twists',sentiment:'negative'},
+      {id:27,category:'Software',review:'Greatly appreciate the helpful support team',sentiment:'positive'},
+      {id:28,category:'Games',review:'Average game, no appreciation or hatred',sentiment:'neutral'},
+      {id:29,category:'Books',review:'Hate rushed endings like this one',sentiment:'negative'},
+      {id:30,category:'Electronics',review:'Appreciate the value for money received',sentiment:'positive'}
+    ]
+    const sheetQ4 = workbook.addWorksheet('Q4')
+    sheetQ4.columns = Object.keys(q4Data[0]).map(key => ({ header: key, key }))
+    q4Data.forEach(row => sheetQ4.addRow(row))
+    
     // Convert to buffer and parse
     const buffer = await workbook.xlsx.writeBuffer()
     const parsed = new ExcelJS.Workbook()
