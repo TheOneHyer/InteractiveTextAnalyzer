@@ -917,11 +917,11 @@ export default function App(){
           </button>
         </div>
         <div className='nav'>
-          <button className={activeView==='dashboard'?'active':''} onClick={()=>setActiveView('dashboard')} title='Dashboard'>
-            {sidebarCollapsed ? '📊' : 'Dashboard'}
-          </button>
           <button className={activeView==='editor'?'active':''} onClick={()=>setActiveView('editor')} title='Editor'>
             {sidebarCollapsed ? '✏️' : 'Editor'}
+          </button>
+          <button className={activeView==='dashboard'?'active':''} onClick={()=>setActiveView('dashboard')} title='Analyzer'>
+            {sidebarCollapsed ? '📊' : 'Analyzer'}
           </button>
           <button className={activeView==='wiki'?'active':''} onClick={()=>setActiveView('wiki')} title='Wiki'>
             {sidebarCollapsed ? '📖' : 'Wiki'}
@@ -931,7 +931,7 @@ export default function App(){
       </aside>
       <div className='main'>
         <div className='topbar'>
-          <h1>{activeView === 'dashboard' ? 'Dashboard' : activeView === 'editor' ? 'Editor' : 'Wiki'}</h1>
+          <h1>{activeView === 'dashboard' ? 'Analyzer' : activeView === 'editor' ? 'Editor' : 'Wiki'}</h1>
           <div style={{display:'flex',gap:8,alignItems:'center'}}>
             <button className='theme-toggle' onClick={()=>setTheme(t=>t==='light'?'dark':'light')}>{theme==='light'? '🌙 Dark':'☀️ Light'}</button>
             {activeView === 'editor' && (

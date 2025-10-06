@@ -56,14 +56,14 @@ describe('App Component - Data Handling', () => {
 
   it('should have analysis type selection', async () => {
     render(<App />)
-    // Navigate to Dashboard to see analysis type selectors
+    // Navigate to Analyzer to see analysis type selectors
     await waitFor(() => {
       const buttons = screen.getAllByRole('button')
-      const dashboardButton = buttons.find(btn => btn.title === 'Dashboard')
-      expect(dashboardButton).toBeInTheDocument()
-      dashboardButton.click()
+      const analyzerButton = buttons.find(btn => btn.title === 'Analyzer')
+      expect(analyzerButton).toBeInTheDocument()
+      analyzerButton.click()
     })
-    // Should have some form of analysis type selector in Dashboard
+    // Should have some form of analysis type selector in Analyzer
     await waitFor(() => {
       const selects = document.querySelectorAll('select')
       expect(selects.length).toBeGreaterThan(0)
@@ -102,19 +102,19 @@ describe('App Component - UI Elements', () => {
   it('should render chart layout options in dashboard', async () => {
     render(<App />)
     
-    // Navigate to Dashboard first
+    // Navigate to Analyzer first
     await waitFor(() => {
       const buttons = screen.getAllByRole('button')
-      const dashboardButton = buttons.find(btn => btn.title === 'Dashboard')
-      expect(dashboardButton).toBeInTheDocument()
-      dashboardButton.click()
+      const analyzerButton = buttons.find(btn => btn.title === 'Analyzer')
+      expect(analyzerButton).toBeInTheDocument()
+      analyzerButton.click()
     })
     
-    // Wait for dashboard to render - look for the h1 heading
+    // Wait for analyzer to render - look for the h1 heading
     await waitFor(() => {
       const heading = document.querySelector('h1')
       expect(heading).toBeInTheDocument()
-      expect(heading.textContent).toBe('Dashboard')
+      expect(heading.textContent).toBe('Analyzer')
     })
     
     // Check for layout buttons (Single, Side-by-Side, 2x2 Grid)
@@ -134,12 +134,12 @@ describe('App Component - Maximize Modal Functionality', () => {
   it('should render maximize button for Live Summary Charts', async () => {
     render(<App />)
     
-    // Navigate to Dashboard first
+    // Navigate to Analyzer first
     await waitFor(() => {
       const buttons = screen.getAllByRole('button')
-      const dashboardButton = buttons.find(btn => btn.title === 'Dashboard')
-      expect(dashboardButton).toBeInTheDocument()
-      dashboardButton.click()
+      const analyzerButton = buttons.find(btn => btn.title === 'Analyzer')
+      expect(analyzerButton).toBeInTheDocument()
+      analyzerButton.click()
     })
     
     await waitFor(() => {
@@ -164,12 +164,12 @@ describe('App Component - Maximize Modal Functionality', () => {
   it('should render visualization mode buttons', async () => {
     render(<App />)
     
-    // Navigate to Dashboard first
+    // Navigate to Analyzer first
     await waitFor(() => {
       const buttons = screen.getAllByRole('button')
-      const dashboardButton = buttons.find(btn => btn.title === 'Dashboard')
-      expect(dashboardButton).toBeInTheDocument()
-      dashboardButton.click()
+      const analyzerButton = buttons.find(btn => btn.title === 'Analyzer')
+      expect(analyzerButton).toBeInTheDocument()
+      analyzerButton.click()
     })
     
     await waitFor(() => {
@@ -189,7 +189,7 @@ describe('App Component - Maximize Modal Functionality', () => {
     
     await waitFor(() => {
       const heading = document.querySelector('h1')
-      if (heading && heading.textContent === 'Dashboard') {
+      if (heading && heading.textContent === 'Analyzer') {
         const buttons = screen.getAllByRole('button')
         const exportButton = buttons.find(btn => btn.textContent.includes('Export'))
         expect(exportButton).toBeInTheDocument()
@@ -200,12 +200,12 @@ describe('App Component - Maximize Modal Functionality', () => {
   it('should render chart layout control buttons', async () => {
     render(<App />)
     
-    // Navigate to Dashboard first
+    // Navigate to Analyzer first
     await waitFor(() => {
       const buttons = screen.getAllByRole('button')
-      const dashboardButton = buttons.find(btn => btn.title === 'Dashboard')
-      expect(dashboardButton).toBeInTheDocument()
-      dashboardButton.click()
+      const analyzerButton = buttons.find(btn => btn.title === 'Analyzer')
+      expect(analyzerButton).toBeInTheDocument()
+      analyzerButton.click()
     })
     
     await waitFor(() => {
@@ -223,7 +223,7 @@ describe('App Component - Maximize Modal Functionality', () => {
     
     await waitFor(() => {
       const heading = document.querySelector('h1')
-      if (heading && heading.textContent === 'Dashboard') {
+      if (heading && heading.textContent === 'Analyzer') {
         // Check that the panel structure is intact
         const panels = container.querySelectorAll('.panel')
         expect(panels.length).toBeGreaterThan(0)
