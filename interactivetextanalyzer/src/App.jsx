@@ -12,6 +12,7 @@ import { createLazyComponent } from './components/LazyComponent'
 const WordCloud = createLazyComponent('WordCloud')
 const NetworkGraph = createLazyComponent('NetworkGraph')
 const Heatmap = createLazyComponent('Heatmap')
+const ScatterPlot = createLazyComponent('ScatterPlot')
 const Wiki = createLazyComponent('Wiki')
 
 // Lightweight tokenization utilities (replace heavy natural for ngram + assoc)
