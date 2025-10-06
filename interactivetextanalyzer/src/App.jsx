@@ -1768,10 +1768,10 @@ export default function App(){
                 <div style={{marginBottom:16}}>
                   {Object.keys(workbookData).length>0 && <SheetSelector sheets={Object.keys(workbookData)} activeSheet={activeSheet} setActiveSheet={setActiveSheet} />}
                 </div>
-                {currentColumns.length > 0 && (
-                  <div style={{marginBottom:20}}>
-                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
-                      <h4 style={{margin:0}}>Column Management</h4>
+                <div style={{marginBottom:20}}>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
+                    <h4 style={{margin:0}}>Column Management</h4>
+                    {currentColumns.length > 0 && (
                       <button 
                         className='btn secondary' 
                         style={{fontSize:11,padding:'4px 10px'}}
@@ -1785,8 +1785,10 @@ export default function App(){
                       >
                         Auto-Detect Categorical
                       </button>
-                    </div>
-                    <div className='table-scroll' style={{maxHeight:400}}>
+                    )}
+                  </div>
+                  {currentColumns.length > 0 ? (
+                    <div style={{maxHeight:400,overflowY:'auto'}}>
                       <table className='column-mgmt-table'>
                         <thead>
                           <tr>
@@ -1865,103 +1867,119 @@ export default function App(){
                         </tbody>
                       </table>
                     </div>
-                  </div>
-                )}
+                  ) : (
+                    <div className='column-mgmt-empty'>
+                      No Data
+                    </div>
+                  )}
+                </div>
                 {/* Text Case Transformation */}
-                {currentColumns.length > 0 && (
-                  <div style={{marginBottom:20}}>
-                    <h4 style={{marginBottom:10}}>Text Transformations</h4>
-                    <div style={{display:'flex',flexWrap:'wrap',gap:8,marginBottom:8}}>
-                      <select 
-                        id='transform-column-select'
-                        style={{padding:'4px 8px',fontSize:12,border:'1px solid var(--c-border)',borderRadius:4,background:'var(--c-surface)',color:'var(--c-text)',flex:'1 1 200px',maxWidth:250}}
-                      >
-                        <option value="">Select column...</option>
-                        {currentColumns.map(col => (
-                          <option key={col} value={col}>{col}</option>
-                        ))}
-                      </select>
-                      <button 
-                        className='btn secondary' 
-                        style={{fontSize:12,padding:'4px 12px'}}
-                        onClick={() => {
-                          const select = document.getElementById('transform-column-select')
-                          if (select.value) {
-                            transformColumn(select.value, 'uppercase')
-                          }
-                        }}
-                      >
-                        ↑ UPPERCASE Column
-                      </button>
-                      <button 
-                        className='btn secondary' 
-                        style={{fontSize:12,padding:'4px 12px'}}
-                        onClick={() => {
-                          const select = document.getElementById('transform-column-select')
-                          if (select.value) {
-                            transformColumn(select.value, 'lowercase')
-                          }
-                        }}
-                      >
-                        ↓ lowercase Column
-                      </button>
-                    </div>
-                    <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
-                      <button 
-                        className='btn secondary' 
-                        style={{fontSize:12,padding:'4px 12px'}}
-                        onClick={() => transformAll('uppercase')}
-                        disabled={currentRows.length === 0}
-                      >
-                        ↑ UPPERCASE All ({activeSheet === '__ALL__' ? 'All Sheets' : activeSheet || 'Current Sheet'})
-                      </button>
-                      <button 
-                        className='btn secondary' 
-                        style={{fontSize:12,padding:'4px 12px'}}
-                        onClick={() => transformAll('lowercase')}
-                        disabled={currentRows.length === 0}
-                      >
-                        ↓ lowercase All ({activeSheet === '__ALL__' ? 'All Sheets' : activeSheet || 'Current Sheet'})
-                      </button>
-                    </div>
-                  </div>
-                )}
-                {/* Text Search Filter */}
-                {currentColumns.length > 0 && (
-                  <div style={{marginBottom:20}}>
-                    <h4 style={{marginBottom:10}}>Text Search Filter</h4>
-                    <input 
-                      type='text'
-                      placeholder='Search across all columns...'
-                      value={textSearchFilter}
-                      onChange={(e) => setTextSearchFilter(e.target.value)}
-                      style={{
-                        width: '100%',
-                        maxWidth: 500,
-                        padding: '8px 12px',
-                        fontSize: 13,
-                        border: '1px solid var(--c-border)',
-                        borderRadius: 6,
-                        background: 'var(--c-surface)',
-                        color: 'var(--c-text)'
-                      }}
-                    />
-                    {textSearchFilter && (
-                      <div style={{marginTop: 6, fontSize: 12, color: 'var(--c-text-muted)'}}>
-                        Showing {currentRows.length} of {rawRows.length} rows
-                        {currentRows.length !== rawRows.length && (
-                          <button 
-                            className='btn secondary' 
-                            style={{fontSize:11,padding:'2px 8px',marginLeft:8}}
-                            onClick={() => setTextSearchFilter('')}
-                          >
-                            Clear
-                          </button>
-                        )}
+                <div style={{marginBottom:20}}>
+                  <h4 style={{marginBottom:10}}>Text Transformations</h4>
+                  {currentColumns.length > 0 ? (
+                    <>
+                      <div style={{display:'flex',flexWrap:'wrap',gap:8,marginBottom:8}}>
+                        <select 
+                          id='transform-column-select'
+                          style={{padding:'4px 8px',fontSize:12,border:'1px solid var(--c-border)',borderRadius:4,background:'var(--c-surface)',color:'var(--c-text)',flex:'1 1 200px',maxWidth:250}}
+                        >
+                          <option value="">Select column...</option>
+                          {currentColumns.map(col => (
+                            <option key={col} value={col}>{col}</option>
+                          ))}
+                        </select>
+                        <button 
+                          className='btn secondary' 
+                          style={{fontSize:12,padding:'4px 12px'}}
+                          onClick={() => {
+                            const select = document.getElementById('transform-column-select')
+                            if (select.value) {
+                              transformColumn(select.value, 'uppercase')
+                            }
+                          }}
+                        >
+                          ↑ UPPERCASE Column
+                        </button>
+                        <button 
+                          className='btn secondary' 
+                          style={{fontSize:12,padding:'4px 12px'}}
+                          onClick={() => {
+                            const select = document.getElementById('transform-column-select')
+                            if (select.value) {
+                              transformColumn(select.value, 'lowercase')
+                            }
+                          }}
+                        >
+                          ↓ lowercase Column
+                        </button>
                       </div>
-                    )}
-                  </div>
-                )}
+                      <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
+                        <button 
+                          className='btn secondary' 
+                          style={{fontSize:12,padding:'4px 12px'}}
+                          onClick={() => transformAll('uppercase')}
+                          disabled={currentRows.length === 0}
+                        >
+                          ↑ UPPERCASE All ({activeSheet === '__ALL__' ? 'All Sheets' : activeSheet || 'Current Sheet'})
+                        </button>
+                        <button 
+                          className='btn secondary' 
+                          style={{fontSize:12,padding:'4px 12px'}}
+                          onClick={() => transformAll('lowercase')}
+                          disabled={currentRows.length === 0}
+                        >
+                          ↓ lowercase All ({activeSheet === '__ALL__' ? 'All Sheets' : activeSheet || 'Current Sheet'})
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <div className='column-mgmt-empty'>
+                      No Data
+                    </div>
+                  )}
+                </div>
+                {/* Text Search Filter */}
+                <div style={{marginBottom:20}}>
+                  <h4 style={{marginBottom:10}}>Text Search Filter</h4>
+                  {currentColumns.length > 0 ? (
+                    <>
+                      <input 
+                        type='text'
+                        placeholder='Search across all columns...'
+                        value={textSearchFilter}
+                        onChange={(e) => setTextSearchFilter(e.target.value)}
+                        style={{
+                          width: '100%',
+                          maxWidth: 500,
+                          padding: '8px 12px',
+                          fontSize: 13,
+                          border: '1px solid var(--c-border)',
+                          borderRadius: 6,
+                          background: 'var(--c-surface)',
+                          color: 'var(--c-text)'
+                        }}
+                      />
+                      {textSearchFilter && (
+                        <div style={{marginTop: 6, fontSize: 12, color: 'var(--c-text-muted)'}}>
+                          Showing {currentRows.length} of {rawRows.length} rows
+                          {currentRows.length !== rawRows.length && (
+                            <button 
+                              className='btn secondary' 
+                              style={{fontSize:11,padding:'2px 8px',marginLeft:8}}
+                              onClick={() => setTextSearchFilter('')}
+                            >
+                              Clear
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className='column-mgmt-empty'>
+                      No Data
+                    </div>
+                  )}
+                </div>
                 {/* Categorical Filters in Editor */}
                 {(() => {
                   const categCols = currentColumns.filter(col => 

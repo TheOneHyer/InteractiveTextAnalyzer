@@ -34,7 +34,7 @@ body { margin:0; font-family: 'Inter', system-ui, Arial, sans-serif; background:
 .stat-accent { position:absolute; right:-30px; top:-30px; width:120px; height:120px; background:radial-gradient(circle at 30% 30%, #ffb84d, var(--c-accent)); opacity:.15; border-radius:50%; }
 
 .panel, .box, .result-section { background:var(--c-surface); border:1px solid var(--c-border); }
-.panel { border-radius:16px; padding:20px 22px; display:flex; flex-direction:column; gap:18px; box-shadow:0 4px 8px -2px rgba(0,0,0,0.04); width:50%; }
+.panel { border-radius:16px; padding:20px 22px; display:flex; flex-direction:column; gap:18px; box-shadow:0 4px 8px -2px rgba(0,0,0,0.04); min-width:550px; max-width:650px; }
 .panel-header { display:flex; align-items:center; justify-content:space-between; gap:12px; }
 .panel-header h3 { margin:0; font-size:16px; font-weight:600; }
 .subtle { color:var(--c-subtle); font-size:12px; }
@@ -271,26 +271,30 @@ footer { text-align:center; padding:18px 0 30px; font-size:11px; color:var(--c-s
 /* Column Management Table */
 .column-mgmt-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: 13px;
 }
 
 .column-mgmt-table thead {
-  background: var(--c-chip);
-  color: #fff;
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
 
 .column-mgmt-table th {
   padding: 10px 12px;
   text-align: left;
   font-weight: 600;
-  font-size: 12px;
+  font-size: 11px;
   letter-spacing: 0.5px;
-  border: 1px solid var(--c-border);
+  text-transform: uppercase;
+  color: var(--c-subtle);
+  background: var(--c-surface);
+  border-bottom: 1px solid var(--c-border);
 }
 
 .column-mgmt-table tbody tr {
-  border: 1px solid var(--c-border);
   transition: background 0.15s;
 }
 
@@ -299,53 +303,77 @@ footer { text-align:center; padding:18px 0 30px; font-size:11px; color:var(--c-s
 }
 
 .column-mgmt-table td {
-  padding: 8px 12px;
-  border: 1px solid var(--c-border);
+  padding: 10px 12px;
   vertical-align: middle;
+  border-bottom: 1px solid var(--c-border);
+}
+
+.column-mgmt-table tbody tr:last-child td {
+  border-bottom: none;
 }
 
 .column-mgmt-table input[type="text"] {
   width: 100%;
-  padding: 4px 8px;
+  padding: 6px 10px;
   font-size: 12px;
   border: 1px solid var(--c-border);
-  border-radius: 4px;
+  border-radius: 6px;
   background: var(--c-surface);
   color: var(--c-text);
+  transition: all 0.15s;
+}
+
+.column-mgmt-table input[type="text"]:focus {
+  outline: none;
+  border-color: var(--c-accent);
+  box-shadow: 0 0 0 2px rgba(255, 153, 0, 0.15);
 }
 
 .column-mgmt-table select {
   width: 100%;
-  padding: 4px 8px;
+  padding: 6px 10px;
   font-size: 12px;
   border: 1px solid var(--c-border);
-  border-radius: 4px;
+  border-radius: 6px;
   background: var(--c-surface);
   color: var(--c-text);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.column-mgmt-table select:hover {
+  border-color: var(--c-accent);
 }
 
 .column-mgmt-table button {
-  padding: 4px 8px;
+  padding: 6px 12px;
   font-size: 11px;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
   border: none;
   transition: all 0.15s;
+  font-weight: 600;
 }
 
 .column-mgmt-checkbox {
   width: 18px;
   height: 18px;
   cursor: pointer;
+  accent-color: var(--c-accent);
 }
 
 .column-mgmt-delete-btn {
   background: var(--c-danger);
   color: #fff;
-  padding: 4px 12px;
-  font-weight: 600;
 }
 
 .column-mgmt-delete-btn:hover {
   filter: brightness(1.15);
+}
+
+.column-mgmt-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--c-subtle);
+  font-size: 14px;
 }
