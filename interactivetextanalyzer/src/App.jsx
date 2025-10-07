@@ -409,6 +409,7 @@ export default function App(){
   const [dependencyAlgorithm,setDependencyAlgorithm]=useState('eisner') // 'eisner', 'chu-liu', or 'arc-standard'
   const [dependencyResult,setDependencyResult]=useState(null)
   const [dependencyProgress,setDependencyProgress]=useState(0)
+  const [dependencySamplePercent,setDependencySamplePercent]=useState(100) // Percentage of data to process (1-100)
   
   // Import preview modal state
   const [showImportModal, setShowImportModal] = useState(false)
@@ -1139,9 +1140,12 @@ export default function App(){
         const performDependencyParsing = await loadDependencyParsing()
         if (cancelled) return
         
+        // Calculate number of samples based on percentage
+        const maxSamples = Math.ceil(textSamples.length * (dependencySamplePercent / 100))
+        
         const result = await performDependencyParsing(textSamples, { 
           algorithm: dependencyAlgorithm,
-          maxSamples: 1000, // Process up to 1000 samples (based on performance profiling)
+          maxSamples: maxSamples,
           onProgress: (progress) => {
             if (!cancelled) {
               setDependencyProgress(progress)
@@ -1167,7 +1171,7 @@ export default function App(){
     return () => {
       cancelled = true
     }
-  }, [analysisType, textSamples, dependencyAlgorithm])
+  }, [analysisType, textSamples, dependencyAlgorithm, dependencySamplePercent])
   
   // Apply dimensionality reduction (async)
   const [embeddingPoints,setEmbeddingPoints]=useState([])
@@ -1955,14 +1959,30 @@ export default function App(){
                   </label>
                 )}
                 {analysisType==='dependency' && (
-                  <label style={{fontSize:12}}>
-                    Algorithm
-                    <select value={dependencyAlgorithm} onChange={e=>setDependencyAlgorithm(e.target.value)} style={{width:'100%',marginTop:4}}>
-                      <option value='eisner'>Eisner's Algorithm</option>
-                      <option value='chu-liu'>Chu-Liu/Edmonds</option>
-                      <option value='arc-standard'>Arc-Standard</option>
-                    </select>
-                  </label>
+                  <>
+                    <label style={{fontSize:12}}>
+                      Algorithm
+                      <select value={dependencyAlgorithm} onChange={e=>setDependencyAlgorithm(e.target.value)} style={{width:'100%',marginTop:4}}>
+                        <option value='eisner'>Eisner's Algorithm</option>
+                        <option value='chu-liu'>Chu-Liu/Edmonds</option>
+                        <option value='arc-standard'>Arc-Standard</option>
+                      </select>
+                    </label>
+                    <label style={{fontSize:12}}>
+                      Sample Size: {dependencySamplePercent}%
+                      <input 
+                        type='range' 
+                        min={1} 
+                        max={100} 
+                        value={dependencySamplePercent} 
+                        onChange={e=>setDependencySamplePercent(Number(e.target.value))} 
+                        style={{width:'100%',marginTop:4}}
+                      />
+                      <div className='notice' style={{marginTop:4}}>
+                        {Math.ceil(textSamples.length * (dependencySamplePercent / 100))} of {textSamples.length} rows
+                      </div>
+                    </label>
+                  </>
                 )}
                 <label style={{fontSize:12}}><input type='checkbox' checked={enableStemming} onChange={e=>setEnableStemming(e.target.checked)} /> Stemming (light)</label>
                 <textarea rows={3} placeholder='Custom stopwords' value={stopwordInput} onChange={e=>setStopwordInput(e.target.value)} />
