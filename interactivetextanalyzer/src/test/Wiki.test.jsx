@@ -19,6 +19,8 @@ describe('Wiki Component', () => {
     expect(screen.getByText('N-Gram Analysis')).toBeTruthy()
     expect(screen.getByText('Association Rules Mining')).toBeTruthy()
     expect(screen.getByText('NER (Named Entity Recognition)')).toBeTruthy()
+    const dependencySections = screen.getAllByText('Dependency Parsing')
+    expect(dependencySections.length).toBeGreaterThan(0)
   })
 
   it('should render settings section', () => {

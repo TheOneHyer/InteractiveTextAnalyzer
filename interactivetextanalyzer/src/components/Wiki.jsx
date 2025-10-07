@@ -233,6 +233,65 @@ export default function Wiki() {
             <br/>UMAP: McInnes, L., Healy, J., & Melville, J. (2018). UMAP: Uniform Manifold Approximation and Projection for Dimension Reduction. <em>arXiv preprint arXiv:1802.03426</em>. <a href="https://arxiv.org/abs/1802.03426" target="_blank" rel="noopener noreferrer">https://arxiv.org/abs/1802.03426</a>
           </p>
         </div>
+
+        <div className='wiki-item'>
+          <h4>Dependency Parsing</h4>
+          <p>
+            <strong>What it does:</strong> Analyzes the grammatical structure of sentences by identifying 
+            syntactic dependencies between words. Each word in a sentence (except the root) depends on 
+            exactly one other word, forming a tree structure.
+          </p>
+          <p>
+            <strong>How it works:</strong> The analyzer uses natural language processing to assign 
+            part-of-speech tags to words, then applies one of three algorithms to determine the most 
+            likely dependency structure. Dependencies show which words modify or are governed by other words.
+          </p>
+          <p>
+            <strong>Three Available Algorithms:</strong>
+          </p>
+          <ul>
+            <li>
+              <strong>Eisner's Algorithm:</strong> A dynamic programming approach that finds the 
+              highest-scoring projective dependency tree in O(n³) time. Projective trees don't have 
+              crossing dependencies, making them suitable for most English sentences. Best for: 
+              well-structured, grammatically standard sentences.
+            </li>
+            <li>
+              <strong>Chu-Liu/Edmonds Algorithm:</strong> Finds the maximum spanning tree in a directed 
+              graph, allowing non-projective structures (crossing dependencies). This handles more 
+              complex linguistic phenomena common in languages with free word order. Best for: complex 
+              sentences or multilingual text with varied structures.
+            </li>
+            <li>
+              <strong>Arc-Standard System:</strong> A transition-based parsing approach using a stack 
+              and buffer with shift and reduce operations. Fast and efficient, builds the parse tree 
+              incrementally from left to right. Best for: real-time parsing and resource-constrained 
+              environments.
+            </li>
+          </ul>
+          <p>
+            <strong>Use cases:</strong> Syntax analysis, grammar checking, sentence complexity assessment, 
+            semantic role labeling, question answering systems, and linguistic research.
+          </p>
+          <p>
+            <strong>Interpreting results:</strong> The network visualization shows words as nodes connected 
+            by directed edges (arrows) representing dependencies. The ROOT node represents the main verb 
+            or predicate of the sentence. Arrows point from heads to their dependents.
+          </p>
+          <p>
+            <strong>Visualization options:</strong> Network Graph
+          </p>
+          <p className='wiki-source'>
+            <strong>Sources:</strong>
+            <br/>Eisner: Eisner, J. (1996). Three new probabilistic models for dependency parsing: An exploration. 
+            <em>In Proceedings of COLING 1996</em>, 340-345. <a href="https://aclanthology.org/C96-1058/" target="_blank" rel="noopener noreferrer">https://aclanthology.org/C96-1058/</a>
+            <br/>Chu-Liu/Edmonds: Chu, Y. J., & Liu, T. H. (1965). On the shortest arborescence of a directed graph. 
+            <em>Science Sinica</em>, 14, 1396-1400. McDonald, R., et al. (2005). Non-projective dependency parsing using spanning tree algorithms. 
+            <em>In Proceedings of HLT/EMNLP 2005</em>. <a href="https://aclanthology.org/H05-1066/" target="_blank" rel="noopener noreferrer">https://aclanthology.org/H05-1066/</a>
+            <br/>Arc-Standard: Nivre, J. (2008). Algorithms for deterministic incremental dependency parsing. 
+            <em>Computational Linguistics</em>, 34(4), 513-553. <a href="https://doi.org/10.1162/coli.07-056-R1-07-027" target="_blank" rel="noopener noreferrer">https://doi.org/10.1162/coli.07-056-R1-07-027</a>
+          </p>
+        </div>
       </section>
 
       <section className='wiki-section'>
@@ -318,9 +377,10 @@ export default function Wiki() {
         <div className='wiki-item'>
           <h4>Network Graph</h4>
           <p>
-            Shows relationships between terms (available in Association mode). Nodes represent 
-            terms, edges represent associations, and edge thickness indicates lift strength. 
-            Useful for understanding how concepts relate to each other.
+            Shows relationships between terms or dependencies between words. In Association mode, 
+            nodes represent terms and edges show associations with thickness indicating lift strength. 
+            In Dependency Parsing mode, nodes are words and directed edges show grammatical dependencies 
+            (arrows point from heads to dependents). Useful for understanding relationships and structure.
           </p>
           <p className='wiki-source'>
             <strong>Source:</strong> Newman, M. E. (2010). <em>Networks: An Introduction</em>. Oxford University Press. <a href="https://doi.org/10.1093/acprof:oso/9780199206650.001.0001" target="_blank" rel="noopener noreferrer">https://doi.org/10.1093/acprof:oso/9780199206650.001.0001</a>
@@ -369,6 +429,7 @@ export default function Wiki() {
             <li>Use <strong>Associations</strong> when discovering which terms co-occur frequently</li>
             <li>Use <strong>NER</strong> when you need to extract specific entities like names and places</li>
             <li>Use <strong>Embeddings</strong> when visualizing document relationships and exploring corpus structure</li>
+            <li>Use <strong>Dependency Parsing</strong> when analyzing sentence structure, grammar, or syntactic relationships</li>
           </ul>
           <p className='wiki-source'>
             <strong>Source:</strong> Feldman, R., & Sanger, J. (2007). <em>The Text Mining Handbook: Advanced Approaches in Analyzing Unstructured Data</em>. Cambridge University Press.
