@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Performance profiling large data files
+scripts/performance-profile-results.json
