@@ -308,11 +308,11 @@ export const arcStandardSystem = (tokens) => {
  * Main function to perform dependency parsing on text samples
  * 
  * @param {Array} textSamples - Array of text strings
- * @param {Object} params - {algorithm: 'eisner'|'chu-liu'|'arc-standard'}
+ * @param {Object} params - {algorithm: 'eisner'|'chu-liu'|'arc-standard', maxSamples: number, onProgress: function}
  * @returns {Object} - Combined results from all samples
  */
 export const performDependencyParsing = async (textSamples, params = {}) => {
-  const { algorithm = 'eisner' } = params
+  const { algorithm = 'eisner', maxSamples = 1000, onProgress = null } = params
   
   if (!textSamples || textSamples.length === 0) {
     return { nodes: [], edges: [], sentences: [] }
@@ -321,22 +321,28 @@ export const performDependencyParsing = async (textSamples, params = {}) => {
   // Load compromise for POS tagging
   const nlp = await loadCompromise()
   
-  // Process each text sample
+  // Process samples in chunks to avoid blocking UI
+  const chunkSize = 50 // Process 50 samples at a time
+  const samplesToProcess = textSamples.slice(0, maxSamples)
   const allResults = []
   
-  for (const text of textSamples.slice(0, 5)) { // Limit to first 5 for performance
-    // Get sentences
-    const doc = nlp(text)
-    const sentences = doc.sentences().out('array')
+  for (let i = 0; i < samplesToProcess.length; i += chunkSize) {
+    const chunk = samplesToProcess.slice(i, Math.min(i + chunkSize, samplesToProcess.length))
     
-    for (const sentence of sentences.slice(0, 1)) { // Just first sentence per sample
-      // Get tokens with POS tags
-      const tokens = nlp(sentence).terms().out('array').map((term, idx) => {
-        const termObj = nlp(term)
-        // Map compromise POS to simplified categories
-        let pos = 'Noun' // default
-        if (termObj.verbs().length > 0) pos = 'Verb'
-        else if (termObj.adjectives().length > 0) pos = 'Adjective'
+    // Process this chunk
+    for (const text of chunk) {
+      // Get sentences
+      const doc = nlp(text)
+      const sentences = doc.sentences().out('array')
+      
+      for (const sentence of sentences.slice(0, 1)) { // Just first sentence per sample
+        // Get tokens with POS tags
+        const tokens = nlp(sentence).terms().out('array').map((term, idx) => {
+          const termObj = nlp(term)
+          // Map compromise POS to simplified categories
+          let pos = 'Noun' // default
+          if (termObj.verbs().length > 0) pos = 'Verb'
+          else if (termObj.adjectives().length > 0) pos = 'Adjective'
         else if (termObj.adverbs().length > 0) pos = 'Adverb'
         else if (termObj.nouns().length > 0) pos = 'Noun'
         else if (term.toLowerCase().match(/^(the|a|an)$/)) pos = 'Determiner'
@@ -366,7 +372,24 @@ export const performDependencyParsing = async (textSamples, params = {}) => {
         sentence,
         ...result
       })
+      }
     }
+    
+    // Yield to event loop after each chunk to keep UI responsive
+    if (i + chunkSize < samplesToProcess.length) {
+      await new Promise(resolve => setTimeout(resolve, 0))
+      
+      // Report progress if callback provided
+      if (onProgress) {
+        const progress = Math.min(100, Math.round(((i + chunkSize) / samplesToProcess.length) * 100))
+        onProgress(progress)
+      }
+    }
+  }
+  
+  // Report completion
+  if (onProgress) {
+    onProgress(100)
   }
   
   // Combine results: use first result for visualization
@@ -378,7 +401,8 @@ export const performDependencyParsing = async (textSamples, params = {}) => {
     nodes: allResults[0].nodes,
     edges: allResults[0].edges,
     sentences: allResults.map(r => r.sentence),
-    algorithm
+    algorithm,
+    totalProcessed: allResults.length
   }
 }
 

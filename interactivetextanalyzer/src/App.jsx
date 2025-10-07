@@ -408,6 +408,7 @@ export default function App(){
   const [dimReductionLoading,setDimReductionLoading]=useState(false)
   const [dependencyAlgorithm,setDependencyAlgorithm]=useState('eisner') // 'eisner', 'chu-liu', or 'arc-standard'
   const [dependencyResult,setDependencyResult]=useState(null)
+  const [dependencyProgress,setDependencyProgress]=useState(0)
   
   // Import preview modal state
   const [showImportModal, setShowImportModal] = useState(false)
@@ -1126,6 +1127,7 @@ export default function App(){
   useEffect(() => {
     if (analysisType !== 'dependency' || textSamples.length === 0) {
       setDependencyResult(null)
+      setDependencyProgress(0)
       return
     }
     
@@ -1133,16 +1135,29 @@ export default function App(){
     
     const compute = async () => {
       try {
+        setDependencyProgress(0)
         const performDependencyParsing = await loadDependencyParsing()
         if (cancelled) return
-        const result = await performDependencyParsing(textSamples, { algorithm: dependencyAlgorithm })
+        
+        const result = await performDependencyParsing(textSamples, { 
+          algorithm: dependencyAlgorithm,
+          maxSamples: 1000, // Process up to 1000 samples (based on performance profiling)
+          onProgress: (progress) => {
+            if (!cancelled) {
+              setDependencyProgress(progress)
+            }
+          }
+        })
+        
         if (!cancelled) {
           setDependencyResult(result)
+          setDependencyProgress(100)
         }
       } catch (error) {
         console.error('Dependency parsing error:', error)
         if (!cancelled) {
           setDependencyResult({ nodes: [], edges: [], sentences: [], error: true })
+          setDependencyProgress(0)
         }
       }
     }
@@ -1917,9 +1932,16 @@ export default function App(){
                   </div>
                 )}
                 {analysisType==='dependency' && (
-                  <div className='notice' style={{marginTop:8}}>
-                    <strong>Dependency Parsing:</strong> Analyzes sentence structure by identifying grammatical dependencies between words.
-                  </div>
+                  <>
+                    <div className='notice' style={{marginTop:8}}>
+                      <strong>Dependency Parsing:</strong> Analyzes sentence structure by identifying grammatical dependencies between words.
+                    </div>
+                    {dependencyProgress > 0 && dependencyProgress < 100 && (
+                      <div className='notice' style={{marginTop:8, background: '#e3f2fd', border: '1px solid #2196f3'}}>
+                        Processing: {dependencyProgress}%
+                      </div>
+                    )}
+                  </>
                 )}
                 {analysisType==='ngram' && <label style={{fontSize:12}}>N Size<input type='number' min={1} max={6} value={ngramN} onChange={e=>setNgramN(Number(e.target.value)||2)} style={{width:'100%',marginTop:4}}/></label>}
                 {analysisType==='assoc' && <label style={{fontSize:12}}>Min Support<input type='number' step={0.01} value={minSupport} onChange={e=>setMinSupport(Math.min(Math.max(Number(e.target.value)||0,0.01),0.8))} style={{width:'100%',marginTop:4}}/></label>}
