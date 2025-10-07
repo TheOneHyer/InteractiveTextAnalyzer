@@ -7,6 +7,17 @@ import VisualModal from './components/VisualModal'
 import { DataVersionManager, applyDataTransformation } from './utils/dataVersioning'
 import { initializeLazyLoading } from './utils/useLazyLoader'
 import { createLazyComponent } from './components/LazyComponent'
+import { 
+  buildStem, 
+  computeTfIdf, 
+  generateNGrams, 
+  mineAssociations, 
+  extractEntities, 
+  computeDocumentEmbeddings,
+  DEFAULT_STOPWORDS 
+} from './utils/textAnalysis'
+import { normalizeValue, getCategoricalValues } from './utils/categoricalUtils'
+import { loadDimReductionLibs, applyDimensionalityReduction } from './utils/dimensionalityReduction'
 
 // Code-split heavy visualization pieces using centralized lazy loader
 const WordCloud = createLazyComponent('WordCloud')
@@ -15,35 +26,14 @@ const Heatmap = createLazyComponent('Heatmap')
 const ScatterPlot = createLazyComponent('ScatterPlot')
 const Wiki = createLazyComponent('Wiki')
 
-// Lightweight tokenization utilities (replace heavy natural for ngram + assoc)
-const tokenize = (text) => text.toLowerCase().split(/[^a-z0-9']+/).filter(Boolean)
-const buildStem = () => {
-  const cache = new Map()
-  return (w) => { if(cache.has(w)) return cache.get(w); const s = w.replace(/(ing|ed|ly|s)$/,''); cache.set(w,s); return s }
-}
-
-// Normalize value with synonym detection (for categorical filtering)
-const normalizeValue = (val) => {
-  if (val === null || val === undefined) return null
-  const str = String(val).toLowerCase().trim()
-  
-  // Map synonyms for common boolean-like values
-  const synonymMap = {
-    'y': 'yes', 'yes': 'yes', 'true': 'yes', '1': 'yes', 't': 'yes',
-    'n': 'no', 'no': 'no', 'false': 'no', '0': 'no', 'f': 'no'
-  }
-  
-  return synonymMap[str] || str
-}
-
-// Get unique categorical values for a column
-const getCategoricalValues = (rows, column) => {
-  const values = rows
-    .map(row => row[column])
-    .filter(val => val !== null && val !== undefined && String(val).trim() !== '')
-  
-  const uniqueNormalized = new Set(values.map(normalizeValue))
-  return Array.from(uniqueNormalized).sort()
+// Debounce hook for input fields
+const useDebounced = (value, delay=400) => { 
+  const [v,setV]=useState(value)
+  useEffect(()=>{
+    const t=setTimeout(()=>setV(value),delay)
+    return()=>clearTimeout(t)
+  },[value,delay])
+  return v 
 }
 
 // Lazy load only compromise for NER when needed
@@ -59,214 +49,6 @@ const loadDependencyParsing = async () => {
   return module.performDependencyParsing
 }
 
-// Simple PCA implementation for dimensionality reduction (browser-compatible)
-const simplePCA = (vectors) => {
-  if (!vectors || vectors.length === 0) return []
-  
-  const n = vectors.length
-  const d = vectors[0].length
-  
-  // Center the data
-  const mean = new Array(d).fill(0)
-  vectors.forEach(v => v.forEach((val, i) => mean[i] += val / n))
-  
-  const centered = vectors.map(v => v.map((val, i) => val - mean[i]))
-  
-  // Compute covariance matrix (simplified for performance)
-  const cov = Array(d).fill(0).map(() => Array(d).fill(0))
-  for (let i = 0; i < d; i++) {
-    for (let j = i; j < d; j++) {
-      let sum = 0
-      for (let k = 0; k < n; k++) {
-        sum += centered[k][i] * centered[k][j]
-      }
-      cov[i][j] = cov[j][i] = sum / (n - 1)
-    }
-  }
-  
-  // Simple power iteration to find top 2 eigenvectors
-  const pc1 = new Array(d).fill(0).map(() => Math.random())
-  const pc2 = new Array(d).fill(0).map(() => Math.random())
-  
-  // Power iteration for PC1
-  for (let iter = 0; iter < 20; iter++) {
-    const next = new Array(d).fill(0)
-    for (let i = 0; i < d; i++) {
-      for (let j = 0; j < d; j++) {
-        next[i] += cov[i][j] * pc1[j]
-      }
-    }
-    const norm = Math.sqrt(next.reduce((s, v) => s + v * v, 0))
-    for (let i = 0; i < d; i++) pc1[i] = next[i] / norm
-  }
-  
-  // Power iteration for PC2 (orthogonal to PC1)
-  for (let iter = 0; iter < 20; iter++) {
-    const next = new Array(d).fill(0)
-    for (let i = 0; i < d; i++) {
-      for (let j = 0; j < d; j++) {
-        next[i] += cov[i][j] * pc2[j]
-      }
-    }
-    // Subtract PC1 component
-    const dot = pc1.reduce((s, v, i) => s + v * next[i], 0)
-    for (let i = 0; i < d; i++) next[i] -= dot * pc1[i]
-    
-    const norm = Math.sqrt(next.reduce((s, v) => s + v * v, 0))
-    if (norm > 0.0001) {
-      for (let i = 0; i < d; i++) pc2[i] = next[i] / norm
-    }
-  }
-  
-  // Project data onto PCs
-  return centered.map(v => ({
-    x: v.reduce((s, val, i) => s + val * pc1[i], 0),
-    y: v.reduce((s, val, i) => s + val * pc2[i], 0)
-  }))
-}
-
-// Advanced dimensionality reduction with t-SNE/UMAP is simulated
-// In production, consider using ml5.js or TensorFlow.js with proper t-SNE/UMAP
-const loadDimReductionLibs = async () => {
-  // Return mock object since browser-based t-SNE/UMAP have heavy dependencies
-  // We use PCA as a lightweight alternative
-  return { 
-    pca: simplePCA,
-    loaded: true 
-  }
-}
-
-const DEFAULT_STOPWORDS = new Set(['the','a','an','and','or','but','if','then','else','of','to','in','on','for','with','this','that','it','is','are','was','were','be','as','by','at','from'])
-const useDebounced = (value, delay=400) => { const [v,setV]=useState(value); useEffect(()=>{const t=setTimeout(()=>setV(value),delay); return()=>clearTimeout(t)},[value,delay]); return v }
-
-const computeTfIdf = (docs, { stopwords, stem, stemmer }) => {
-  const termFreqs = []
-  const docFreq = {}
-  docs.forEach(d => {
-    const counts = {}
-    tokenize(d).forEach(tok => {
-      if(stopwords.has(tok)) return
-      const t = stem? stemmer(tok): tok
-      counts[t] = (counts[t]||0)+1
-    })
-    termFreqs.push(counts)
-    Object.keys(counts).forEach(t => { docFreq[t]=(docFreq[t]||0)+1 })
-  })
-  const N = docs.length
-  const perDoc = termFreqs.map(tf => {
-    const list = Object.entries(tf).map(([term, c]) => {
-      const idf = Math.log((1+N)/(1+docFreq[term])) + 1
-      return { term, tfidf: c * idf }
-    }).sort((a,b)=>b.tfidf-a.tfidf).slice(0,80)
-    return list
-  })
-  const aggregateMap = {}
-  perDoc.forEach(list => list.forEach(({term, tfidf}) => { aggregateMap[term]=(aggregateMap[term]||0)+tfidf }))
-  const aggregate = Object.entries(aggregateMap).map(([term, score])=>({term, score})).sort((a,b)=>b.score-a.score).slice(0,150)
-  return { perDoc, aggregate }
-}
-
-// N-grams
-const generateNGrams = (texts, { n=2, top=80, stopwords, stem, stemmer }) => {
-  const freq = {}
-  texts.forEach(t => {
-    let tokens = tokenize(t).filter(x=>!stopwords.has(x))
-    if(stem) tokens = tokens.map(stemmer)
-    for(let i=0;i<=tokens.length-n;i++) {
-      const gram = tokens.slice(i,i+n).join(' ')
-      freq[gram] = (freq[gram]||0)+1
-    }
-  })
-  return Object.entries(freq).map(([gram,count])=>({gram,count})).sort((a,b)=>b.count-a.count).slice(0, top)
-}
-
-// Association (pairs) mining
-const mineAssociations = (rows, cols, { minSupport=0.02, stopwords, stem, stemmer }) => {
-  const transactions = rows.map(r => {
-    let tokens = tokenize(cols.map(c=> (r[c]??'').toString()).join(' ')).filter(x=>!stopwords.has(x))
-    if(stem) tokens = tokens.map(stemmer)
-    return Array.from(new Set(tokens))
-  })
-  const itemCounts = {}
-  transactions.forEach(tr => tr.forEach(it => itemCounts[it]=(itemCounts[it]||0)+1))
-  const total = transactions.length
-  const items = Object.entries(itemCounts).filter(([,c])=>c/total>=minSupport).map(([item,c])=>({item,support:c/total,count:c}))
-  const itemSet = new Set(items.map(i=>i.item))
-  const pairCounts = {}
-  transactions.forEach(tr => {
-    const f = tr.filter(t=>itemSet.has(t))
-    for(let i=0;i<f.length;i++) for(let j=i+1;j<f.length;j++) {
-      const a=f[i], b=f[j]; const k=a<b? a+'|'+b : b+'|'+a; pairCounts[k]=(pairCounts[k]||0)+1 }
-  })
-  const pairs = Object.entries(pairCounts).map(([k,c])=>{ const [a,b]=k.split('|'); const support = c/total; if(support<minSupport) return null; const confAB = c/itemCounts[a]; const confBA = c/itemCounts[b]; const lift = support / ((itemCounts[a]/total)*(itemCounts[b]/total)); return {a,b,support,count:c,confidenceAB:confAB,confidenceBA:confBA,lift}}).filter(Boolean).sort((a,b)=>b.lift-a.lift).slice(0,120)
-  return { items: items.sort((a,b)=>b.support-a.support), pairs }
-}
-
-// NER via compromise
-const extractEntities = (texts, nlpLib) => {
-  const ent = {}
-  texts.forEach(t => {
-    const doc = nlpLib(t)
-    ;['people','places','organizations'].forEach(key => {
-      const arr = doc[key]().out('array')
-      arr.forEach(v => { ent[v]=(ent[v]||0)+1 })
-    })
-  })
-  return Object.entries(ent).map(([value,count])=>({value,type:'Entity',count})).sort((a,b)=>b.count-a.count).slice(0,150)
-}
-
-// Embeddings: compute TF-IDF vectors for documents
-const computeDocumentEmbeddings = (docs, { stopwords, stem, stemmer }) => {
-  // First compute TF-IDF
-  const tfidf = computeTfIdf(docs, { stopwords, stem, stemmer })
-  
-  // Build vocabulary from top terms
-  const vocab = tfidf.aggregate.slice(0, 100).map(t => t.term)
-  const vocabMap = {}
-  vocab.forEach((term, idx) => { vocabMap[term] = idx })
-  
-  // Create document vectors
-  const vectors = tfidf.perDoc.map(docTerms => {
-    const vector = new Array(vocab.length).fill(0)
-    docTerms.forEach(({ term, tfidf }) => {
-      if (vocabMap[term] !== undefined) {
-        vector[vocabMap[term]] = tfidf
-      }
-    })
-    return vector
-  })
-  
-  return { vectors, vocab }
-}
-
-// Apply dimensionality reduction (using method selection)
-const applyDimensionalityReduction = async (vectors, method, libs) => {
-  if (!libs || !libs.loaded) return []
-  
-  try {
-    // For now, we use PCA for all methods as it's browser-compatible
-    // In a production app, you could conditionally load heavier libraries
-    const result = libs.pca(vectors)
-    
-    // Add small random jitter if method is 'tsne' or 'umap' to simulate different algorithms
-    if (method === 'tsne') {
-      return result.map(p => ({
-        x: p.x + (Math.random() - 0.5) * 0.1,
-        y: p.y + (Math.random() - 0.5) * 0.1
-      }))
-    } else if (method === 'umap') {
-      return result.map(p => ({
-        x: p.x * 1.1 + (Math.random() - 0.5) * 0.05,
-        y: p.y * 1.1 + (Math.random() - 0.5) * 0.05
-      }))
-    }
-    
-    return result
-  } catch (error) {
-    console.error('Dimensionality reduction error:', error)
-    return []
-  }
-}
 
 const SheetSelector = ({ sheets, activeSheet, setActiveSheet }) => (
   <div className='flex-row'>

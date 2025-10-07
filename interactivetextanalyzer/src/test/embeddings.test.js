@@ -1,69 +1,11 @@
 import { describe, it, expect } from 'vitest'
+import { 
+  buildStem, 
+  computeDocumentEmbeddings,
+  DEFAULT_STOPWORDS 
+} from '../utils/textAnalysis'
 
-// Utility function duplicates for testing (extracted from App.jsx)
-const tokenize = (text) => text.toLowerCase().split(/[^a-z0-9']+/).filter(Boolean)
-
-const buildStem = () => {
-  const cache = new Map()
-  return (w) => { 
-    if(cache.has(w)) return cache.get(w)
-    const s = w.replace(/(ing|ed|ly|s)$/,'')
-    cache.set(w,s)
-    return s 
-  }
-}
-
-const computeTfIdf = (docs, { stopwords, stem, stemmer }) => {
-  const termFreqs = []
-  const docFreq = {}
-  docs.forEach(d => {
-    const counts = {}
-    tokenize(d).forEach(tok => {
-      if(stopwords.has(tok)) return
-      const t = stem? stemmer(tok): tok
-      counts[t] = (counts[t]||0)+1
-    })
-    termFreqs.push(counts)
-    Object.keys(counts).forEach(t => { docFreq[t]=(docFreq[t]||0)+1 })
-  })
-  const N = docs.length
-  const perDoc = termFreqs.map(tf => {
-    const list = Object.entries(tf).map(([term, c]) => {
-      const idf = Math.log((1+N)/(1+docFreq[term])) + 1
-      return { term, tfidf: c * idf }
-    }).sort((a,b)=>b.tfidf-a.tfidf).slice(0,80)
-    return list
-  })
-  const aggregateMap = {}
-  perDoc.forEach(list => list.forEach(({term, tfidf}) => { aggregateMap[term]=(aggregateMap[term]||0)+tfidf }))
-  const aggregate = Object.entries(aggregateMap).map(([term, score])=>({term, score})).sort((a,b)=>b.score-a.score).slice(0,150)
-  return { perDoc, aggregate }
-}
-
-const computeDocumentEmbeddings = (docs, { stopwords, stem, stemmer }) => {
-  // First compute TF-IDF
-  const tfidf = computeTfIdf(docs, { stopwords, stem, stemmer })
-  
-  // Build vocabulary from top terms
-  const vocab = tfidf.aggregate.slice(0, 100).map(t => t.term)
-  const vocabMap = {}
-  vocab.forEach((term, idx) => { vocabMap[term] = idx })
-  
-  // Create document vectors
-  const vectors = tfidf.perDoc.map(docTerms => {
-    const vector = new Array(vocab.length).fill(0)
-    docTerms.forEach(({ term, tfidf }) => {
-      if (vocabMap[term] !== undefined) {
-        vector[vocabMap[term]] = tfidf
-      }
-    })
-    return vector
-  })
-  
-  return { vectors, vocab }
-}
-
-const DEFAULT_STOPWORDS = new Set(['the','a','an','and','or','but','if','then','else','of','to','in','on','for','with','this','that','it','is','are','was','were','be','as','by','at','from'])
+// No need to duplicate functions - import from centralized module
 
 describe('Document Embeddings', () => {
   describe('computeDocumentEmbeddings', () => {

@@ -13,6 +13,7 @@
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { mean, stdDev, welchTTest } from '../src/utils/statistics.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -97,62 +98,8 @@ function getMemoryUsage() {
   }
 }
 
-// Statistical functions
-function mean(arr) {
-  return arr.reduce((a, b) => a + b, 0) / arr.length
-}
-
-function stdDev(arr) {
-  const avg = mean(arr)
-  const squareDiffs = arr.map(value => Math.pow(value - avg, 2))
-  return Math.sqrt(mean(squareDiffs))
-}
-
-// Welch's t-test (for unequal variances)
-function welchTTest(arr1, arr2) {
-  const mean1 = mean(arr1)
-  const mean2 = mean(arr2)
-  const var1 = Math.pow(stdDev(arr1), 2)
-  const var2 = Math.pow(stdDev(arr2), 2)
-  const n1 = arr1.length
-  const n2 = arr2.length
-  
-  const tStatistic = (mean1 - mean2) / Math.sqrt(var1 / n1 + var2 / n2)
-  
-  // Degrees of freedom (Welch-Satterthwaite equation)
-  const df = Math.pow(var1 / n1 + var2 / n2, 2) /
-    (Math.pow(var1 / n1, 2) / (n1 - 1) + Math.pow(var2 / n2, 2) / (n2 - 1))
-  
-  // Approximate p-value using t-distribution (simplified)
-  // For df > 30, t-distribution approximates normal distribution
-  const pValue = 2 * (1 - normalCDF(Math.abs(tStatistic)))
-  
-  return { tStatistic, df, pValue }
-}
-
-// Cumulative distribution function for standard normal
-function normalCDF(z) {
-  return 0.5 * (1 + erf(z / Math.sqrt(2)))
-}
-
-// Error function approximation
-function erf(x) {
-  // Abramowitz and Stegun approximation
-  const sign = x >= 0 ? 1 : -1
-  x = Math.abs(x)
-  
-  const a1 = 0.254829592
-  const a2 = -0.284496736
-  const a3 = 1.421413741
-  const a4 = -1.453152027
-  const a5 = 1.061405429
-  const p = 0.3275911
-  
-  const t = 1 / (1 + p * x)
-  const y = 1 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x)
-  
-  return sign * y
-}
+// Statistical functions now imported from centralized module
+// (mean, stdDev, welchTTest)
 
 // Hash function for comparing results
 function hashResults(results) {

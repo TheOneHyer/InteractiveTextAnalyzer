@@ -1,89 +1,14 @@
 import { describe, it, expect } from 'vitest'
+import { 
+  tokenize, 
+  buildStem, 
+  computeTfIdf, 
+  generateNGrams, 
+  mineAssociations,
+  DEFAULT_STOPWORDS 
+} from '../utils/textAnalysis'
 
-// Import utility functions - since they're not exported, we'll need to test them indirectly
-// For now, we'll create a utilities module to export these functions
-
-// Utility function duplicates for testing (extracted from App.jsx)
-const tokenize = (text) => text.toLowerCase().split(/[^a-z0-9']+/).filter(Boolean)
-
-const buildStem = () => {
-  const cache = new Map()
-  return (w) => { 
-    if(cache.has(w)) return cache.get(w)
-    const s = w.replace(/(ing|ed|ly|s)$/,'')
-    cache.set(w,s)
-    return s 
-  }
-}
-
-const computeTfIdf = (docs, { stopwords, stem, stemmer }) => {
-  const termFreqs = []
-  const docFreq = {}
-  docs.forEach(d => {
-    const counts = {}
-    tokenize(d).forEach(tok => {
-      if(stopwords.has(tok)) return
-      const t = stem? stemmer(tok): tok
-      counts[t] = (counts[t]||0)+1
-    })
-    termFreqs.push(counts)
-    Object.keys(counts).forEach(t => { docFreq[t]=(docFreq[t]||0)+1 })
-  })
-  const N = docs.length
-  const perDoc = termFreqs.map(tf => {
-    const list = Object.entries(tf).map(([term, c]) => {
-      const idf = Math.log((1+N)/(1+docFreq[term])) + 1
-      return { term, tfidf: c * idf }
-    }).sort((a,b)=>b.tfidf-a.tfidf).slice(0,80)
-    return list
-  })
-  const aggregateMap = {}
-  perDoc.forEach(list => list.forEach(({term, tfidf}) => { aggregateMap[term]=(aggregateMap[term]||0)+tfidf }))
-  const aggregate = Object.entries(aggregateMap).map(([term, score])=>({term, score})).sort((a,b)=>b.score-a.score).slice(0,150)
-  return { perDoc, aggregate }
-}
-
-const generateNGrams = (texts, { n=2, top=80, stopwords, stem, stemmer }) => {
-  const freq = {}
-  texts.forEach(t => {
-    let tokens = tokenize(t).filter(x=>!stopwords.has(x))
-    if(stem) tokens = tokens.map(stemmer)
-    for(let i=0;i<=tokens.length-n;i++) {
-      const gram = tokens.slice(i,i+n).join(' ')
-      freq[gram] = (freq[gram]||0)+1
-    }
-  })
-  return Object.entries(freq).map(([gram,count])=>({gram,count})).sort((a,b)=>b.count-a.count).slice(0, top)
-}
-
-const mineAssociations = (rows, cols, { minSupport=0.02, stopwords, stem, stemmer }) => {
-  const transactions = rows.map(r => {
-    let tokens = tokenize(cols.map(c=> (r[c]??'').toString()).join(' ')).filter(x=>!stopwords.has(x))
-    if(stem) tokens = tokens.map(stemmer)
-    return Array.from(new Set(tokens))
-  })
-  const itemCounts = {}
-  transactions.forEach(tr => tr.forEach(it => itemCounts[it]=(itemCounts[it]||0)+1))
-  const total = transactions.length
-  const items = Object.entries(itemCounts).filter(([,c])=>c/total>=minSupport).map(([item,c])=>({item,support:c/total,count:c}))
-  const itemSet = new Set(items.map(i=>i.item))
-  const pairCounts = {}
-  transactions.forEach(tr => {
-    const f = tr.filter(t=>itemSet.has(t))
-    for(let i=0;i<f.length;i++) for(let j=i+1;j<f.length;j++) {
-      const a=f[i], b=f[j]; const k=a<b? a+'|'+b : b+'|'+a; pairCounts[k]=(pairCounts[k]||0)+1 }
-  })
-  const pairs = Object.entries(pairCounts).map(([k,c])=>{ 
-    const [a,b]=k.split('|')
-    const support = c/total
-    if(support<minSupport) return null
-    const confAB = c/itemCounts[a]
-    const confBA = c/itemCounts[b]
-    const lift = support / ((itemCounts[a]/total)*(itemCounts[b]/total))
-    return {a,b,support,count:c,confidenceAB:confAB,confidenceBA:confBA,lift}
-  }).filter(Boolean).sort((a,b)=>b.lift-a.lift).slice(0,120)
-  return { items: items.sort((a,b)=>b.support-a.support), pairs }
-}
+// No need to duplicate functions - import from centralized module
 
 describe('Tokenization Utilities', () => {
   describe('tokenize', () => {
@@ -143,7 +68,7 @@ describe('Tokenization Utilities', () => {
 })
 
 describe('Text Analysis Functions', () => {
-  const DEFAULT_STOPWORDS = new Set(['the','a','an','and','or','but','if','then','else','of','to','in','on','for','with','this','that','it','is','are','was','were','be','as','by','at','from'])
+  // Using DEFAULT_STOPWORDS from imported module
   
   describe('computeTfIdf', () => {
     it('should compute TF-IDF scores for documents', () => {
