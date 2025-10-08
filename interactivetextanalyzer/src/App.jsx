@@ -14,6 +14,7 @@ import {
   extractEntities, 
   computeDocumentEmbeddings,
   extractYakeKeywords,
+  analyzeTokenization,
   DEFAULT_STOPWORDS 
 } from './utils/textAnalysis'
 import { normalizeValue, getCategoricalValues } from './utils/categoricalUtils'
@@ -176,6 +177,7 @@ export default function App(){
   const [analysisType,setAnalysisType]=useState('ngram')
   const [ngramN,setNgramN]=useState(2)
   const [yakeMaxNgram,setYakeMaxNgram]=useState(2)
+  const [tokenizationLevel,setTokenizationLevel]=useState('word')
   const [hiddenColumns,setHiddenColumns]=useState([])
   const [renames,setRenames]=useState({})
   const [viewMode,setViewMode]=useState('list')
@@ -927,6 +929,7 @@ export default function App(){
   const associations=useMemo(()=> analysisType==='assoc'&& textSamples.length? mineAssociations(currentRows,selectedColumns,{...params,minSupport}): null,[analysisType,textSamples,currentRows,selectedColumns,params,minSupport])
   const entities=useMemo(()=> analysisType==='ner'&& textSamples.length && nlpLibs.nlp? extractEntities(textSamples,nlpLibs.nlp): [],[analysisType,textSamples,nlpLibs])
   const yakeKeywords=useMemo(()=> analysisType==='yake'&& textSamples.length? extractYakeKeywords(textSamples,{maxNgram:yakeMaxNgram,top:80,stopwords:effectiveStopwords}): [],[analysisType,textSamples,yakeMaxNgram,effectiveStopwords])
+  const tokenization=useMemo(()=> analysisType==='tokenization'&& textSamples.length? analyzeTokenization(textSamples,{level:tokenizationLevel,top:80}): [],[analysisType,textSamples,tokenizationLevel])
   
   // Compute embeddings
   const embeddings=useMemo(()=> analysisType==='embeddings'&& textSamples.length>=3? computeDocumentEmbeddings(textSamples,params): null,[analysisType,textSamples,params])
@@ -1014,7 +1017,7 @@ export default function App(){
   const statUniqueTerms=tfidf? tfidf.aggregate.length : (ngrams.length || entities.length || yakeKeywords.length)
 
   // Helper function to compute word cloud data based on analysis type
-  function getWordCloudData(analysisType, tfidf, ngrams, entities, associations, yakeKeywords) {
+  function getWordCloudData(analysisType, tfidf, ngrams, entities, associations, yakeKeywords, tokenization) {
     switch (analysisType) {
       case 'tfidf':
         if (tfidf) return tfidf.aggregate.map(t => ({ text: t.term, value: t.score }));
@@ -1028,6 +1031,8 @@ export default function App(){
         break;
       case 'yake':
         return yakeKeywords.map(k => ({ text: k.keyword, value: 1 / k.score }));
+      case 'tokenization':
+        return tokenization.map(t => ({ text: t.token, value: t.count }));
       default:
         return [];
     }
@@ -1035,8 +1040,8 @@ export default function App(){
   }
 
   const wordCloudData = useMemo(() =>
-    getWordCloudData(analysisType, tfidf, ngrams, entities, associations, yakeKeywords),
-    [analysisType, tfidf, ngrams, entities, associations, yakeKeywords]
+    getWordCloudData(analysisType, tfidf, ngrams, entities, associations, yakeKeywords, tokenization),
+    [analysisType, tfidf, ngrams, entities, associations, yakeKeywords, tokenization]
   );
   const networkData=useMemo(()=> {
     if (analysisType==='assoc'&&associations) {
@@ -1072,7 +1077,7 @@ export default function App(){
   // Chart data (live updating) - pie chart removed, keeping bar chart
   // const pieData=useMemo(()=>{ if(analysisType==='assoc'&&associations) return associations.items.slice(0,6).map(i=>({ name:i.item, value:+(i.support*100).toFixed(2) })); if(analysisType==='tfidf'&&tfidf) return tfidf.aggregate.slice(0,6).map(t=>({ name:t.term, value:+t.score.toFixed(2) })); if(analysisType==='ngram') return ngrams.slice(0,6).map(g=>({ name:g.gram, value:g.count })); if(analysisType==='ner') return entities.slice(0,6).map(e=>({ name:e.value, value:e.count })); return [] },[analysisType,associations,tfidf,ngrams,entities])
 
-  function getBarData(analysisType, associations, tfidf, ngrams, entities, yakeKeywords) {
+  function getBarData(analysisType, associations, tfidf, ngrams, entities, yakeKeywords, tokenization) {
     switch (analysisType) {
       case 'assoc':
         if (associations)
@@ -1088,6 +1093,8 @@ export default function App(){
         return entities.slice(0,8).map(e=>({ name:e.value, count:e.count }));
       case 'yake':
         return yakeKeywords.slice(0,8).map(k=>({ name:k.keyword, score:+(1/k.score).toFixed(2) }));
+      case 'tokenization':
+        return tokenization.slice(0,8).map(t=>({ name:t.token, count:t.count }));
       default:
         return [];
     }
@@ -1095,8 +1102,8 @@ export default function App(){
   }
 
   const barData = useMemo(() =>
-    getBarData(analysisType, associations, tfidf, ngrams, entities, yakeKeywords),
-    [analysisType, associations, tfidf, ngrams, entities, yakeKeywords]
+    getBarData(analysisType, associations, tfidf, ngrams, entities, yakeKeywords, tokenization),
+    [analysisType, associations, tfidf, ngrams, entities, yakeKeywords, tokenization]
   );
   // Mutators
   // eslint-disable-next-line no-unused-vars
@@ -1808,6 +1815,7 @@ export default function App(){
                     onNavigateToWiki={() => setActiveView('wiki')}
                   />
                   <select value={analysisType} onChange={e=>setAnalysisType(e.target.value)} style={{width:'100%',marginTop:4}}>
+                    <option value='tokenization'>Tokenization</option>
                     <option value='ngram'>N-Gram</option>
                     <option value='tfidf'>TF-IDF</option>
                     <option value='assoc'>Association</option>
@@ -1817,6 +1825,11 @@ export default function App(){
                     <option value='dependency'>Dependency Parsing</option>
                   </select>
                 </label>
+                {analysisType==='tokenization' && (
+                  <div className='notice' style={{marginTop:8}}>
+                    <strong>Tokenization:</strong> Analyzes text tokens at different granularities (character, word, subword, sentence).
+                  </div>
+                )}
                 {analysisType==='ngram' && (
                   <div className='notice' style={{marginTop:8}}>
                     <strong>N-Gram:</strong> Finds common word sequences/phrases in your text.
@@ -1858,6 +1871,17 @@ export default function App(){
                       </div>
                     )}
                   </>
+                )}
+                {analysisType==='tokenization' && (
+                  <label style={{fontSize:12}}>
+                    Tokenization Level
+                    <select value={tokenizationLevel} onChange={e=>setTokenizationLevel(e.target.value)} style={{width:'100%',marginTop:4}}>
+                      <option value='character'>Character</option>
+                      <option value='word'>Word</option>
+                      <option value='subword'>Subword</option>
+                      <option value='sentence'>Sentence</option>
+                    </select>
+                  </label>
                 )}
                 {analysisType==='ngram' && <label style={{fontSize:12}}>N Size<input type='number' min={1} max={6} value={ngramN} onChange={e=>setNgramN(Number(e.target.value)||2)} style={{width:'100%',marginTop:4}}/></label>}
                 {analysisType==='yake' && <label style={{fontSize:12}}>Max N-gram<input type='number' min={1} max={3} value={yakeMaxNgram} onChange={e=>setYakeMaxNgram(Number(e.target.value)||2)} style={{width:'100%',marginTop:4}}/></label>}
