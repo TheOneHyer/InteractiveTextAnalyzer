@@ -2,7 +2,6 @@ import { useState, useMemo, useEffect, useCallback, useRef, Suspense } from 'rea
 import './App.css'
 import ExcelJS from 'exceljs'
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts'
-import ImportPreviewModal from './components/ImportPreviewModal'
 import VisualModal from './components/VisualModal'
 import { DataVersionManager, applyDataTransformation } from './utils/dataVersioning'
 import { initializeLazyLoading } from './utils/useLazyLoader'
@@ -193,16 +192,13 @@ export default function App(){
   const [dependencyProgress,setDependencyProgress]=useState(0)
   const [dependencySamplePercent,setDependencySamplePercent]=useState(100) // Percentage of data to process (1-100)
   
-  // Import preview modal state
-  const [showImportModal, setShowImportModal] = useState(false)
-  const [pendingImportData, setPendingImportData] = useState(null)
-  const [pendingFileName, setPendingFileName] = useState('')
-  const [pendingFileType, setPendingFileType] = useState('')
-  
   // Column types and categorical filters
   const [columnTypes, setColumnTypes] = useState({})
   const [categoricalColumns, setCategoricalColumns] = useState([]) // Columns flagged as categorical
   const [categoricalFilters, setCategoricalFilters] = useState({})
+  
+  // Sheet management state
+  const [showSheetManagement, setShowSheetManagement] = useState(false)
   
   // View state and versioning
   const [activeView, setActiveView] = useState('editor')
@@ -744,6 +740,23 @@ export default function App(){
     sheetQ4.columns = Object.keys(q4Data[0]).map(key => ({ header: key, key }))
     q4Data.forEach(row => sheetQ4.addRow(row))
     
+    // Document Info - Metadata sheet with different column structure
+    const metadataData = [
+      {property:'Title',value:'Customer Review Analysis Dataset',notes:'Aggregated reviews from multiple quarters'},
+      {property:'Author',value:'Data Analytics Team',notes:'Generated from customer feedback system'},
+      {property:'Created Date',value:'2024-01-01',notes:'Initial dataset creation'},
+      {property:'Last Modified',value:'2024-12-31',notes:'Updated with Q4 data'},
+      {property:'Version',value:'1.0',notes:'First complete version'},
+      {property:'Record Count',value:'120',notes:'Total number of reviews across all sheets'},
+      {property:'Categories',value:'Books, Electronics, Restaurants, Hotels, Movies, Software, Games',notes:'Product categories included'},
+      {property:'Sentiment',value:'positive, negative, neutral',notes:'Three sentiment classifications'},
+      {property:'Data Source',value:'Customer Feedback Portal',notes:'Online review submission system'},
+      {property:'Purpose',value:'Sentiment Analysis Training',notes:'For text analysis demonstrations'}
+    ]
+    const sheetMetadata = workbook.addWorksheet('Document Info')
+    sheetMetadata.columns = Object.keys(metadataData[0]).map(key => ({ header: key, key }))
+    metadataData.forEach(row => sheetMetadata.addRow(row))
+    
     // Convert to buffer and parse
     const buffer = await workbook.xlsx.writeBuffer()
     const parsed = new ExcelJS.Workbook()
@@ -794,74 +807,25 @@ export default function App(){
         })
       }
       
-      // Show import modal instead of directly loading
-      setPendingImportData(parsedData)
-      setPendingFileName(file.name)
-      setPendingFileType(ext)
-      setShowImportModal(true)
+      // Directly load the data without showing import modal
+      versionManager.current.initialize(parsedData)
+      setHistoryInfo(versionManager.current.getHistoryInfo())
+      
+      setWorkbookData(parsedData)
+      setActiveSheet(Object.keys(parsedData)[0] || null)
+      setSelectedColumns([])
+      setHiddenColumns([])
+      setRenames({})
+      
+      // Auto-detect categorical columns
+      const firstSheet = Object.keys(parsedData)[0]
+      if (firstSheet && parsedData[firstSheet]) {
+        const detected = detectCategoricalColumns(parsedData[firstSheet].rows, parsedData[firstSheet].columns)
+        setCategoricalColumns(detected)
+      }
     }
     
     ext==='csv'? reader.readAsText(file): reader.readAsArrayBuffer(file)
-  }
-
-  const handleImportConfirm = (config) => {
-    // Apply the configuration and load the data
-    const { 
-      processedData, 
-      hiddenColumns: importHiddenColumns, 
-      markedColumns, 
-      columnTypes: importColumnTypes, 
-      categoricalColumns: importCategoricalColumns, 
-      categoricalFilters: importCategoricalFilters,
-      sheetInclusion = {},
-      sheetRenames = {}
-    } = config
-    
-    // Reconstruct workbook data with processed data
-    // Only include sheets that are marked for inclusion
-    const finalData = {}
-    Object.keys(pendingImportData).forEach(originalSheetName => {
-      // Check if sheet should be included (default to true if not specified)
-      const shouldInclude = sheetInclusion[originalSheetName] !== false
-      if (!shouldInclude) return
-      
-      // Use renamed sheet name if provided
-      const finalSheetName = sheetRenames[originalSheetName] || originalSheetName
-      
-      const processed = processedData
-      
-      // Apply the transformations from the modal
-      finalData[finalSheetName] = {
-        rows: processed.rows,
-        columns: processed.columns
-      }
-    })
-    
-    // If no sheets are included, include all (safety fallback)
-    if (Object.keys(finalData).length === 0) {
-      Object.keys(pendingImportData).forEach(sheetName => {
-        const processed = processedData
-        finalData[sheetName] = {
-          rows: processed.rows,
-          columns: processed.columns
-        }
-      })
-    }
-    
-    // Initialize version manager with original data
-    versionManager.current.initialize(finalData)
-    setHistoryInfo(versionManager.current.getHistoryInfo())
-    
-    setWorkbookData(finalData)
-    setActiveSheet(Object.keys(finalData)[0] || null)
-    setSelectedColumns(markedColumns)
-    setHiddenColumns(importHiddenColumns)
-    setColumnTypes(importColumnTypes || {})
-    setCategoricalColumns(importCategoricalColumns || [])
-    setCategoricalFilters(importCategoricalFilters || {})
-    setRenames({})
-    setShowImportModal(false)
-    setPendingImportData(null)
   }
 
   // Auto-detect categorical columns based on unique value count
@@ -880,11 +844,6 @@ export default function App(){
     })
     return detected
   }, [])
-
-  const handleImportCancel = () => {
-    setShowImportModal(false)
-    setPendingImportData(null)
-  }
 
   const rawRows=useMemo(()=> activeSheet==='__ALL__'? Object.values(workbookData).flatMap(s=>s.rows): (activeSheet && workbookData[activeSheet]?.rows)||[],[activeSheet,workbookData])
   
@@ -1493,16 +1452,6 @@ export default function App(){
           </VisualModal>
         </Suspense>
       )}
-      {showImportModal && pendingImportData && (
-        <ImportPreviewModal
-          isOpen={showImportModal}
-          onClose={handleImportCancel}
-          onConfirm={handleImportConfirm}
-          workbookData={pendingImportData}
-          fileName={pendingFileName}
-          detectedFileType={pendingFileType}
-        />
-      )}
       {showHistoryModal && (
         <HistoryModal
           isOpen={showHistoryModal}
@@ -2043,6 +1992,78 @@ export default function App(){
                 <div style={{marginBottom:16}}>
                   {Object.keys(workbookData).length>0 && <SheetSelector sheets={Object.keys(workbookData)} activeSheet={activeSheet} setActiveSheet={setActiveSheet} />}
                 </div>
+                {/* Sheet Management - Collapsible */}
+                {Object.keys(workbookData).length > 1 && (
+                  <div style={{marginBottom:20}}>
+                    <div 
+                      onClick={() => setShowSheetManagement(!showSheetManagement)}
+                      style={{
+                        display:'flex',
+                        alignItems:'center',
+                        justifyContent:'space-between',
+                        marginBottom:10,
+                        cursor:'pointer',
+                        userSelect:'none'
+                      }}
+                    >
+                      <h4 style={{margin:0}}>Sheet Management</h4>
+                      <span style={{fontSize:14,fontWeight:'bold'}}>{showSheetManagement ? '−' : '+'}</span>
+                    </div>
+                    {showSheetManagement && (
+                      <div style={{maxHeight:300,overflowY:'auto'}}>
+                        <table className='column-mgmt-table'>
+                          <thead>
+                            <tr>
+                              <th>Sheet Name</th>
+                              <th>Edit Name</th>
+                              <th>Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {Object.keys(workbookData).map(sheetName => (
+                              <tr key={sheetName}>
+                                <td style={{fontWeight:500}}>{sheetName}</td>
+                                <td>
+                                  <input 
+                                    type='text'
+                                    className='column-mgmt-input'
+                                    placeholder='New name...'
+                                    defaultValue=''
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') {
+                                        const newName = e.target.value.trim()
+                                        if (newName && newName !== sheetName) {
+                                          renameSheet(sheetName, newName)
+                                          e.target.value = ''
+                                        }
+                                      }
+                                    }}
+                                    style={{width:'100%'}}
+                                  />
+                                </td>
+                                <td style={{textAlign:'center'}}>
+                                  <button 
+                                    className='btn danger'
+                                    style={{fontSize:11,padding:'4px 12px'}}
+                                    onClick={() => {
+                                      if (Object.keys(workbookData).length > 1) {
+                                        deleteSheet(sheetName)
+                                      }
+                                    }}
+                                    disabled={Object.keys(workbookData).length === 1}
+                                    title={Object.keys(workbookData).length === 1 ? 'Cannot delete the last sheet' : 'Delete sheet'}
+                                  >
+                                    Delete
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                )}
                 <div style={{marginBottom:20}}>
                   <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
                     <h4 style={{margin:0}}>Column Management</h4>
