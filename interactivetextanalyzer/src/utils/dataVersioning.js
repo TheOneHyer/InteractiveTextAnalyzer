@@ -346,6 +346,36 @@ export function applyDataTransformation(currentData, transformation) {
       actionDescription = `Set ${transformation.columnName} as ${transformation.columnType}`
       break
       
+    case 'INCLUDE_SHEET':
+      // Mark a sheet as included for analysis
+      // The actual sheet inclusion is managed in state, this is just for history
+      actionDescription = `Included sheet "${transformation.sheetName}" for analysis`
+      break
+      
+    case 'EXCLUDE_SHEET':
+      // Mark a sheet as excluded from analysis
+      // The actual sheet exclusion is managed in state, this is just for history
+      actionDescription = `Excluded sheet "${transformation.sheetName}" from analysis`
+      break
+      
+    case 'RENAME_SHEET':
+      // Rename a sheet in the workbook
+      if (newData[transformation.oldName]) {
+        const sheetData = newData[transformation.oldName]
+        delete newData[transformation.oldName]
+        newData[transformation.newName] = sheetData
+      }
+      actionDescription = `Renamed sheet: ${transformation.oldName} → ${transformation.newName}`
+      break
+      
+    case 'DELETE_SHEET':
+      // Delete a sheet from the workbook
+      if (newData[transformation.sheetName]) {
+        delete newData[transformation.sheetName]
+      }
+      actionDescription = `Deleted sheet: ${transformation.sheetName}`
+      break
+      
     default:
       console.warn('Unknown transformation type:', transformation.type)
   }
