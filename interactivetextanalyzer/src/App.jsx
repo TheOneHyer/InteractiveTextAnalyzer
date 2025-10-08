@@ -14,6 +14,7 @@ import {
   mineAssociations, 
   extractEntities, 
   computeDocumentEmbeddings,
+  extractYakeKeywords,
   DEFAULT_STOPWORDS 
 } from './utils/textAnalysis'
 import { normalizeValue, getCategoricalValues } from './utils/categoricalUtils'
@@ -174,6 +175,7 @@ export default function App(){
   const [selectedColumns,setSelectedColumns]=useState([])
   const [analysisType,setAnalysisType]=useState('ngram')
   const [ngramN,setNgramN]=useState(2)
+  const [yakeMaxNgram,setYakeMaxNgram]=useState(2)
   const [hiddenColumns,setHiddenColumns]=useState([])
   const [renames,setRenames]=useState({})
   const [viewMode,setViewMode]=useState('list')
@@ -902,6 +904,7 @@ export default function App(){
   const ngrams=useMemo(()=> analysisType==='ngram'&& textSamples.length? generateNGrams(textSamples,params): [],[analysisType,textSamples,params])
   const associations=useMemo(()=> analysisType==='assoc'&& textSamples.length? mineAssociations(currentRows,selectedColumns,{...params,minSupport}): null,[analysisType,textSamples,currentRows,selectedColumns,params,minSupport])
   const entities=useMemo(()=> analysisType==='ner'&& textSamples.length && nlpLibs.nlp? extractEntities(textSamples,nlpLibs.nlp): [],[analysisType,textSamples,nlpLibs])
+  const yakeKeywords=useMemo(()=> analysisType==='yake'&& textSamples.length? extractYakeKeywords(textSamples,{maxNgram:yakeMaxNgram,top:80,stopwords:effectiveStopwords}): [],[analysisType,textSamples,yakeMaxNgram,effectiveStopwords])
   
   // Compute embeddings
   const embeddings=useMemo(()=> analysisType==='embeddings'&& textSamples.length>=3? computeDocumentEmbeddings(textSamples,params): null,[analysisType,textSamples,params])
@@ -986,9 +989,9 @@ export default function App(){
   // Derived quick stats
   const statDocs=textSamples.length
   const statTokens=useMemo(()=> textSamples.join(' ').split(/\s+/).filter(Boolean).length,[textSamples])
-  const statUniqueTerms=tfidf? tfidf.aggregate.length : (ngrams.length || entities.length)
+  const statUniqueTerms=tfidf? tfidf.aggregate.length : (ngrams.length || entities.length || yakeKeywords.length)
 
-  const wordCloudData=useMemo(()=>{ if(analysisType==='tfidf'&&tfidf) return tfidf.aggregate.map(t=>({text:t.term,value:t.score})); if(analysisType==='ngram') return ngrams.map(g=>({text:g.gram,value:g.count})); if(analysisType==='ner') return entities.map(e=>({text:e.value,value:e.count})); if(analysisType==='assoc'&&associations) return associations.items.map(i=>({text:i.item,value:i.support})); return []},[analysisType,tfidf,ngrams,entities,associations])
+  const wordCloudData=useMemo(()=>{ if(analysisType==='tfidf'&&tfidf) return tfidf.aggregate.map(t=>({text:t.term,value:t.score})); if(analysisType==='ngram') return ngrams.map(g=>({text:g.gram,value:g.count})); if(analysisType==='ner') return entities.map(e=>({text:e.value,value:e.count})); if(analysisType==='assoc'&&associations) return associations.items.map(i=>({text:i.item,value:i.support})); if(analysisType==='yake') return yakeKeywords.map(k=>({text:k.keyword,value:1/k.score})); return []},[analysisType,tfidf,ngrams,entities,associations,yakeKeywords])
   const networkData=useMemo(()=> {
     if (analysisType==='assoc'&&associations) {
       return {nodes:associations.items.slice(0,50).map(i=>({id:i.item,value:i.support})), edges:associations.pairs.filter(p=>p.lift>=1).map(p=>({source:p.a,target:p.b,value:p.lift}))}
@@ -1022,7 +1025,7 @@ export default function App(){
 
   // Chart data (live updating) - pie chart removed, keeping bar chart
   // const pieData=useMemo(()=>{ if(analysisType==='assoc'&&associations) return associations.items.slice(0,6).map(i=>({ name:i.item, value:+(i.support*100).toFixed(2) })); if(analysisType==='tfidf'&&tfidf) return tfidf.aggregate.slice(0,6).map(t=>({ name:t.term, value:+t.score.toFixed(2) })); if(analysisType==='ngram') return ngrams.slice(0,6).map(g=>({ name:g.gram, value:g.count })); if(analysisType==='ner') return entities.slice(0,6).map(e=>({ name:e.value, value:e.count })); return [] },[analysisType,associations,tfidf,ngrams,entities])
-  const barData=useMemo(()=>{ if(analysisType==='assoc'&&associations) return associations.pairs.slice(0,8).map(p=>({ name:`${p.a}+${p.b}`, lift:+p.lift.toFixed(2) })); if(analysisType==='tfidf'&&tfidf) return tfidf.aggregate.slice(0,8).map(t=>({ name:t.term, score:+t.score.toFixed(2) })); if(analysisType==='ngram') return ngrams.slice(0,8).map(g=>({ name:g.gram, freq:g.count })); if(analysisType==='ner') return entities.slice(0,8).map(e=>({ name:e.value, count:e.count })); return [] },[analysisType,associations,tfidf,ngrams,entities])
+  const barData=useMemo(()=>{ if(analysisType==='assoc'&&associations) return associations.pairs.slice(0,8).map(p=>({ name:`${p.a}+${p.b}`, lift:+p.lift.toFixed(2) })); if(analysisType==='tfidf'&&tfidf) return tfidf.aggregate.slice(0,8).map(t=>({ name:t.term, score:+t.score.toFixed(2) })); if(analysisType==='ngram') return ngrams.slice(0,8).map(g=>({ name:g.gram, freq:g.count })); if(analysisType==='ner') return entities.slice(0,8).map(e=>({ name:e.value, count:e.count })); if(analysisType==='yake') return yakeKeywords.slice(0,8).map(k=>({ name:k.keyword, score:+(1/k.score).toFixed(2) })); return [] },[analysisType,associations,tfidf,ngrams,entities,yakeKeywords])
 
   // Mutators
   // eslint-disable-next-line no-unused-vars
@@ -1178,7 +1181,7 @@ export default function App(){
       URL.revokeObjectURL(url)
     }
   }
-  const exportAnalysis=()=>{ const payload={analysisType,timestamp:new Date().toISOString(), tfidf:analysisType==='tfidf'?tfidf:undefined, ngrams:analysisType==='ngram'?ngrams:undefined, associations:analysisType==='assoc'?associations:undefined, entities:analysisType==='ner'?entities:undefined, embeddings:analysisType==='embeddings'?{vocab:embeddings?.vocab,points:embeddingPoints,method:dimReductionMethod}:undefined, dependency:analysisType==='dependency'?{...dependencyResult,algorithm:dependencyAlgorithm}:undefined}; const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`analysis_${analysisType}.json`; a.click() }
+  const exportAnalysis=()=>{ const payload={analysisType,timestamp:new Date().toISOString(), tfidf:analysisType==='tfidf'?tfidf:undefined, ngrams:analysisType==='ngram'?ngrams:undefined, associations:analysisType==='assoc'?associations:undefined, entities:analysisType==='ner'?entities:undefined, yake:analysisType==='yake'?yakeKeywords:undefined, embeddings:analysisType==='embeddings'?{vocab:embeddings?.vocab,points:embeddingPoints,method:dimReductionMethod}:undefined, dependency:analysisType==='dependency'?{...dependencyResult,algorithm:dependencyAlgorithm}:undefined}; const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`analysis_${analysisType}.json`; a.click() }
 
   // Helper function to check if a visualization is available for current analysis type
   // Complete analysis → visualization mapping:
@@ -1186,14 +1189,15 @@ export default function App(){
   // - ngram: bar, wordcloud
   // - assoc: bar, wordcloud, network
   // - ner: bar, wordcloud
+  // - yake: bar, wordcloud
   // - embeddings: scatter
   // - dependency: network
   const isVisualizationAvailable = (vizType) => {
     switch(vizType) {
       case 'bar':
-        return analysisType === 'tfidf' || analysisType === 'ngram' || analysisType === 'ner' || analysisType === 'assoc'
+        return analysisType === 'tfidf' || analysisType === 'ngram' || analysisType === 'ner' || analysisType === 'assoc' || analysisType === 'yake'
       case 'wordcloud':
-        return analysisType === 'tfidf' || analysisType === 'ngram' || analysisType === 'ner' || analysisType === 'assoc'
+        return analysisType === 'tfidf' || analysisType === 'ngram' || analysisType === 'ner' || analysisType === 'assoc' || analysisType === 'yake'
       case 'network':
         return analysisType === 'assoc' || analysisType === 'dependency'
       case 'heatmap':
@@ -1688,6 +1692,7 @@ export default function App(){
                     <option value='tfidf'>TF-IDF</option>
                     <option value='assoc'>Association</option>
                     <option value='ner'>NER</option>
+                    <option value='yake'>YAKE</option>
                     <option value='embeddings'>Embeddings</option>
                     <option value='dependency'>Dependency Parsing</option>
                   </select>
@@ -1712,6 +1717,11 @@ export default function App(){
                     <strong>NER:</strong> Extracts named entities (people, places, organizations).
                   </div>
                 )}
+                {analysisType==='yake' && (
+                  <div className='notice' style={{marginTop:8}}>
+                    <strong>YAKE:</strong> Extracts keywords using statistical features without training data.
+                  </div>
+                )}
                 {analysisType==='embeddings' && (
                   <div className='notice' style={{marginTop:8}}>
                     <strong>Embeddings:</strong> Visualizes document relationships in 2D space using dimensionality reduction.
@@ -1730,6 +1740,7 @@ export default function App(){
                   </>
                 )}
                 {analysisType==='ngram' && <label style={{fontSize:12}}>N Size<input type='number' min={1} max={6} value={ngramN} onChange={e=>setNgramN(Number(e.target.value)||2)} style={{width:'100%',marginTop:4}}/></label>}
+                {analysisType==='yake' && <label style={{fontSize:12}}>Max N-gram<input type='number' min={1} max={3} value={yakeMaxNgram} onChange={e=>setYakeMaxNgram(Number(e.target.value)||2)} style={{width:'100%',marginTop:4}}/></label>}
                 {analysisType==='assoc' && <label style={{fontSize:12}}>Min Support<input type='number' step={0.01} value={minSupport} onChange={e=>setMinSupport(Math.min(Math.max(Number(e.target.value)||0,0.01),0.8))} style={{width:'100%',marginTop:4}}/></label>}
                 {analysisType==='embeddings' && (
                   <label style={{fontSize:12}}>
