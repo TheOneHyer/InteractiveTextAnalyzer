@@ -174,9 +174,7 @@ function ImportPreviewModal({
   const [categoricalColumns, setCategoricalColumns] = useState([]) // Columns flagged as categorical
   const [categoricalFilters, setCategoricalFilters] = useState({}) // { columnName: [selected values] }
   const [columnRenames, setColumnRenames] = useState({}) // { originalName: newName }
-  const [sheetInclusion, setSheetInclusion] = useState({}) // { sheetName: boolean }
-  const [sheetRenames, setSheetRenames] = useState({}) // { originalName: newName }
-  const [showSheetManagement, setShowSheetManagement] = useState(false) // Collapsed by default
+
 
   const sheets = Object.keys(workbookData)
   const currentData = useMemo(() => 
@@ -184,14 +182,6 @@ function ImportPreviewModal({
     [workbookData, activeSheet]
   )
   
-  // Auto-detect sheets for analysis on mount
-  useEffect(() => {
-    if (sheets.length > 0 && Object.keys(sheetInclusion).length === 0) {
-      const detected = autoDetectSheetsForAnalysis(workbookData)
-      setSheetInclusion(detected)
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
   
   // Auto-detect column types when data changes
   useEffect(() => {
