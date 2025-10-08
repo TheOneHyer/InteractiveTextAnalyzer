@@ -17,6 +17,7 @@ import {
 } from './utils/textAnalysis'
 import { normalizeValue, getCategoricalValues } from './utils/categoricalUtils'
 import { loadDimReductionLibs, applyDimensionalityReduction } from './utils/dimensionalityReduction'
+import { autoDetectSheetsForAnalysis } from './utils/sheetUtils'
 
 // Code-split heavy visualization pieces using centralized lazy loader
 const WordCloud = createLazyComponent('WordCloud')
@@ -199,6 +200,7 @@ export default function App(){
   
   // Sheet management state
   const [showSheetManagement, setShowSheetManagement] = useState(false)
+  const [includedSheets, setIncludedSheets] = useState({}) // Object mapping sheet names to inclusion boolean
   
   // View state and versioning
   const [activeView, setActiveView] = useState('editor')
@@ -777,6 +779,10 @@ export default function App(){
     setHiddenColumns([])
     setRenames({})
     
+    // Auto-detect sheets for analysis
+    const detectedInclusion = autoDetectSheetsForAnalysis(obj)
+    setIncludedSheets(detectedInclusion)
+    
     // Auto-detect categorical columns
     const firstSheet = parsed.worksheets[0]?.name
     if (firstSheet && obj[firstSheet]) {
@@ -816,6 +822,10 @@ export default function App(){
       setSelectedColumns([])
       setHiddenColumns([])
       setRenames({})
+      
+      // Auto-detect sheets for analysis
+      const detectedInclusion = autoDetectSheetsForAnalysis(parsedData)
+      setIncludedSheets(detectedInclusion)
       
       // Auto-detect categorical columns
       const firstSheet = Object.keys(parsedData)[0]
@@ -1113,6 +1123,13 @@ export default function App(){
         newName
       })
     }
+  }
+  
+  const toggleSheetInclusion = (sheetName) => {
+    setIncludedSheets(prev => ({
+      ...prev,
+      [sheetName]: !prev[sheetName]
+    }))
   }
   
   const jumpToHistoryVersion = (index) => {
@@ -2015,14 +2032,27 @@ export default function App(){
                           <thead>
                             <tr>
                               <th>Sheet Name</th>
+                              <th>Include for Analysis</th>
                               <th>Edit Name</th>
                               <th>Actions</th>
                             </tr>
                           </thead>
                           <tbody>
-                            {Object.keys(workbookData).map(sheetName => (
+                            {Object.keys(workbookData).map(sheetName => {
+                              const isIncluded = includedSheets[sheetName] === true
+                              return (
                               <tr key={sheetName}>
                                 <td style={{fontWeight:500}}>{sheetName}</td>
+                                <td style={{textAlign:'center'}}>
+                                  <input 
+                                    type='checkbox'
+                                    className='column-mgmt-checkbox'
+                                    checked={isIncluded}
+                                    onChange={() => toggleSheetInclusion(sheetName)}
+                                    title={isIncluded ? 'Exclude from analysis' : 'Include for analysis'}
+                                    style={{cursor: 'pointer'}}
+                                  />
+                                </td>
                                 <td>
                                   <input 
                                     type='text'
@@ -2057,7 +2087,7 @@ export default function App(){
                                   </button>
                                 </td>
                               </tr>
-                            ))}
+                            )})}
                           </tbody>
                         </table>
                       </div>
