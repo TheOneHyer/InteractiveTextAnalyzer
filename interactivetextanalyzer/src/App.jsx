@@ -1049,8 +1049,33 @@ export default function App(){
 
   // Chart data (live updating) - pie chart removed, keeping bar chart
   // const pieData=useMemo(()=>{ if(analysisType==='assoc'&&associations) return associations.items.slice(0,6).map(i=>({ name:i.item, value:+(i.support*100).toFixed(2) })); if(analysisType==='tfidf'&&tfidf) return tfidf.aggregate.slice(0,6).map(t=>({ name:t.term, value:+t.score.toFixed(2) })); if(analysisType==='ngram') return ngrams.slice(0,6).map(g=>({ name:g.gram, value:g.count })); if(analysisType==='ner') return entities.slice(0,6).map(e=>({ name:e.value, value:e.count })); return [] },[analysisType,associations,tfidf,ngrams,entities])
-  const barData=useMemo(()=>{ if(analysisType==='assoc'&&associations) return associations.pairs.slice(0,8).map(p=>({ name:`${p.a}+${p.b}`, lift:+p.lift.toFixed(2) })); if(analysisType==='tfidf'&&tfidf) return tfidf.aggregate.slice(0,8).map(t=>({ name:t.term, score:+t.score.toFixed(2) })); if(analysisType==='ngram') return ngrams.slice(0,8).map(g=>({ name:g.gram, freq:g.count })); if(analysisType==='ner') return entities.slice(0,8).map(e=>({ name:e.value, count:e.count })); if(analysisType==='yake') return yakeKeywords.slice(0,8).map(k=>({ name:k.keyword, score:+(1/k.score).toFixed(2) })); return [] },[analysisType,associations,tfidf,ngrams,entities,yakeKeywords])
 
+  function getBarData(analysisType, associations, tfidf, ngrams, entities, yakeKeywords) {
+    switch (analysisType) {
+      case 'assoc':
+        if (associations)
+          return associations.pairs.slice(0,8).map(p=>({ name:`${p.a}+${p.b}`, lift:+p.lift.toFixed(2) }));
+        break;
+      case 'tfidf':
+        if (tfidf)
+          return tfidf.aggregate.slice(0,8).map(t=>({ name:t.term, score:+t.score.toFixed(2) }));
+        break;
+      case 'ngram':
+        return ngrams.slice(0,8).map(g=>({ name:g.gram, freq:g.count }));
+      case 'ner':
+        return entities.slice(0,8).map(e=>({ name:e.value, count:e.count }));
+      case 'yake':
+        return yakeKeywords.slice(0,8).map(k=>({ name:k.keyword, score:+(1/k.score).toFixed(2) }));
+      default:
+        return [];
+    }
+    return [];
+  }
+
+  const barData = useMemo(() =>
+    getBarData(analysisType, associations, tfidf, ngrams, entities, yakeKeywords),
+    [analysisType, associations, tfidf, ngrams, entities, yakeKeywords]
+  );
   // Mutators
   // eslint-disable-next-line no-unused-vars
   const toggleHide=col=>setHiddenColumns(h=>h.includes(col)? h.filter(c=>c!==col):[...h,col])
