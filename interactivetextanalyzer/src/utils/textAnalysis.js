@@ -175,3 +175,95 @@ export const computeDocumentEmbeddings = (docs, { stopwords, stem, stemmer }) =>
   
   return { vectors, vocab }
 }
+
+/**
+ * Extract keywords using YAKE (Yet Another Keyword Extractor) algorithm
+ * A lightweight unsupervised automatic keyword extraction method
+ * @param {string[]} texts - Array of texts
+ * @param {Object} options - Analysis options
+ * @param {number} options.maxNgram - Maximum n-gram size (default: 3, range: 1-3)
+ * @param {number} options.top - Number of top keywords to return (default: 80)
+ * @param {Set} options.stopwords - Set of stopwords to exclude
+ * @returns {Array} Array of keywords with scores (lower scores = more important)
+ */
+export const extractYakeKeywords = (texts, { maxNgram = 3, top = 80, stopwords }) => {
+  // Combine all texts into one document for YAKE processing
+  const fullText = texts.join(' ')
+  
+  // Tokenize and filter stopwords
+  const allTokens = tokenize(fullText).filter(t => !stopwords.has(t) && t.length > 2)
+  
+  if (allTokens.length === 0) return []
+  
+  // Calculate term statistics
+  const termFreq = {}
+  const termPositions = {}
+  const termSentences = {}
+  
+  allTokens.forEach((term, idx) => {
+    termFreq[term] = (termFreq[term] || 0) + 1
+    if (!termPositions[term]) termPositions[term] = []
+    termPositions[term].push(idx)
+    // Approximate sentence by position
+    const sentIdx = Math.floor(idx / 20)
+    if (!termSentences[term]) termSentences[term] = new Set()
+    termSentences[term].add(sentIdx)
+  })
+  
+  const totalTerms = allTokens.length
+  
+  // Calculate YAKE features for each term
+  const termScores = {}
+  
+  Object.keys(termFreq).forEach(term => {
+    // Feature 1: Casing (simplified - all lowercase already, so not used)
+    // const casing = 0
+    
+    // Feature 2: Position (favor terms appearing early)
+    const firstPos = termPositions[term][0]
+    const position = Math.log(3 + firstPos / totalTerms)
+    
+    // Feature 3: Term frequency normalization
+    const tf = termFreq[term]
+    const freqNorm = tf / (1 + Math.log(tf))
+    
+    // Feature 4: Relatedness to context (simplified)
+    const relatedness = 1
+    
+    // Feature 5: Different sentences (spread across document)
+    const sentenceSpread = termSentences[term].size
+    const differentSentences = 1 + Math.log(sentenceSpread)
+    
+    // Combine features (lower score = better keyword)
+    const score = (position * relatedness) / (freqNorm * differentSentences + 0.0001)
+    termScores[term] = score
+  })
+  
+  // Extract n-gram candidates (1 to maxNgram words)
+  const ngramScores = {}
+  
+  for (let n = 1; n <= Math.min(maxNgram, 3); n++) {
+    for (let i = 0; i <= allTokens.length - n; i++) {
+      const ngram = allTokens.slice(i, i + n)
+      const ngramKey = ngram.join(' ')
+      
+      // Skip if already processed or contains stopwords
+      if (ngramScores[ngramKey]) continue
+      
+      // Calculate n-gram score as average of term scores
+      const scores = ngram.map(t => termScores[t] || 1)
+      const avgScore = scores.reduce((sum, s) => sum + s, 0) / scores.length
+      
+      // Bonus for multi-word terms
+      const lengthBonus = n > 1 ? 0.85 : 1.0
+      
+      ngramScores[ngramKey] = avgScore * lengthBonus
+    }
+  }
+  
+  // Sort by score (lower is better) and return top results
+  return Object.entries(ngramScores)
+    .map(([keyword, score]) => ({ keyword, score }))
+    .sort((a, b) => a.score - b.score)
+    .slice(0, top)
+}

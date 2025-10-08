@@ -5,6 +5,7 @@ import {
   computeTfIdf, 
   generateNGrams, 
   mineAssociations,
+  extractYakeKeywords,
   DEFAULT_STOPWORDS 
 } from '../utils/textAnalysis'
 
@@ -249,6 +250,90 @@ describe('Text Analysis Functions', () => {
       })
       
       expect(result.items.every(item => item.support >= 0.6)).toBe(true)
+    })
+  })
+
+  describe('extractYakeKeywords', () => {
+    it('should extract keywords from texts', () => {
+      const texts = [
+        'machine learning is a subset of artificial intelligence',
+        'deep learning uses neural networks for pattern recognition'
+      ]
+      const result = extractYakeKeywords(texts, { 
+        maxNgram: 2, 
+        top: 10, 
+        stopwords: DEFAULT_STOPWORDS 
+      })
+      
+      expect(Array.isArray(result)).toBe(true)
+      expect(result.length).toBeGreaterThan(0)
+      expect(result.length).toBeLessThanOrEqual(10)
+      expect(result[0]).toHaveProperty('keyword')
+      expect(result[0]).toHaveProperty('score')
+    })
+
+    it('should return keywords sorted by score (lower is better)', () => {
+      const texts = ['important keyword appears first keyword repeated']
+      const result = extractYakeKeywords(texts, { 
+        maxNgram: 1, 
+        top: 5, 
+        stopwords: new Set() 
+      })
+      
+      // Check that scores are sorted ascending
+      for (let i = 1; i < result.length; i++) {
+        expect(result[i].score).toBeGreaterThanOrEqual(result[i-1].score)
+      }
+    })
+
+    it('should respect maxNgram parameter', () => {
+      const texts = ['one two three four five']
+      const result1 = extractYakeKeywords(texts, { 
+        maxNgram: 1, 
+        top: 50, 
+        stopwords: new Set() 
+      })
+      const result2 = extractYakeKeywords(texts, { 
+        maxNgram: 2, 
+        top: 50, 
+        stopwords: new Set() 
+      })
+      
+      expect(result1.every(r => r.keyword.split(' ').length === 1)).toBe(true)
+      expect(result2.some(r => r.keyword.split(' ').length === 2)).toBe(true)
+    })
+
+    it('should filter stopwords', () => {
+      const texts = ['the quick brown fox']
+      const result = extractYakeKeywords(texts, { 
+        maxNgram: 1, 
+        top: 10, 
+        stopwords: DEFAULT_STOPWORDS 
+      })
+      
+      expect(result.every(r => !DEFAULT_STOPWORDS.has(r.keyword))).toBe(true)
+    })
+
+    it('should handle empty texts', () => {
+      const texts = []
+      const result = extractYakeKeywords(texts, { 
+        maxNgram: 2, 
+        top: 10, 
+        stopwords: DEFAULT_STOPWORDS 
+      })
+      
+      expect(result).toEqual([])
+    })
+
+    it('should respect top parameter', () => {
+      const texts = ['word1 word2 word3 word4 word5 word6 word7 word8']
+      const result = extractYakeKeywords(texts, { 
+        maxNgram: 1, 
+        top: 3, 
+        stopwords: new Set() 
+      })
+      
+      expect(result.length).toBeLessThanOrEqual(3)
     })
   })
 })
