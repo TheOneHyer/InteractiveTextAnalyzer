@@ -266,10 +266,21 @@ export default function App(){
   useEffect(()=>{ localStorage.setItem('ita_theme', theme); document.documentElement.dataset.theme=theme },[theme])
 
   // Stopwords parse
-  useEffect(()=>{ if(debouncedStopwordInput){ const list=debouncedStopwordInput.split(/[\n,\s,]+/).map(x=>x.trim().toLowerCase()).filter(Boolean); setCustomStopwords(new Set(list)) } },[debouncedStopwordInput])
+  useEffect(() => {
+    if (debouncedStopwordInput) {
+      const list = debouncedStopwordInput.split(/[\n,\s,]+/).map(x => x.trim().toLowerCase()).filter(Boolean)
+      setCustomStopwords(new Set(list))
+    }
+  }, [debouncedStopwordInput])
   const effectiveStopwords=useMemo(()=> new Set([...DEFAULT_STOPWORDS,...customStopwords]),[customStopwords])
 
-  const loadNERIfNeeded=useCallback(async()=>{ if(libsLoaded || analysisType!=='ner') return; const libs=await loadNlpLibs(); setNlpLibs(libs); setLibsLoaded(true)},[libsLoaded,analysisType])
+  const loadNERIfNeeded = useCallback(async () => {
+    if (libsLoaded || analysisType !== 'ner') return
+    
+    const libs = await loadNlpLibs()
+    setNlpLibs(libs)
+    setLibsLoaded(true)
+  }, [libsLoaded, analysisType])
   useEffect(()=>{ loadNERIfNeeded() },[analysisType,workbookData,loadNERIfNeeded])
 
   const loadDimReductionIfNeeded=useCallback(async()=>{ 
@@ -791,6 +802,20 @@ export default function App(){
       const detected = detectCategoricalColumns(obj[firstSheet].rows, obj[firstSheet].columns)
       setCategoricalColumns(detected)
     }
+  }
+
+  const loadSampleCsv = async () => {
+    const response = await fetch(new URL('sample-data.csv', import.meta.env.BASE_URL))
+    const txt = await response.text()
+    const p = parseCsv(txt)
+    
+    versionManager.current.initialize(p)
+    setHistoryInfo(versionManager.current.getHistoryInfo())
+    setWorkbookData({'Sample CSV': p})
+    setActiveSheet('Sample CSV')
+    setSelectedColumns([])
+    setHiddenColumns([])
+    setRenames({})
   }
 
   const handleFile=e=>{ 
@@ -2096,7 +2121,7 @@ export default function App(){
                     Choose File
                   </label>
                   <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
-                    <button className='btn secondary' style={{background:'#e2e8f0'}} onClick={()=>fetch(new URL('sample-data.csv', import.meta.env.BASE_URL)).then(r=>r.text()).then(txt=>{const p=parseCsv(txt); versionManager.current.initialize(p); setHistoryInfo(versionManager.current.getHistoryInfo()); setWorkbookData({'Sample CSV':p}); setActiveSheet('Sample CSV'); setSelectedColumns([]); setHiddenColumns([]); setRenames({}) })}>Load CSV Sample</button>
+                    <button className='btn secondary' style={{background:'#e2e8f0'}} onClick={loadSampleCsv}>Load CSV Sample</button>
                     <button className='btn secondary' style={{background:'#e2e8f0'}} onClick={loadSampleExcel}>Load Excel Sample</button>
                   </div>
                 </div>
