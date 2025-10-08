@@ -188,6 +188,51 @@ export default function Wiki() {
         </div>
 
         <div className='wiki-item'>
+          <h4>YAKE (Yet Another Keyword Extractor)</h4>
+          <p>
+            <strong>What it does:</strong> Extracts important keywords and key phrases from text 
+            using statistical features without requiring training data or external corpora. YAKE 
+            is a lightweight, language-independent, unsupervised keyword extraction method.
+          </p>
+          <p>
+            <strong>How it works:</strong> The algorithm analyzes text using multiple statistical 
+            features including term position, term frequency, term context, and term spread across 
+            the document. Keywords are scored based on these features, where lower scores indicate 
+            more important keywords. YAKE can extract both single words and multi-word phrases 
+            (n-grams).
+          </p>
+          <p>
+            <strong>Key features:</strong>
+          </p>
+          <ul>
+            <li><strong>Position:</strong> Terms appearing earlier in text get higher importance</li>
+            <li><strong>Frequency:</strong> Balances term frequency with over-occurrence penalties</li>
+            <li><strong>Context:</strong> Considers relationships with surrounding words</li>
+            <li><strong>Spread:</strong> Values terms distributed across the document</li>
+          </ul>
+          <p>
+            <strong>Use cases:</strong> Automatic keyword tagging, content summarization, SEO 
+            optimization, document indexing, finding representative terms without training data, 
+            and quick content analysis across different languages.
+          </p>
+          <p>
+            <strong>Interpreting results:</strong> Keywords with lower scores are more important. 
+            The results show the most characteristic terms and phrases that represent your content. 
+            Multi-word phrases often capture more specific concepts than single words.
+          </p>
+          <p>
+            <strong>Parameters:</strong> You can adjust the maximum n-gram size (1-3) to control 
+            whether to extract single words only or include multi-word phrases.
+          </p>
+          <p>
+            <strong>Visualization options:</strong> Bar Chart, Word Cloud
+          </p>
+          <p className='wiki-source'>
+            <strong>Source:</strong> Campos, R., Mangaravite, V., Pasquali, A., Jorge, A., Nunes, C., & Jatowt, A. (2020). YAKE! Keyword extraction from single documents using multiple local features. <em>Information Sciences</em>, 509, 257-289. <a href="https://doi.org/10.1016/j.ins.2019.09.013" target="_blank" rel="noopener noreferrer">https://doi.org/10.1016/j.ins.2019.09.013</a>
+          </p>
+        </div>
+
+        <div className='wiki-item'>
           <h4>Document Embeddings with Dimensionality Reduction</h4>
           <p>
             <strong>What it does:</strong> Creates vector representations (embeddings) of your documents 
@@ -428,6 +473,7 @@ export default function Wiki() {
             <li>Use <strong>N-Grams</strong> when looking for common phrases and multi-word expressions</li>
             <li>Use <strong>Associations</strong> when discovering which terms co-occur frequently</li>
             <li>Use <strong>NER</strong> when you need to extract specific entities like names and places</li>
+            <li>Use <strong>YAKE</strong> when extracting keywords without training data or when working with any language</li>
             <li>Use <strong>Embeddings</strong> when visualizing document relationships and exploring corpus structure</li>
             <li>Use <strong>Dependency Parsing</strong> when analyzing sentence structure, grammar, or syntactic relationships</li>
           </ul>
