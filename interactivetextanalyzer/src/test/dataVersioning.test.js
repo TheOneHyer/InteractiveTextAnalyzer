@@ -370,3 +370,119 @@ describe('History with action descriptions', () => {
     expect(history[2].summary).toBe('Deleted column: test')
   })
 })
+
+describe('Sheet transformations', () => {
+  let testData
+  
+  beforeEach(() => {
+    testData = {
+      'Sheet1': {
+        columns: ['col1', 'col2'],
+        rows: [{ col1: 'a', col2: 'b' }]
+      },
+      'Sheet2': {
+        columns: ['col3', 'col4'],
+        rows: [{ col3: 'c', col4: 'd' }]
+      }
+    }
+  })
+  
+  describe('RENAME_SHEET', () => {
+    it('should rename a sheet', () => {
+      const transformation = {
+        type: 'RENAME_SHEET',
+        oldName: 'Sheet1',
+        newName: 'Data'
+      }
+      
+      const result = applyDataTransformation(testData, transformation)
+      expect(result.newData['Data']).toBeDefined()
+      expect(result.newData['Sheet1']).toBeUndefined()
+      expect(result.newData['Data']).toEqual(testData['Sheet1'])
+      expect(result.actionDescription).toBe('Renamed sheet: Sheet1 → Data')
+    })
+    
+    it('should not affect other sheets when renaming', () => {
+      const transformation = {
+        type: 'RENAME_SHEET',
+        oldName: 'Sheet1',
+        newName: 'Data'
+      }
+      
+      const result = applyDataTransformation(testData, transformation)
+      expect(result.newData['Sheet2']).toEqual(testData['Sheet2'])
+    })
+    
+    it('should handle renaming non-existent sheet gracefully', () => {
+      const transformation = {
+        type: 'RENAME_SHEET',
+        oldName: 'NonExistent',
+        newName: 'NewName'
+      }
+      
+      const result = applyDataTransformation(testData, transformation)
+      expect(result.newData['NonExistent']).toBeUndefined()
+      expect(result.newData['NewName']).toBeUndefined()
+    })
+  })
+  
+  describe('DELETE_SHEET', () => {
+    it('should delete a sheet', () => {
+      const transformation = {
+        type: 'DELETE_SHEET',
+        sheetName: 'Sheet1'
+      }
+      
+      const result = applyDataTransformation(testData, transformation)
+      expect(result.newData['Sheet1']).toBeUndefined()
+      expect(result.newData['Sheet2']).toBeDefined()
+      expect(result.actionDescription).toBe('Deleted sheet: Sheet1')
+    })
+    
+    it('should not affect other sheets when deleting', () => {
+      const transformation = {
+        type: 'DELETE_SHEET',
+        sheetName: 'Sheet1'
+      }
+      
+      const result = applyDataTransformation(testData, transformation)
+      expect(result.newData['Sheet2']).toEqual(testData['Sheet2'])
+    })
+    
+    it('should handle deleting non-existent sheet gracefully', () => {
+      const transformation = {
+        type: 'DELETE_SHEET',
+        sheetName: 'NonExistent'
+      }
+      
+      const result = applyDataTransformation(testData, transformation)
+      expect(Object.keys(result.newData)).toHaveLength(2)
+    })
+  })
+  
+  describe('INCLUDE_SHEET and EXCLUDE_SHEET', () => {
+    it('should generate action description for including sheet', () => {
+      const transformation = {
+        type: 'INCLUDE_SHEET',
+        sheetName: 'Sheet1'
+      }
+      
+      const result = applyDataTransformation(testData, transformation)
+      expect(result.actionDescription).toBe('Included sheet "Sheet1" for analysis')
+      // Data should remain unchanged (inclusion is managed in state)
+      expect(result.newData).toEqual(testData)
+    })
+    
+    it('should generate action description for excluding sheet', () => {
+      const transformation = {
+        type: 'EXCLUDE_SHEET',
+        sheetName: 'Sheet1'
+      }
+      
+      const result = applyDataTransformation(testData, transformation)
+      expect(result.actionDescription).toBe('Excluded sheet "Sheet1" from analysis')
+      // Data should remain unchanged (exclusion is managed in state)
+      expect(result.newData).toEqual(testData)
+    })
+  })
+})
