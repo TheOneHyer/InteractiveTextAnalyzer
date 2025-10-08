@@ -991,7 +991,31 @@ export default function App(){
   const statTokens=useMemo(()=> textSamples.join(' ').split(/\s+/).filter(Boolean).length,[textSamples])
   const statUniqueTerms=tfidf? tfidf.aggregate.length : (ngrams.length || entities.length || yakeKeywords.length)
 
-  const wordCloudData=useMemo(()=>{ if(analysisType==='tfidf'&&tfidf) return tfidf.aggregate.map(t=>({text:t.term,value:t.score})); if(analysisType==='ngram') return ngrams.map(g=>({text:g.gram,value:g.count})); if(analysisType==='ner') return entities.map(e=>({text:e.value,value:e.count})); if(analysisType==='assoc'&&associations) return associations.items.map(i=>({text:i.item,value:i.support})); if(analysisType==='yake') return yakeKeywords.map(k=>({text:k.keyword,value:1/k.score})); return []},[analysisType,tfidf,ngrams,entities,associations,yakeKeywords])
+  // Helper function to compute word cloud data based on analysis type
+  function getWordCloudData(analysisType, tfidf, ngrams, entities, associations, yakeKeywords) {
+    switch (analysisType) {
+      case 'tfidf':
+        if (tfidf) return tfidf.aggregate.map(t => ({ text: t.term, value: t.score }));
+        break;
+      case 'ngram':
+        return ngrams.map(g => ({ text: g.gram, value: g.count }));
+      case 'ner':
+        return entities.map(e => ({ text: e.value, value: e.count }));
+      case 'assoc':
+        if (associations) return associations.items.map(i => ({ text: i.item, value: i.support }));
+        break;
+      case 'yake':
+        return yakeKeywords.map(k => ({ text: k.keyword, value: 1 / k.score }));
+      default:
+        return [];
+    }
+    return [];
+  }
+
+  const wordCloudData = useMemo(() =>
+    getWordCloudData(analysisType, tfidf, ngrams, entities, associations, yakeKeywords),
+    [analysisType, tfidf, ngrams, entities, associations, yakeKeywords]
+  );
   const networkData=useMemo(()=> {
     if (analysisType==='assoc'&&associations) {
       return {nodes:associations.items.slice(0,50).map(i=>({id:i.item,value:i.support})), edges:associations.pairs.filter(p=>p.lift>=1).map(p=>({source:p.a,target:p.b,value:p.lift}))}
