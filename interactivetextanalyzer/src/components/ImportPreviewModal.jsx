@@ -1,7 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
 import './ImportPreviewModal.css'
-import { autoDetectSheetsForAnalysis } from '../utils/sheetUtils'
-
 const COLUMN_TYPES = ['text', 'number', 'date', 'boolean']
 
 // Normalize value with synonym detection
