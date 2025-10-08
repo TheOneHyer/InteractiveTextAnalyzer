@@ -114,6 +114,29 @@ Extracts named entities (people, places, organizations) using NLP library.
 
 **Returns:** Array of entities with counts
 
+##### `extractYakeKeywords(texts, options)`
+Extracts keywords using YAKE (Yet Another Keyword Extractor) algorithm - a lightweight unsupervised keyword extraction method.
+
+**Parameters:**
+- `texts` (string[]): Array of texts
+- `options.maxNgram` (number): Maximum n-gram size (default: 3, range: 1-3)
+- `options.top` (number): Number of top keywords to return (default: 80)
+- `options.stopwords` (Set): Stopwords to exclude
+
+**Returns:** Array of keywords with scores (lower scores indicate more important keywords)
+
+```javascript
+import { extractYakeKeywords, DEFAULT_STOPWORDS } from './utils/textAnalysis'
+
+const texts = ['Machine learning and artificial intelligence are transforming technology']
+const keywords = extractYakeKeywords(texts, { 
+  maxNgram: 2, 
+  top: 10, 
+  stopwords: DEFAULT_STOPWORDS 
+})
+// Returns keywords like 'machine learning', 'artificial intelligence', etc.
+```
+
 ##### `computeDocumentEmbeddings(docs, options)`
 Computes TF-IDF-based document embeddings (vector representations).
 
