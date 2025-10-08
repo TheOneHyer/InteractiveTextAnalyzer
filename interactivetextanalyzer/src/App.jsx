@@ -2099,7 +2099,7 @@ export default function App(){
                           </thead>
                           <tbody>
                             {Object.keys(workbookData).map(sheetName => {
-                              const isIncluded = includedSheets[sheetName] === true
+                              const isIncluded = includedSheets[sheetName] !== false
                               return (
                               <tr key={sheetName}>
                                 <td style={{fontWeight:500}}>{sheetName}</td>
