@@ -806,19 +806,47 @@ export default function App(){
 
   const handleImportConfirm = (config) => {
     // Apply the configuration and load the data
-    const { processedData, hiddenColumns: importHiddenColumns, markedColumns, columnTypes: importColumnTypes, categoricalColumns: importCategoricalColumns, categoricalFilters: importCategoricalFilters } = config
+    const { 
+      processedData, 
+      hiddenColumns: importHiddenColumns, 
+      markedColumns, 
+      columnTypes: importColumnTypes, 
+      categoricalColumns: importCategoricalColumns, 
+      categoricalFilters: importCategoricalFilters,
+      sheetInclusion = {},
+      sheetRenames = {}
+    } = config
     
     // Reconstruct workbook data with processed data
+    // Only include sheets that are marked for inclusion
     const finalData = {}
-    Object.keys(pendingImportData).forEach(sheetName => {
+    Object.keys(pendingImportData).forEach(originalSheetName => {
+      // Check if sheet should be included (default to true if not specified)
+      const shouldInclude = sheetInclusion[originalSheetName] !== false
+      if (!shouldInclude) return
+      
+      // Use renamed sheet name if provided
+      const finalSheetName = sheetRenames[originalSheetName] || originalSheetName
+      
       const processed = processedData
       
       // Apply the transformations from the modal
-      finalData[sheetName] = {
+      finalData[finalSheetName] = {
         rows: processed.rows,
         columns: processed.columns
       }
     })
+    
+    // If no sheets are included, include all (safety fallback)
+    if (Object.keys(finalData).length === 0) {
+      Object.keys(pendingImportData).forEach(sheetName => {
+        const processed = processedData
+        finalData[sheetName] = {
+          rows: processed.rows,
+          columns: processed.columns
+        }
+      })
+    }
     
     // Initialize version manager with original data
     versionManager.current.initialize(finalData)
@@ -1108,6 +1136,24 @@ export default function App(){
       sheetName: activeSheet || '__ALL__',
       transformType
     })
+  }
+  
+  // Sheet manipulation functions
+  const deleteSheet = (sheetName) => {
+    applyTransformation({
+      type: 'DELETE_SHEET',
+      sheetName
+    })
+  }
+  
+  const renameSheet = (oldName, newName) => {
+    if (newName && newName !== oldName) {
+      applyTransformation({
+        type: 'RENAME_SHEET',
+        oldName,
+        newName
+      })
+    }
   }
   
   const jumpToHistoryVersion = (index) => {

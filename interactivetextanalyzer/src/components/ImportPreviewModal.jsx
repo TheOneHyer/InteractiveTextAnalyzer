@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import './ImportPreviewModal.css'
+import { autoDetectSheetsForAnalysis } from '../utils/sheetUtils'
 
 const COLUMN_TYPES = ['text', 'number', 'date', 'boolean']
 
@@ -175,12 +176,24 @@ function ImportPreviewModal({
   const [categoricalColumns, setCategoricalColumns] = useState([]) // Columns flagged as categorical
   const [categoricalFilters, setCategoricalFilters] = useState({}) // { columnName: [selected values] }
   const [columnRenames, setColumnRenames] = useState({}) // { originalName: newName }
+  const [sheetInclusion, setSheetInclusion] = useState({}) // { sheetName: boolean }
+  const [sheetRenames, setSheetRenames] = useState({}) // { originalName: newName }
+  const [showSheetManagement, setShowSheetManagement] = useState(false) // Collapsed by default
 
   const sheets = Object.keys(workbookData)
   const currentData = useMemo(() => 
     workbookData[activeSheet] || { rows: [], columns: [] },
     [workbookData, activeSheet]
   )
+  
+  // Auto-detect sheets for analysis on mount
+  useEffect(() => {
+    if (sheets.length > 0 && Object.keys(sheetInclusion).length === 0) {
+      const detected = autoDetectSheetsForAnalysis(workbookData)
+      setSheetInclusion(detected)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   
   // Auto-detect column types when data changes
   useEffect(() => {
@@ -432,6 +445,25 @@ function ImportPreviewModal({
   const getCategoricalValuesForColumn = (col) => {
     return getCategoricalValues(currentData.rows, col)
   }
+  
+  // Sheet management functions
+  const toggleSheetInclusion = (sheetName) => {
+    setSheetInclusion(prev => ({
+      ...prev,
+      [sheetName]: !prev[sheetName]
+    }))
+  }
+  
+  const renameSheet = (oldName, newName) => {
+    if (newName && newName.trim() && newName !== oldName) {
+      setSheetRenames(prev => ({ ...prev, [oldName]: newName.trim() }))
+    }
+  }
+  
+  const deleteSheet = (sheetName) => {
+    // Mark sheet as excluded
+    setSheetInclusion(prev => ({ ...prev, [sheetName]: false }))
+  }
 
   const handleConfirm = () => {
     const config = {
@@ -449,7 +481,9 @@ function ImportPreviewModal({
       removeAfterIncomplete,
       categoricalFilters,
       columnRenames,
-      processedData
+      processedData,
+      sheetInclusion,
+      sheetRenames
     }
     onConfirm(config)
   }
@@ -513,6 +547,139 @@ function ImportPreviewModal({
                   </button>
                 ))}
               </div>
+            </div>
+          )}
+          
+          {/* Sheet Management - Collapsible */}
+          {sheets.length > 1 && (
+            <div className="import-section">
+              <div 
+                className="collapsible-header"
+                onClick={() => setShowSheetManagement(!showSheetManagement)}
+                style={{ cursor: 'pointer', userSelect: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+              >
+                <label style={{ margin: 0, cursor: 'pointer' }}>Sheet Management</label>
+                <span style={{ fontSize: 14, fontWeight: 'bold' }}>{showSheetManagement ? '−' : '+'}</span>
+              </div>
+              {showSheetManagement && (
+                <div className="sheet-management" style={{ marginTop: 12 }}>
+                  <div className="sheet-config-grid">
+                    <div className="sheet-config-header" style={{
+                      display: 'grid',
+                      gridTemplateColumns: '2fr 2fr auto auto auto',
+                      gap: 8,
+                      padding: '8px 12px',
+                      background: 'var(--c-surface, #f7f9fb)',
+                      borderRadius: 4,
+                      fontSize: 12,
+                      fontWeight: 600,
+                      marginBottom: 8
+                    }}>
+                      <span>Sheet Name</span>
+                      <span>Rename</span>
+                      <span style={{ textAlign: 'center' }}>Include</span>
+                      <span style={{ textAlign: 'center' }}>Status</span>
+                      <span style={{ textAlign: 'center' }}>Delete</span>
+                    </div>
+                    <div className="sheet-config-list">
+                      {sheets.map(sheet => {
+                        const isIncluded = sheetInclusion[sheet] !== false
+                        const newName = sheetRenames[sheet]
+                        const displayName = newName || sheet
+                        
+                        return (
+                          <div 
+                            key={sheet} 
+                            className="sheet-config-row" 
+                            style={{
+                              display: 'grid',
+                              gridTemplateColumns: '2fr 2fr auto auto auto',
+                              gap: 8,
+                              padding: '8px 12px',
+                              alignItems: 'center',
+                              borderBottom: '1px solid var(--c-border, #e2e8f0)',
+                              opacity: isIncluded ? 1 : 0.5
+                            }}
+                          >
+                            <div className="sheet-name" style={{ fontSize: 13, fontWeight: 500 }}>
+                              {displayName}
+                              {newName && <span style={{ fontSize: 11, color: 'var(--c-text-muted, #64748b)', marginLeft: 6 }}>(was: {sheet})</span>}
+                            </div>
+                            <input 
+                              type="text"
+                              placeholder="New name..."
+                              defaultValue={newName || ''}
+                              onBlur={(e) => {
+                                if (e.target.value && e.target.value !== sheet) {
+                                  renameSheet(sheet, e.target.value)
+                                }
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.target.blur()
+                                }
+                              }}
+                              style={{
+                                padding: '4px 8px',
+                                border: '1px solid var(--c-border, #cbd5e1)',
+                                borderRadius: 4,
+                                fontSize: 12
+                              }}
+                            />
+                            <button
+                              onClick={() => toggleSheetInclusion(sheet)}
+                              style={{
+                                padding: '4px 12px',
+                                border: 'none',
+                                borderRadius: 4,
+                                fontSize: 11,
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                background: isIncluded ? 'var(--c-accent, #22c55e)' : '#94a3b8',
+                                color: 'white'
+                              }}
+                              title={isIncluded ? 'Click to exclude from analysis' : 'Click to include in analysis'}
+                            >
+                              {isIncluded ? '✓' : '○'}
+                            </button>
+                            <span style={{
+                              fontSize: 11,
+                              padding: '4px 8px',
+                              borderRadius: 4,
+                              background: isIncluded ? '#dcfce7' : '#f1f5f9',
+                              color: isIncluded ? '#166534' : '#475569',
+                              textAlign: 'center'
+                            }}>
+                              {isIncluded ? 'Included' : 'Excluded'}
+                            </span>
+                            <button
+                              onClick={() => deleteSheet(sheet)}
+                              disabled={!isIncluded}
+                              style={{
+                                padding: '4px 12px',
+                                border: 'none',
+                                borderRadius: 4,
+                                fontSize: 11,
+                                fontWeight: 600,
+                                cursor: isIncluded ? 'pointer' : 'not-allowed',
+                                background: isIncluded ? '#ef4444' : '#e2e8f0',
+                                color: 'white',
+                                opacity: isIncluded ? 1 : 0.5
+                              }}
+                              title="Mark sheet as excluded"
+                            >
+                              🗑
+                            </button>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--c-text-muted, #64748b)', marginTop: 12, fontStyle: 'italic' }}>
+                    Sheets were auto-detected for inclusion based on column name similarity. Adjust as needed.
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
