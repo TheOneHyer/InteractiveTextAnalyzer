@@ -84,8 +84,7 @@ export const computeTfIdf = (docs, { stopwords, stem, stemmer }) => {
 export const generateNGrams = (texts, { n=2, top=80, stopwords, stem, stemmer }) => {
   const freq = {}
   texts.forEach(t => {
-    let tokens = tokenize(t).filter(x=>!stopwords.has(x))
-    if(stem) tokens = tokens.map(stemmer)
+    const tokens = stem ? tokenize(t).filter(x=>!stopwords.has(x)).map(stemmer) : tokenize(t).filter(x=>!stopwords.has(x))
     for(let i=0;i<=tokens.length-n;i++) {
       const gram = tokens.slice(i,i+n).join(' ')
       freq[gram] = (freq[gram]||0)+1
@@ -107,8 +106,7 @@ export const generateNGrams = (texts, { n=2, top=80, stopwords, stem, stemmer })
  */
 export const mineAssociations = (rows, cols, { minSupport=0.02, stopwords, stem, stemmer }) => {
   const transactions = rows.map(r => {
-    let tokens = tokenize(cols.map(c=> (r[c]??'').toString()).join(' ')).filter(x=>!stopwords.has(x))
-    if(stem) tokens = tokens.map(stemmer)
+    const tokens = stem ? tokenize(cols.map(c=> (r[c]??'').toString()).join(' ')).filter(x=>!stopwords.has(x)).map(stemmer) : tokenize(cols.map(c=> (r[c]??'').toString()).join(' ')).filter(x=>!stopwords.has(x))
     return Array.from(new Set(tokens))
   })
   const itemCounts = {}

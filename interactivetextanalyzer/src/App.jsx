@@ -1252,7 +1252,41 @@ export default function App(){
       URL.revokeObjectURL(url)
     }
   }
-  const exportAnalysis=()=>{ const payload={analysisType,timestamp:new Date().toISOString(), tfidf:analysisType==='tfidf'?tfidf:undefined, ngrams:analysisType==='ngram'?ngrams:undefined, associations:analysisType==='assoc'?associations:undefined, entities:analysisType==='ner'?entities:undefined, yake:analysisType==='yake'?yakeKeywords:undefined, embeddings:analysisType==='embeddings'?{vocab:embeddings?.vocab,points:embeddingPoints,method:dimReductionMethod}:undefined, dependency:analysisType==='dependency'?{...dependencyResult,algorithm:dependencyAlgorithm}:undefined}; const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`analysis_${analysisType}.json`; a.click() }
+  const exportAnalysis = () => {
+    const payload = {
+      analysisType,
+      timestamp: new Date().toISOString()
+    }
+    
+    if (analysisType === 'tfidf') {
+      payload.tfidf = tfidf
+    } else if (analysisType === 'ngram') {
+      payload.ngrams = ngrams
+    } else if (analysisType === 'assoc') {
+      payload.associations = associations
+    } else if (analysisType === 'ner') {
+      payload.entities = entities
+    } else if (analysisType === 'yake') {
+      payload.yake = yakeKeywords
+    } else if (analysisType === 'embeddings') {
+      payload.embeddings = {
+        vocab: embeddings?.vocab,
+        points: embeddingPoints,
+        method: dimReductionMethod
+      }
+    } else if (analysisType === 'dependency') {
+      payload.dependency = {
+        ...dependencyResult,
+        algorithm: dependencyAlgorithm
+      }
+    }
+    
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {type: 'application/json'})
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(blob)
+    a.download = `analysis_${analysisType}.json`
+    a.click()
+  }
 
   // Helper function to check if a visualization is available for current analysis type
   // Complete analysis → visualization mapping:
