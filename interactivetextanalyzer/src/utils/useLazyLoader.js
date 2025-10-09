@@ -84,13 +84,13 @@ export function initializeLazyLoading() {
     return module.default || module
   }, 10)
 
-  // Register Transformers.js with lowest priority (very large library)
-  // Note: This is registered but not automatically loaded due to size
-  // It will only load when explicitly requested
-  lazyLoader.register('transformers', async () => {
-    const module = await import('@huggingface/transformers')
-    return module
-  }, 20)
+  // Note: Transformers.js registration is commented out to avoid large downloads
+  // The spaCy-style parser uses lightweight heuristic-based parsing instead
+  // If you want to enable full transformer models in the future, uncomment below:
+  // lazyLoader.register('transformers', async () => {
+  //   const module = await import('@huggingface/transformers')
+  //   return module
+  // }, 20)
 
   // Start loading after a brief delay to not interfere with initial render
   lazyLoader.startAfterDelay(100)
