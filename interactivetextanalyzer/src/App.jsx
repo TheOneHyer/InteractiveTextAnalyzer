@@ -1077,7 +1077,15 @@ export default function App(){
   // Chart data (live updating) - pie chart removed, keeping bar chart
   // const pieData=useMemo(()=>{ if(analysisType==='assoc'&&associations) return associations.items.slice(0,6).map(i=>({ name:i.item, value:+(i.support*100).toFixed(2) })); if(analysisType==='tfidf'&&tfidf) return tfidf.aggregate.slice(0,6).map(t=>({ name:t.term, value:+t.score.toFixed(2) })); if(analysisType==='ngram') return ngrams.slice(0,6).map(g=>({ name:g.gram, value:g.count })); if(analysisType==='ner') return entities.slice(0,6).map(e=>({ name:e.value, value:e.count })); return [] },[analysisType,associations,tfidf,ngrams,entities])
 
-  function getBarData(analysisType, associations, tfidf, ngrams, entities, yakeKeywords, tokenization) {
+  function getBarData({
+    analysisType,
+    associations,
+    tfidf,
+    ngrams,
+    entities,
+    yakeKeywords,
+    tokenization
+  }) {
     switch (analysisType) {
       case 'assoc':
         if (associations)
