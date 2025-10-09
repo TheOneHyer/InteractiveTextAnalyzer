@@ -24,10 +24,7 @@ export default function DependencyTreeVisualization({ sentences = [], width = 80
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 })
 
   // Get the selected sentence
-  let selectedSentence = null
-  if (sentences.length > 0) {
-    selectedSentence = sentences[selectedSentenceIdx]
-  }
+  const selectedSentence = sentences[selectedSentenceIdx] || null
 
   useEffect(() => {
     const el = ref.current
