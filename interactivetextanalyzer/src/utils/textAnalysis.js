@@ -269,6 +269,299 @@ export const extractYakeKeywords = (texts, { maxNgram = 3, top = 80, stopwords }
 }
 
 /**
+ * Analyze lemmatization to reduce words to their base or dictionary form
+ * @param {string[]} texts - Array of text documents
+ * @param {Object} options - Analysis options
+ * @param {string} options.method - Lemmatization method: 'wordnet', 'rules', 'compromise'
+ * @param {number} options.top - Number of top lemmas to return (default: 80)
+ * @param {Function} options.nlpLib - NLP library (compromise) for 'compromise' method
+ * @param {Set} options.stopwords - Set of stopwords to exclude
+ * @returns {Array} Array of lemmas with counts and original forms
+ */
+export const analyzeLemmatization = (texts, { method = 'rules', top = 80, nlpLib = null, stopwords = new Set() }) => {
+  const lemmaCounts = {}
+  const lemmaToOriginals = {} // Track original forms for each lemma
+  
+  // Strategy pattern: map method to handler function
+  const strategies = {
+    wordnet: () => {
+      // Princeton WordNet-based lemmatization
+      // Uses a simplified WordNet-inspired approach with common base forms
+      const wordnetMap = {
+        // Verbs - present/past/gerund to base form
+        'running': 'run', 'ran': 'run', 'runs': 'run',
+        'walking': 'walk', 'walked': 'walk', 'walks': 'walk',
+        'talking': 'talk', 'talked': 'talk', 'talks': 'talk',
+        'writing': 'write', 'wrote': 'write', 'writes': 'write', 'written': 'write',
+        'reading': 'read', 'reads': 'read',
+        'making': 'make', 'made': 'make', 'makes': 'make',
+        'thinking': 'think', 'thought': 'think', 'thinks': 'think',
+        'going': 'go', 'went': 'go', 'goes': 'go', 'gone': 'go',
+        'coming': 'come', 'came': 'come', 'comes': 'come',
+        'taking': 'take', 'took': 'take', 'takes': 'take', 'taken': 'take',
+        'seeing': 'see', 'saw': 'see', 'sees': 'see', 'seen': 'see',
+        'getting': 'get', 'got': 'get', 'gets': 'get', 'gotten': 'get',
+        'finding': 'find', 'found': 'find', 'finds': 'find',
+        'giving': 'give', 'gave': 'give', 'gives': 'give', 'given': 'give',
+        'telling': 'tell', 'told': 'tell', 'tells': 'tell',
+        'feeling': 'feel', 'felt': 'feel', 'feels': 'feel',
+        'leaving': 'leave', 'left': 'leave', 'leaves': 'leave',
+        'putting': 'put', 'puts': 'put',
+        'meaning': 'mean', 'meant': 'mean', 'means': 'mean',
+        'keeping': 'keep', 'kept': 'keep', 'keeps': 'keep',
+        'letting': 'let', 'lets': 'let',
+        'beginning': 'begin', 'began': 'begin', 'begins': 'begin', 'begun': 'begin',
+        'seeming': 'seem', 'seemed': 'seem', 'seems': 'seem',
+        'helping': 'help', 'helped': 'help', 'helps': 'help',
+        'showing': 'show', 'showed': 'show', 'shows': 'show', 'shown': 'show',
+        'hearing': 'hear', 'heard': 'hear', 'hears': 'hear',
+        'playing': 'play', 'played': 'play', 'plays': 'play',
+        'moving': 'move', 'moved': 'move', 'moves': 'move',
+        'living': 'live', 'lived': 'live', 'lives': 'live',
+        'believing': 'believe', 'believed': 'believe', 'believes': 'believe',
+        'bringing': 'bring', 'brought': 'bring', 'brings': 'bring',
+        'happening': 'happen', 'happened': 'happen', 'happens': 'happen',
+        'writing': 'write', 'wrote': 'write', 'writes': 'write', 'written': 'write',
+        'providing': 'provide', 'provided': 'provide', 'provides': 'provide',
+        'sitting': 'sit', 'sat': 'sit', 'sits': 'sit',
+        'standing': 'stand', 'stood': 'stand', 'stands': 'stand',
+        'losing': 'lose', 'lost': 'lose', 'loses': 'lose',
+        'paying': 'pay', 'paid': 'pay', 'pays': 'pay',
+        'meeting': 'meet', 'met': 'meet', 'meets': 'meet',
+        'including': 'include', 'included': 'include', 'includes': 'include',
+        'continuing': 'continue', 'continued': 'continue', 'continues': 'continue',
+        'setting': 'set', 'sets': 'set',
+        'learning': 'learn', 'learned': 'learn', 'learns': 'learn', 'learnt': 'learn',
+        'changing': 'change', 'changed': 'change', 'changes': 'change',
+        'leading': 'lead', 'led': 'lead', 'leads': 'lead',
+        'understanding': 'understand', 'understood': 'understand', 'understands': 'understand',
+        'watching': 'watch', 'watched': 'watch', 'watches': 'watch',
+        'following': 'follow', 'followed': 'follow', 'follows': 'follow',
+        'stopping': 'stop', 'stopped': 'stop', 'stops': 'stop',
+        'creating': 'create', 'created': 'create', 'creates': 'create',
+        'speaking': 'speak', 'spoke': 'speak', 'speaks': 'speak', 'spoken': 'speak',
+        'spending': 'spend', 'spent': 'spend', 'spends': 'spend',
+        'growing': 'grow', 'grew': 'grow', 'grows': 'grow', 'grown': 'grow',
+        'opening': 'open', 'opened': 'open', 'opens': 'open',
+        'winning': 'win', 'won': 'win', 'wins': 'win',
+        'offering': 'offer', 'offered': 'offer', 'offers': 'offer',
+        'remembering': 'remember', 'remembered': 'remember', 'remembers': 'remember',
+        'considering': 'consider', 'considered': 'consider', 'considers': 'consider',
+        'appearing': 'appear', 'appeared': 'appear', 'appears': 'appear',
+        'buying': 'buy', 'bought': 'buy', 'buys': 'buy',
+        'waiting': 'wait', 'waited': 'wait', 'waits': 'wait',
+        'serving': 'serve', 'served': 'serve', 'serves': 'serve',
+        'dying': 'die', 'died': 'die', 'dies': 'die',
+        'sending': 'send', 'sent': 'send', 'sends': 'send',
+        'expecting': 'expect', 'expected': 'expect', 'expects': 'expect',
+        'building': 'build', 'built': 'build', 'builds': 'build',
+        'staying': 'stay', 'stayed': 'stay', 'stays': 'stay',
+        'falling': 'fall', 'fell': 'fall', 'falls': 'fall', 'fallen': 'fall',
+        'cutting': 'cut', 'cuts': 'cut',
+        'reaching': 'reach', 'reached': 'reach', 'reaches': 'reach',
+        'killing': 'kill', 'killed': 'kill', 'kills': 'kill',
+        'remaining': 'remain', 'remained': 'remain', 'remains': 'remain',
+        'suggesting': 'suggest', 'suggested': 'suggest', 'suggests': 'suggest',
+        'raising': 'raise', 'raised': 'raise', 'raises': 'raise',
+        'passing': 'pass', 'passed': 'pass', 'passes': 'pass',
+        'selling': 'sell', 'sold': 'sell', 'sells': 'sell',
+        'requiring': 'require', 'required': 'require', 'requires': 'require',
+        'reporting': 'report', 'reported': 'report', 'reports': 'report',
+        'deciding': 'decide', 'decided': 'decide', 'decides': 'decide',
+        'pulling': 'pull', 'pulled': 'pull', 'pulls': 'pull',
+        
+        // Nouns - plural to singular
+        'children': 'child', 'men': 'man', 'women': 'woman', 'people': 'person',
+        'feet': 'foot', 'teeth': 'tooth', 'geese': 'goose', 'mice': 'mouse',
+        'oxen': 'ox', 'sheep': 'sheep', 'deer': 'deer', 'fish': 'fish',
+        'books': 'book', 'cats': 'cat', 'dogs': 'dog', 'houses': 'house',
+        'cars': 'car', 'computers': 'computer', 'phones': 'phone', 'tables': 'table',
+        'chairs': 'chair', 'days': 'day', 'years': 'year', 'months': 'month',
+        'weeks': 'week', 'hours': 'hour', 'minutes': 'minute', 'seconds': 'second',
+        'cities': 'city', 'countries': 'country', 'companies': 'company', 'parties': 'party',
+        'stories': 'story', 'studies': 'study', 'families': 'family', 'babies': 'baby',
+        'ladies': 'lady', 'pennies': 'penny', 'puppies': 'puppy', 'berries': 'berry',
+        'boxes': 'box', 'churches': 'church', 'watches': 'watch', 'classes': 'class',
+        'glasses': 'glass', 'dishes': 'dish', 'wishes': 'wish', 'bushes': 'bush',
+        'knives': 'knife', 'wives': 'wife', 'lives': 'life', 'leaves': 'leaf',
+        'calves': 'calf', 'halves': 'half', 'wolves': 'wolf', 'thieves': 'thief',
+        
+        // Adjectives - comparative/superlative to base
+        'better': 'good', 'best': 'good', 'worse': 'bad', 'worst': 'bad',
+        'bigger': 'big', 'biggest': 'big', 'smaller': 'small', 'smallest': 'small',
+        'larger': 'large', 'largest': 'large', 'faster': 'fast', 'fastest': 'fast',
+        'slower': 'slow', 'slowest': 'slow', 'higher': 'high', 'highest': 'high',
+        'lower': 'low', 'lowest': 'low', 'stronger': 'strong', 'strongest': 'strong',
+        'weaker': 'weak', 'weakest': 'weak', 'longer': 'long', 'longest': 'long',
+        'shorter': 'short', 'shortest': 'short', 'older': 'old', 'oldest': 'old',
+        'younger': 'young', 'youngest': 'young', 'newer': 'new', 'newest': 'new',
+        'easier': 'easy', 'easiest': 'easy', 'harder': 'hard', 'hardest': 'hard',
+        'happier': 'happy', 'happiest': 'happy', 'sadder': 'sad', 'saddest': 'sad',
+      }
+      
+      texts.forEach(text => {
+        const words = tokenize(text)
+        words.forEach(word => {
+          if (stopwords.has(word)) return
+          const lemma = wordnetMap[word] || word
+          lemmaCounts[lemma] = (lemmaCounts[lemma] || 0) + 1
+          if (!lemmaToOriginals[lemma]) lemmaToOriginals[lemma] = new Set()
+          lemmaToOriginals[lemma].add(word)
+        })
+      })
+    },
+    
+    rules: () => {
+      // Rules-based lemmatization using morphological patterns
+      const lemmatize = (word) => {
+        // Handle irregular plurals first
+        const irregulars = {
+          'children': 'child', 'men': 'man', 'women': 'woman', 'people': 'person',
+          'feet': 'foot', 'teeth': 'tooth', 'geese': 'goose', 'mice': 'mouse',
+        }
+        if (irregulars[word]) return irregulars[word]
+        
+        // Rule-based transformations (order matters)
+        let lemma = word
+        
+        // Plural nouns
+        if (lemma.endsWith('ies') && lemma.length > 4) {
+          lemma = lemma.slice(0, -3) + 'y'
+        } else if (lemma.endsWith('es') && lemma.length > 3) {
+          // Check for -xes, -ches, -shes, -sses
+          if (lemma.match(/(x|ch|sh|ss)es$/)) {
+            lemma = lemma.slice(0, -2)
+          } else {
+            lemma = lemma.slice(0, -1)
+          }
+        } else if (lemma.endsWith('s') && lemma.length > 2 && !lemma.endsWith('ss') && !lemma.endsWith('us')) {
+          lemma = lemma.slice(0, -1)
+        }
+        
+        // Verb forms
+        if (lemma.endsWith('ing') && lemma.length > 5) {
+          // Check for doubled consonant (running -> run)
+          if (lemma[lemma.length - 4] === lemma[lemma.length - 5] && 
+              !'aeiou'.includes(lemma[lemma.length - 4])) {
+            lemma = lemma.slice(0, -4)
+          } else {
+            lemma = lemma.slice(0, -3)
+          }
+        } else if (lemma.endsWith('ed') && lemma.length > 4) {
+          // Check for doubled consonant (stopped -> stop)
+          if (lemma[lemma.length - 3] === lemma[lemma.length - 4] &&
+              !'aeiou'.includes(lemma[lemma.length - 3])) {
+            lemma = lemma.slice(0, -3)
+          } else {
+            lemma = lemma.slice(0, -2)
+          }
+        }
+        
+        // Adjectives and adverbs
+        if (lemma.endsWith('ly') && lemma.length > 4) {
+          lemma = lemma.slice(0, -2)
+        } else if (lemma.endsWith('er') && lemma.length > 4) {
+          lemma = lemma.slice(0, -2)
+        } else if (lemma.endsWith('est') && lemma.length > 5) {
+          lemma = lemma.slice(0, -3)
+        }
+        
+        return lemma
+      }
+      
+      texts.forEach(text => {
+        const words = tokenize(text)
+        words.forEach(word => {
+          if (stopwords.has(word)) return
+          const lemma = lemmatize(word)
+          lemmaCounts[lemma] = (lemmaCounts[lemma] || 0) + 1
+          if (!lemmaToOriginals[lemma]) lemmaToOriginals[lemma] = new Set()
+          lemmaToOriginals[lemma].add(word)
+        })
+      })
+    },
+    
+    compromise: () => {
+      // Compromise NLP-based lemmatization
+      if (!nlpLib) {
+        console.warn('NLP library not provided, falling back to rules-based lemmatization')
+        strategies.rules()
+        return
+      }
+      
+      texts.forEach(text => {
+        const doc = nlpLib(text)
+        
+        // Process verbs
+        doc.verbs().forEach(verb => {
+          const original = verb.text('normal')
+          if (stopwords.has(original.toLowerCase())) return
+          const lemma = verb.toInfinitive().text('normal') || original
+          const lemmaLower = lemma.toLowerCase()
+          lemmaCounts[lemmaLower] = (lemmaCounts[lemmaLower] || 0) + 1
+          if (!lemmaToOriginals[lemmaLower]) lemmaToOriginals[lemmaLower] = new Set()
+          lemmaToOriginals[lemmaLower].add(original.toLowerCase())
+        })
+        
+        // Process nouns
+        doc.nouns().forEach(noun => {
+          const original = noun.text('normal')
+          if (stopwords.has(original.toLowerCase())) return
+          const lemma = noun.toSingular().text('normal') || original
+          const lemmaLower = lemma.toLowerCase()
+          lemmaCounts[lemmaLower] = (lemmaCounts[lemmaLower] || 0) + 1
+          if (!lemmaToOriginals[lemmaLower]) lemmaToOriginals[lemmaLower] = new Set()
+          lemmaToOriginals[lemmaLower].add(original.toLowerCase())
+        })
+        
+        // Process adjectives (get base form)
+        doc.adjectives().forEach(adj => {
+          const original = adj.text('normal')
+          if (stopwords.has(original.toLowerCase())) return
+          // For adjectives, use the text as-is (compromise doesn't have strong adjective lemmatization)
+          const lemmaLower = original.toLowerCase()
+          lemmaCounts[lemmaLower] = (lemmaCounts[lemmaLower] || 0) + 1
+          if (!lemmaToOriginals[lemmaLower]) lemmaToOriginals[lemmaLower] = new Set()
+          lemmaToOriginals[lemmaLower].add(original.toLowerCase())
+        })
+        
+        // Process remaining terms (adverbs, etc.)
+        doc.terms().forEach(term => {
+          const original = term.text('normal')
+          if (stopwords.has(original.toLowerCase())) return
+          // Skip if already processed as verb, noun, or adjective
+          if (term.verbs().length > 0 || term.nouns().length > 0 || term.adjectives().length > 0) return
+          const lemmaLower = original.toLowerCase()
+          lemmaCounts[lemmaLower] = (lemmaCounts[lemmaLower] || 0) + 1
+          if (!lemmaToOriginals[lemmaLower]) lemmaToOriginals[lemmaLower] = new Set()
+          lemmaToOriginals[lemmaLower].add(original.toLowerCase())
+        })
+      })
+    }
+  }
+  
+  // Execute the selected strategy
+  if (strategies[method]) {
+    strategies[method]()
+  } else {
+    // Default to rules-based if invalid method
+    strategies.rules()
+  }
+  
+  // Convert to array and sort by count
+  const lemmas = Object.entries(lemmaCounts)
+    .map(([lemma, count]) => ({
+      lemma,
+      count,
+      originals: lemmaToOriginals[lemma] ? Array.from(lemmaToOriginals[lemma]).join(', ') : lemma
+    }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, top)
+  
+  return lemmas
+}
+
+/**
  * Analyze text tokenization at different granularities
  * @param {string[]} texts - Array of text documents
  * @param {Object} options - Analysis options
