@@ -301,15 +301,18 @@ export const performSpacyDependencyParsing = async (textSamples, params = {}) =>
   }
   
   try {
-    // Load Transformers.js
-    const transformers = await loadTransformers()
-    
-    // For now, we'll use a lightweight approach without loading heavy models
+    // For now, we'll use a lightweight heuristic approach without loading heavy models
     // This is because full transformer models can be very large (100+ MB)
     // and may not be suitable for browser environments
     
-    // Instead, we'll use our heuristic parser which is fast and lightweight
-    console.log('Using heuristic dependency parser (Transformers.js models not loaded for performance)')
+    // Transformers.js loading is optional - if it fails, we continue with heuristics
+    let transformers = null
+    try {
+      transformers = await loadTransformers()
+      console.log('Transformers.js loaded successfully')
+    } catch (error) {
+      console.log('Using heuristic dependency parser (Transformers.js not loaded)')
+    }
     
     // Process samples
     const samplesToProcess = textSamples.slice(0, maxSamples)
@@ -317,6 +320,11 @@ export const performSpacyDependencyParsing = async (textSamples, params = {}) =>
     
     for (let i = 0; i < samplesToProcess.length; i++) {
       const sample = samplesToProcess[i]
+      
+      // Skip if sample is not a string
+      if (typeof sample !== 'string') {
+        continue
+      }
       
       // Split into sentences (simple approach)
       const sentences = sample.split(/[.!?]+/).filter(s => s.trim().length > 0)
