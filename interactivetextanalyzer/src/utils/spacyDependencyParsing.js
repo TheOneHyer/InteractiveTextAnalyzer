@@ -17,7 +17,7 @@
  */
 
 import lazyLoader from './lazyLoader'
-import { getDependencyLabelInfo, getDependencyColor } from './dependencyLabels'
+import { getDependencyLabelInfo } from './dependencyLabels'
 
 /**
  * Load Transformers.js library for NLP tasks
@@ -45,10 +45,10 @@ const parseSentenceWithTransformers = async (sentence, pipeline) => {
     // Process results to extract dependency information
     // Note: The exact structure depends on the model used
     // For now, we'll create a simplified structure
-    const tokens = []
     const words = sentence.split(/\s+/)
     
     // For each word, we'll create a token with POS and dependency info
+    let tokens = []
     for (let i = 0; i < words.length; i++) {
       const word = words[i]
       
@@ -309,11 +309,12 @@ export const performSpacyDependencyParsing = async (textSamples, params = {}) =>
     // and may not be suitable for browser environments
     
     // Transformers.js loading is optional - if it fails, we continue with heuristics
-    let transformers = null
     try {
-      transformers = await loadTransformers()
+      await loadTransformers()
       console.log('Transformers.js loaded successfully')
-    } catch (error) {
+      // Transformers.js is available here but not used yet as we're using heuristics
+      // This is a placeholder for future enhancement
+    } catch {
       console.log('Using heuristic dependency parser (Transformers.js not loaded)')
     }
     

@@ -14,7 +14,7 @@ describe('Dependency Labels', () => {
     })
 
     it('should have required fields for each label', () => {
-      Object.entries(DEPENDENCY_LABELS).forEach(([key, value]) => {
+      Object.values(DEPENDENCY_LABELS).forEach((value) => {
         expect(value).toHaveProperty('label')
         expect(value).toHaveProperty('description')
         expect(value).toHaveProperty('example')

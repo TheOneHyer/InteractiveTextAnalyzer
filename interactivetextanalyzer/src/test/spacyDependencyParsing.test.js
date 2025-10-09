@@ -266,9 +266,8 @@ describe('spaCy Dependency Parsing', () => {
       const result = await performSpacyDependencyParsing(samples)
       
       const sentence = result.sentences[0]
-      const detEdge = sentence.edges.find(e => e.label === 'det')
       
-      // Should have a determiner edge for "The" or it might be attached differently
+      // Should have edges and sentence was processed
       // Check that edges exist and sentence was processed
       expect(sentence.edges.length).toBeGreaterThan(0)
     })
