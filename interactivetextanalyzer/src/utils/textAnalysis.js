@@ -267,3 +267,77 @@ export const extractYakeKeywords = (texts, { maxNgram = 3, top = 80, stopwords }
     .sort((a, b) => a.score - b.score)
     .slice(0, top)
 }
+
+/**
+ * Analyze text tokenization at different granularities
+ * @param {string[]} texts - Array of text documents
+ * @param {Object} options - Analysis options
+ * @param {string} options.level - Tokenization level: 'character', 'word', 'subword', 'sentence'
+ * @param {number} options.top - Number of top tokens to return (default: 80)
+ * @returns {Array} Array of tokens with counts, sorted by frequency
+ */
+export const analyzeTokenization = (texts, { level = 'word', top = 80 }) => {
+  const fullText = texts.join(' ')
+  const tokenCounts = {}
+  
+  // Strategy pattern: map level to handler function
+  const strategies = {
+    character: () => {
+      // Character-level tokenization (letters, numbers, punctuation)
+      const chars = fullText.split('')
+      chars.forEach(char => {
+        if (char.trim().length > 0) {
+          tokenCounts[char] = (tokenCounts[char] || 0) + 1
+        }
+      })
+    },
+    word: () => {
+      // Word-level tokenization (standard whitespace split)
+      const words = tokenize(fullText)
+      words.forEach(word => {
+        tokenCounts[word] = (tokenCounts[word] || 0) + 1
+      })
+    },
+    subword: () => {
+      // Subword tokenization (simple byte-pair encoding approximation)
+      // Extract common character sequences (2-4 characters)
+      const words = tokenize(fullText)
+      words.forEach(word => {
+        // Extract character n-grams from each word
+        for (let n = 2; n <= Math.min(4, word.length); n++) {
+          for (let i = 0; i <= word.length - n; i++) {
+            const subword = word.slice(i, i + n)
+            tokenCounts[subword] = (tokenCounts[subword] || 0) + 1
+          }
+        }
+        // Also include the full word
+        if (word.length > 4) {
+          tokenCounts[word] = (tokenCounts[word] || 0) + 1
+        }
+      })
+    },
+    sentence: () => {
+      // Sentence-level tokenization (split on sentence boundaries)
+      const sentences = fullText.split(/[.!?]+/).map(s => s.trim()).filter(Boolean)
+      sentences.forEach(sentence => {
+        if (sentence.length > 0) {
+          // Use first 50 characters as sentence identifier
+          const sentenceKey = sentence.slice(0, 50)
+          tokenCounts[sentenceKey] = (tokenCounts[sentenceKey] || 0) + 1
+        }
+      })
+    }
+  }
+
+  if (strategies[level]) {
+    strategies[level]()
+  }
+  
+  // Convert to array and sort by count
+  const tokens = Object.entries(tokenCounts)
+    .map(([token, count]) => ({ token, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, top)
+  
+  return tokens
+}

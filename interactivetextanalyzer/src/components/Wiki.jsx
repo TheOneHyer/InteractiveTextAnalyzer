@@ -112,6 +112,48 @@ export default function Wiki() {
         </div>
 
         <div className='wiki-item'>
+          <h4>Tokenization Analysis</h4>
+          <p>
+            <strong>What it does:</strong> Analyzes text at different levels of granularity, 
+            from individual characters to complete sentences. This educational feature demonstrates 
+            how text can be broken down into different types of tokens for various analytical purposes.
+          </p>
+          <p>
+            <strong>How it works:</strong> The algorithm applies different tokenization strategies 
+            based on the selected level:
+          </p>
+          <ul>
+            <li><strong>Character Level:</strong> Splits text into individual characters, useful for 
+            analyzing character frequency, encoding, and orthographic patterns.</li>
+            <li><strong>Word Level:</strong> Splits text on whitespace to extract complete words, 
+            the most common tokenization approach for text analysis.</li>
+            <li><strong>Subword Level:</strong> Extracts character sequences (2-4 characters) that 
+            approximate subword units, similar to byte-pair encoding used in modern language models.</li>
+            <li><strong>Sentence Level:</strong> Splits text into sentences using punctuation 
+            boundaries, useful for analyzing sentence structure and length.</li>
+          </ul>
+          <p>
+            <strong>Use cases:</strong> Educational demonstrations of tokenization, understanding 
+            text preprocessing, analyzing character distributions, studying morphology, comparing 
+            tokenization strategies, and preparing for advanced NLP tasks.
+          </p>
+          <p>
+            <strong>Interpreting results:</strong> Each level reveals different patterns - character 
+            analysis shows orthographic features, word analysis reveals vocabulary, subword analysis 
+            identifies common morphemes, and sentence analysis displays discourse structure.
+          </p>
+          <p>
+            <strong>Visualization options:</strong> Bar Chart, Word Cloud
+          </p>
+          <p className='wiki-source'>
+            <strong>Source:</strong> Manning, C. D., Raghavan, P., & Schütze, H. (2008). <em>Introduction to Information Retrieval</em>. Cambridge University Press. Chapter 2: The term vocabulary and postings lists. <a href="https://nlp.stanford.edu/IR-book/" target="_blank" rel="noopener noreferrer">https://nlp.stanford.edu/IR-book/</a>
+          </p>
+          <p className='wiki-source'>
+            <strong>Additional Source:</strong> Sennrich, R., Haddow, B., & Birch, A. (2016). Neural Machine Translation of Rare Words with Subword Units. In <em>Proceedings of the 54th Annual Meeting of the Association for Computational Linguistics</em> (pp. 1715-1725). <a href="https://doi.org/10.18653/v1/P16-1162" target="_blank" rel="noopener noreferrer">https://doi.org/10.18653/v1/P16-1162</a>
+          </p>
+        </div>
+
+        <div className='wiki-item'>
           <h4>Association Rules Mining</h4>
           <p>
             <strong>What it does:</strong> Discovers which terms frequently appear together 
