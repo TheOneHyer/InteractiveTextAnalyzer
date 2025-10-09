@@ -15,6 +15,7 @@ import {
   computeDocumentEmbeddings,
   extractYakeKeywords,
   analyzeTokenization,
+  analyzeLemmatization,
   DEFAULT_STOPWORDS 
 } from './utils/textAnalysis'
 import { normalizeValue, getCategoricalValues } from './utils/categoricalUtils'
@@ -185,6 +186,7 @@ export default function App(){
   const [ngramN,setNgramN]=useState(2)
   const [yakeMaxNgram,setYakeMaxNgram]=useState(2)
   const [tokenizationLevel,setTokenizationLevel]=useState('word')
+  const [lemmatizationMethod,setLemmatizationMethod]=useState('rules') // 'wordnet', 'rules', or 'compromise'
   const [hiddenColumns,setHiddenColumns]=useState([])
   const [renames,setRenames]=useState({})
   const [viewMode,setViewMode]=useState('list')
@@ -938,6 +940,7 @@ export default function App(){
   const entities=useMemo(()=> analysisType==='ner'&& textSamples.length && nlpLibs.nlp? extractEntities(textSamples,nlpLibs.nlp): [],[analysisType,textSamples,nlpLibs])
   const yakeKeywords=useMemo(()=> analysisType==='yake'&& textSamples.length? extractYakeKeywords(textSamples,{maxNgram:yakeMaxNgram,top:80,stopwords:effectiveStopwords}): [],[analysisType,textSamples,yakeMaxNgram,effectiveStopwords])
   const tokenization=useMemo(()=> analysisType==='tokenization'&& textSamples.length? analyzeTokenization(textSamples,{level:tokenizationLevel,top:80}): [],[analysisType,textSamples,tokenizationLevel])
+  const lemmatization=useMemo(()=> analysisType==='lemmatization'&& textSamples.length? analyzeLemmatization(textSamples,{method:lemmatizationMethod,top:80,nlpLib:nlpLibs.nlp,stopwords:effectiveStopwords}): [],[analysisType,textSamples,lemmatizationMethod,nlpLibs,effectiveStopwords])
   
   // Compute embeddings
   const embeddings=useMemo(()=> analysisType==='embeddings'&& textSamples.length>=3? computeDocumentEmbeddings(textSamples,params): null,[analysisType,textSamples,params])
@@ -1049,10 +1052,10 @@ export default function App(){
   // Derived quick stats
   const statDocs=textSamples.length
   const statTokens=useMemo(()=> textSamples.join(' ').split(/\s+/).filter(Boolean).length,[textSamples])
-  const statUniqueTerms=tfidf? tfidf.aggregate.length : (ngrams.length || entities.length || yakeKeywords.length)
+  const statUniqueTerms=tfidf? tfidf.aggregate.length : (ngrams.length || entities.length || yakeKeywords.length || lemmatization.length)
 
   // Helper function to compute word cloud data based on analysis type
-  function getWordCloudData(analysisType, tfidf, ngrams, entities, associations, yakeKeywords, tokenization) {
+  function getWordCloudData(analysisType, tfidf, ngrams, entities, associations, yakeKeywords, tokenization, lemmatization) {
     switch (analysisType) {
       case 'tfidf':
         if (tfidf) return tfidf.aggregate.map(t => ({ text: t.term, value: t.score }));
@@ -1068,6 +1071,8 @@ export default function App(){
         return yakeKeywords.map(k => ({ text: k.keyword, value: 1 / k.score }));
       case 'tokenization':
         return tokenization.map(t => ({ text: t.token, value: t.count }));
+      case 'lemmatization':
+        return lemmatization.map(l => ({ text: l.lemma, value: l.count }));
       default:
         return [];
     }
@@ -1075,8 +1080,8 @@ export default function App(){
   }
 
   const wordCloudData = useMemo(() =>
-    getWordCloudData(analysisType, tfidf, ngrams, entities, associations, yakeKeywords, tokenization),
-    [analysisType, tfidf, ngrams, entities, associations, yakeKeywords, tokenization]
+    getWordCloudData(analysisType, tfidf, ngrams, entities, associations, yakeKeywords, tokenization, lemmatization),
+    [analysisType, tfidf, ngrams, entities, associations, yakeKeywords, tokenization, lemmatization]
   );
   const networkData=useMemo(()=> {
     if (analysisType==='assoc'&&associations) {
@@ -1085,8 +1090,27 @@ export default function App(){
     if (analysisType==='dependency'&&dependencyResult) {
       return {nodes:dependencyResult.nodes, edges:dependencyResult.edges}
     }
+    if (analysisType==='lemmatization'&&lemmatization.length>0) {
+      // Create a co-occurrence network from lemmas
+      // Build a graph where nodes are lemmas and edges represent shared contexts
+      const lemmaNodes = lemmatization.slice(0, 30).map(l => ({id: l.lemma, value: l.count}))
+      const edges = []
+      // Simple approach: connect top lemmas based on their frequency
+      for (let i = 0; i < Math.min(lemmatization.length, 20); i++) {
+        for (let j = i + 1; j < Math.min(lemmatization.length, 20); j++) {
+          if (i !== j) {
+            // Create edges with decreasing weights based on position
+            const weight = 1 / (Math.abs(i - j) + 1)
+            if (weight > 0.2) {
+              edges.push({source: lemmatization[i].lemma, target: lemmatization[j].lemma, value: weight})
+            }
+          }
+        }
+      }
+      return {nodes: lemmaNodes, edges: edges.slice(0, 40)}
+    }
     return {nodes:[],edges:[]}
-  },[analysisType,associations,dependencyResult])
+  },[analysisType,associations,dependencyResult,lemmatization])
   const heatmapData=useMemo(()=>{ 
     if(analysisType==='tfidf'&&tfidf){ 
       const top=tfidf.aggregate.slice(0,20).map(t=>t.term); 
@@ -1119,7 +1143,8 @@ export default function App(){
     ngrams,
     entities,
     yakeKeywords,
-    tokenization
+    tokenization,
+    lemmatization
   }) {
     switch (analysisType) {
       case 'assoc':
@@ -1138,6 +1163,8 @@ export default function App(){
         return yakeKeywords.slice(0,8).map(k=>({ name:k.keyword, score:+(1/k.score).toFixed(2) }));
       case 'tokenization':
         return tokenization.slice(0,8).map(t=>({ name:t.token, count:t.count }));
+      case 'lemmatization':
+        return lemmatization.slice(0,8).map(l=>({ name:l.lemma, count:l.count }));
       default:
         return [];
     }
@@ -1145,8 +1172,8 @@ export default function App(){
   }
 
   const barData = useMemo(() =>
-    getBarData(analysisType, associations, tfidf, ngrams, entities, yakeKeywords, tokenization),
-    [analysisType, associations, tfidf, ngrams, entities, yakeKeywords, tokenization]
+    getBarData({analysisType, associations, tfidf, ngrams, entities, yakeKeywords, tokenization, lemmatization}),
+    [analysisType, associations, tfidf, ngrams, entities, yakeKeywords, tokenization, lemmatization]
   );
   // Mutators
   // eslint-disable-next-line no-unused-vars
@@ -1354,6 +1381,11 @@ export default function App(){
         ...dependencyResult,
         algorithm: dependencyAlgorithm
       }
+    } else if (analysisType === 'lemmatization') {
+      payload.lemmatization = {
+        method: lemmatizationMethod,
+        lemmas: lemmatization
+      }
     }
     
     const blob = new Blob([JSON.stringify(payload, null, 2)], {type: 'application/json'})
@@ -1372,14 +1404,15 @@ export default function App(){
   // - yake: bar, wordcloud
   // - embeddings: scatter
   // - dependency: network
+  // - lemmatization: bar, wordcloud, network
   const isVisualizationAvailable = (vizType) => {
     switch(vizType) {
       case 'bar':
-        return analysisType === 'tfidf' || analysisType === 'ngram' || analysisType === 'ner' || analysisType === 'assoc' || analysisType === 'yake'
+        return analysisType === 'tfidf' || analysisType === 'ngram' || analysisType === 'ner' || analysisType === 'assoc' || analysisType === 'yake' || analysisType === 'lemmatization'
       case 'wordcloud':
-        return analysisType === 'tfidf' || analysisType === 'ngram' || analysisType === 'ner' || analysisType === 'assoc' || analysisType === 'yake'
+        return analysisType === 'tfidf' || analysisType === 'ngram' || analysisType === 'ner' || analysisType === 'assoc' || analysisType === 'yake' || analysisType === 'lemmatization'
       case 'network':
-        return analysisType === 'assoc' || analysisType === 'dependency'
+        return analysisType === 'assoc' || analysisType === 'dependency' || analysisType === 'lemmatization'
       case 'heatmap':
         return analysisType === 'tfidf'
       case 'scatter':
@@ -1876,6 +1909,7 @@ export default function App(){
                     <option value='assoc'>Association</option>
                     <option value='ner'>NER</option>
                     <option value='yake'>YAKE</option>
+                    <option value='lemmatization'>Lemmatization</option>
                     <option value='embeddings'>Embeddings</option>
                     <option value='dependency'>Dependency Parsing</option>
                   </select>
@@ -1910,6 +1944,11 @@ export default function App(){
                     <strong>YAKE:</strong> Extracts keywords using statistical features without training data.
                   </div>
                 )}
+                {analysisType==='lemmatization' && (
+                  <div className='notice' style={{marginTop:8}}>
+                    <strong>Lemmatization:</strong> Reduces words to their base or dictionary form (e.g., "running" → "run", "better" → "good").
+                  </div>
+                )}
                 {analysisType==='embeddings' && (
                   <div className='notice' style={{marginTop:8}}>
                     <strong>Embeddings:</strong> Visualizes document relationships in 2D space using dimensionality reduction.
@@ -1941,6 +1980,16 @@ export default function App(){
                 {analysisType==='ngram' && <label style={{fontSize:12}}>N Size<input type='number' min={1} max={6} value={ngramN} onChange={e=>setNgramN(Number(e.target.value)||2)} style={{width:'100%',marginTop:4}}/></label>}
                 {analysisType==='yake' && <label style={{fontSize:12}}>Max N-gram<input type='number' min={1} max={3} value={yakeMaxNgram} onChange={e=>setYakeMaxNgram(Number(e.target.value)||2)} style={{width:'100%',marginTop:4}}/></label>}
                 {analysisType==='assoc' && <label style={{fontSize:12}}>Min Support<input type='number' step={0.01} value={minSupport} onChange={e=>setMinSupport(Math.min(Math.max(Number(e.target.value)||0,0.01),0.8))} style={{width:'100%',marginTop:4}}/></label>}
+                {analysisType==='lemmatization' && (
+                  <label style={{fontSize:12}}>
+                    Method
+                    <select value={lemmatizationMethod} onChange={e=>setLemmatizationMethod(e.target.value)} style={{width:'100%',marginTop:4}}>
+                      <option value='wordnet'>Princeton WordNet</option>
+                      <option value='rules'>Rules-Based</option>
+                      <option value='compromise'>Compromise NLP</option>
+                    </select>
+                  </label>
+                )}
                 {analysisType==='embeddings' && (
                   <label style={{fontSize:12}}>
                     Method
@@ -1984,6 +2033,7 @@ export default function App(){
             </div>
             <div className='analysis-view'>
               {analysisType==='ner' && !libsLoaded && textSamples.length>0 && <div className='alert'>Loading NER model...</div>}
+              {analysisType==='lemmatization' && lemmatizationMethod==='compromise' && !libsLoaded && textSamples.length>0 && <div className='alert'>Loading Compromise NLP model...</div>}
               {analysisType==='embeddings' && dimReductionLoading && <div className='alert'>Loading dimensionality reduction...</div>}
               {analysisType==='embeddings' && !dimReductionLoading && !dimReductionLibs.loaded && <div className='alert'>Initializing embeddings analysis...</div>}
               {analysisType==='embeddings' && textSamples.length<3 && <div className='alert'>Need at least 3 documents for embeddings analysis</div>}

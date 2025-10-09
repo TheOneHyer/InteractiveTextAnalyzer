@@ -137,6 +137,35 @@ const keywords = extractYakeKeywords(texts, {
 // Returns keywords like 'machine learning', 'artificial intelligence', etc.
 ```
 
+##### `analyzeLemmatization(texts, options)`
+Reduces words to their base or dictionary form (lemma), grouping together inflected forms.
+
+**Parameters:**
+- `texts` (string[]): Array of texts
+- `options.method` (string): Lemmatization method - 'wordnet', 'rules', or 'compromise' (default: 'rules')
+- `options.top` (number): Number of top lemmas to return (default: 80)
+- `options.nlpLib` (Function): NLP library (compromise) for 'compromise' method
+- `options.stopwords` (Set): Stopwords to exclude
+
+**Returns:** Array of lemmas with counts and original forms
+
+**Methods:**
+- `wordnet`: Uses Princeton WordNet-inspired dictionary for common English words and irregular forms
+- `rules`: Applies morphological transformation rules (fast, works with any word)
+- `compromise`: Uses Compromise NLP library for context-aware lemmatization (most accurate)
+
+```javascript
+import { analyzeLemmatization, DEFAULT_STOPWORDS } from './utils/textAnalysis'
+
+const texts = ['The cats were running quickly', 'Children ran faster']
+const lemmas = analyzeLemmatization(texts, { 
+  method: 'rules', 
+  top: 20, 
+  stopwords: DEFAULT_STOPWORDS 
+})
+// Returns: [{lemma: 'cat', count: 1, originals: 'cats'}, {lemma: 'run', count: 2, originals: 'running, ran'}, ...]
+```
+
 ##### `computeDocumentEmbeddings(docs, options)`
 Computes TF-IDF-based document embeddings (vector representations).
 

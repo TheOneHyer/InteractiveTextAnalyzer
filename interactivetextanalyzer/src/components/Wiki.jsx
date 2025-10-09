@@ -275,6 +275,66 @@ export default function Wiki() {
         </div>
 
         <div className='wiki-item'>
+          <h4>Lemmatization</h4>
+          <p>
+            <strong>What it does:</strong> Reduces words to their base or dictionary form (lemma), 
+            grouping together inflected forms of the same word. For example, "running," "ran," and "runs" 
+            all lemmatize to "run"; "better" and "best" lemmatize to "good."
+          </p>
+          <p>
+            <strong>How it works:</strong> The tool offers three lemmatization methods:
+          </p>
+          <ul>
+            <li>
+              <strong>Princeton WordNet:</strong> Uses a curated dictionary of common English words 
+              and their base forms, including irregular verbs (go/went/gone), irregular plurals 
+              (child/children), and comparative/superlative adjectives (good/better/best). This method 
+              handles linguistic irregularities accurately but is limited to words in the dictionary.
+            </li>
+            <li>
+              <strong>Rules-Based:</strong> Applies morphological transformation rules to strip common 
+              suffixes (-ing, -ed, -ly, -s, -es, -ies, -er, -est) and handle doubled consonants. 
+              This method is fast and works with any word but may not handle irregular forms correctly. 
+              It uses pattern matching similar to Porter stemming but with lemmatization-focused rules.
+            </li>
+            <li>
+              <strong>Compromise NLP:</strong> Leverages the Compromise natural language processing 
+              library to perform part-of-speech tagging and context-aware lemmatization. This method 
+              understands word types (verbs, nouns, adjectives) and applies appropriate transformations: 
+              verbs are converted to infinitive form, nouns to singular, etc. Most accurate but requires 
+              loading the NLP library.
+            </li>
+          </ul>
+          <p>
+            <strong>Use cases:</strong> Text normalization for search and retrieval, reducing vocabulary 
+            size for analysis, improving text mining accuracy, grouping related terms, preparing text 
+            for machine learning models, and analyzing word usage patterns across different forms.
+          </p>
+          <p>
+            <strong>Interpreting results:</strong> Each result shows the lemma (base form), its frequency 
+            count, and the original forms that were grouped together. High-frequency lemmas indicate 
+            core concepts in your text. The originals field helps verify that the lemmatization is 
+            working correctly by showing what was grouped together.
+          </p>
+          <p>
+            <strong>Lemmatization vs. Stemming:</strong> Unlike stemming (which crudely chops word 
+            endings), lemmatization produces valid dictionary words. For example, "better" stems to 
+            "better" but lemmatizes to "good." Lemmatization is linguistically more accurate but 
+            computationally more expensive than stemming.
+          </p>
+          <p>
+            <strong>Visualization options:</strong> Bar Chart, Word Cloud, Network Graph
+          </p>
+          <p className='wiki-source'>
+            <strong>Sources:</strong>
+            <br/>WordNet: Miller, G. A. (1995). WordNet: A lexical database for English. <em>Communications of the ACM</em>, 38(11), 39-41. <a href="https://doi.org/10.1145/219717.219748" target="_blank" rel="noopener noreferrer">https://doi.org/10.1145/219717.219748</a>
+            <br/>Morphological Analysis: Jurafsky, D., & Martin, J. H. (2023). Speech and Language Processing (3rd ed.). Chapter 2: Regular Expressions, Text Normalization, Edit Distance. <a href="https://web.stanford.edu/~jurafsky/slp3/" target="_blank" rel="noopener noreferrer">https://web.stanford.edu/~jurafsky/slp3/</a>
+            <br/>NLP-based Lemmatization: Bird, S., Klein, E., & Loper, E. (2009). Natural Language Processing with Python. O'Reilly Media. <a href="https://www.nltk.org/book/" target="_blank" rel="noopener noreferrer">https://www.nltk.org/book/</a>
+            <br/>Compromise NLP: <a href="https://github.com/spencermountain/compromise" target="_blank" rel="noopener noreferrer">https://github.com/spencermountain/compromise</a>
+          </p>
+        </div>
+
+        <div className='wiki-item'>
           <h4>Document Embeddings with Dimensionality Reduction</h4>
           <p>
             <strong>What it does:</strong> Creates vector representations (embeddings) of your documents 
@@ -554,6 +614,7 @@ export default function Wiki() {
             <li>Use <strong>Associations</strong> when discovering which terms co-occur frequently</li>
             <li>Use <strong>NER</strong> when you need to extract specific entities like names and places</li>
             <li>Use <strong>YAKE</strong> when extracting keywords without training data or when working with any language</li>
+            <li>Use <strong>Lemmatization</strong> when you want to normalize word forms and group related terms together (better/best → good)</li>
             <li>Use <strong>Embeddings</strong> when visualizing document relationships and exploring corpus structure</li>
             <li>Use <strong>Dependency Parsing</strong> when analyzing sentence structure, grammar, or syntactic relationships</li>
           </ul>
