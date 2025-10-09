@@ -154,6 +154,59 @@ export default function Wiki() {
         </div>
 
         <div className='wiki-item'>
+          <h4>Parts of Speech (POS) Tagging</h4>
+          <p>
+            <strong>What it does:</strong> Identifies and categorizes each word in text by its grammatical 
+            function (noun, verb, adjective, adverb, etc.). This linguistic analysis reveals the syntactic 
+            structure and word usage patterns in your documents.
+          </p>
+          <p>
+            <strong>How it works:</strong> The analyzer examines each word and assigns it a part-of-speech 
+            tag based on lexical patterns, word morphology, and context. Two methods are available: 
+            rules-based tagging using pattern matching and linguistic rules, or NLP-based tagging using 
+            the Compromise library for more accurate context-aware categorization.
+          </p>
+          <p>
+            <strong>POS Categories:</strong>
+          </p>
+          <ul>
+            <li><strong>Noun:</strong> Person, place, thing, or idea (e.g., "cat", "city", "happiness")</li>
+            <li><strong>Verb:</strong> Action or state of being (e.g., "run", "is", "think")</li>
+            <li><strong>Adjective:</strong> Describes or modifies nouns (e.g., "blue", "happy", "tall")</li>
+            <li><strong>Adverb:</strong> Modifies verbs, adjectives, or other adverbs (e.g., "quickly", "very")</li>
+            <li><strong>Pronoun:</strong> Replaces nouns (e.g., "he", "they", "it")</li>
+            <li><strong>Preposition:</strong> Shows relationships (e.g., "in", "on", "at")</li>
+            <li><strong>Conjunction:</strong> Connects words or clauses (e.g., "and", "but", "or")</li>
+            <li><strong>Determiner:</strong> Specifies nouns (e.g., "the", "a", "this")</li>
+            <li><strong>Interjection:</strong> Exclamations (e.g., "wow", "oh", "hey")</li>
+          </ul>
+          <p>
+            <strong>Use cases:</strong> Grammar analysis, writing style assessment, text complexity 
+            measurement, linguistic research, educational applications, content analysis, automated 
+            essay scoring, and understanding vocabulary diversity in documents.
+          </p>
+          <p>
+            <strong>Interpreting results:</strong> The POS distribution shows the percentage of each word 
+            class in your text. Higher noun counts suggest descriptive content, while more verbs indicate 
+            action-oriented writing. The balance between different POS categories can reveal writing style 
+            and complexity. Academic writing typically has more nouns and prepositions, while narrative 
+            text features more verbs and pronouns.
+          </p>
+          <p>
+            <strong>Visualization options:</strong> Bar Chart (POS distribution), Word Cloud (example words)
+          </p>
+          <p className='wiki-source'>
+            <strong>Sources:</strong>
+            <br/>Rules-based: Francis, W. N., & Kučera, H. (1979). <em>Brown corpus manual</em>. Brown University. 
+            <a href="http://korpus.uib.no/icame/manuals/BROWN/INDEX.HTM" target="_blank" rel="noopener noreferrer">http://korpus.uib.no/icame/manuals/BROWN/INDEX.HTM</a>
+            <br/>Jurafsky, D., & Martin, J. H. (2023). <em>Speech and Language Processing</em> (3rd ed. draft). Chapter 8: Part-of-Speech Tagging. 
+            <a href="https://web.stanford.edu/~jurafsky/slp3/" target="_blank" rel="noopener noreferrer">https://web.stanford.edu/~jurafsky/slp3/</a>
+            <br/>NLP Library: Compromise NLP Documentation. 
+            <a href="https://github.com/spencermountain/compromise" target="_blank" rel="noopener noreferrer">https://github.com/spencermountain/compromise</a>
+          </p>
+        </div>
+
+        <div className='wiki-item'>
           <h4>Association Rules Mining</h4>
           <p>
             <strong>What it does:</strong> Discovers which terms frequently appear together 

@@ -16,6 +16,7 @@ import {
   extractYakeKeywords,
   analyzeTokenization,
   analyzeLemmatization,
+  analyzePartsOfSpeech,
   DEFAULT_STOPWORDS 
 } from './utils/textAnalysis'
 import { normalizeValue, getCategoricalValues } from './utils/categoricalUtils'
@@ -187,6 +188,7 @@ export default function App(){
   const [yakeMaxNgram,setYakeMaxNgram]=useState(2)
   const [tokenizationLevel,setTokenizationLevel]=useState('word')
   const [lemmatizationMethod,setLemmatizationMethod]=useState('rules') // 'wordnet', 'rules', or 'compromise'
+  const [posMethod,setPosMethod]=useState('rules') // 'rules' or 'compromise' for POS tagging
   const [hiddenColumns,setHiddenColumns]=useState([])
   const [renames,setRenames]=useState({})
   const [viewMode,setViewMode]=useState('list')
@@ -941,6 +943,7 @@ export default function App(){
   const yakeKeywords=useMemo(()=> analysisType==='yake'&& textSamples.length? extractYakeKeywords(textSamples,{maxNgram:yakeMaxNgram,top:80,stopwords:effectiveStopwords}): [],[analysisType,textSamples,yakeMaxNgram,effectiveStopwords])
   const tokenization=useMemo(()=> analysisType==='tokenization'&& textSamples.length? analyzeTokenization(textSamples,{level:tokenizationLevel,top:80}): [],[analysisType,textSamples,tokenizationLevel])
   const lemmatization=useMemo(()=> analysisType==='lemmatization'&& textSamples.length? analyzeLemmatization(textSamples,{method:lemmatizationMethod,top:80,nlpLib:nlpLibs.nlp,stopwords:effectiveStopwords}): [],[analysisType,textSamples,lemmatizationMethod,nlpLibs,effectiveStopwords])
+  const partsOfSpeech=useMemo(()=> analysisType==='pos'&& textSamples.length? analyzePartsOfSpeech(textSamples,{method:posMethod,top:50,nlpLib:nlpLibs.nlp,stopwords:effectiveStopwords}): null,[analysisType,textSamples,posMethod,nlpLibs,effectiveStopwords])
   
   // Compute embeddings
   const embeddings=useMemo(()=> analysisType==='embeddings'&& textSamples.length>=3? computeDocumentEmbeddings(textSamples,params): null,[analysisType,textSamples,params])
@@ -1052,10 +1055,10 @@ export default function App(){
   // Derived quick stats
   const statDocs=textSamples.length
   const statTokens=useMemo(()=> textSamples.join(' ').split(/\s+/).filter(Boolean).length,[textSamples])
-  const statUniqueTerms=tfidf? tfidf.aggregate.length : (ngrams.length || entities.length || yakeKeywords.length || lemmatization.length)
+  const statUniqueTerms=tfidf? tfidf.aggregate.length : (ngrams.length || entities.length || yakeKeywords.length || lemmatization.length || partsOfSpeech?.totalWords || 0)
 
   // Helper function to compute word cloud data based on analysis type
-  function getWordCloudData(analysisType, tfidf, ngrams, entities, associations, yakeKeywords, tokenization, lemmatization) {
+  function getWordCloudData(analysisType, tfidf, ngrams, entities, associations, yakeKeywords, tokenization, lemmatization, partsOfSpeech) {
     switch (analysisType) {
       case 'tfidf':
         if (tfidf) return tfidf.aggregate.map(t => ({ text: t.term, value: t.score }));
@@ -1073,6 +1076,18 @@ export default function App(){
         return tokenization.map(t => ({ text: t.token, value: t.count }));
       case 'lemmatization':
         return lemmatization.map(l => ({ text: l.lemma, value: l.count }));
+      case 'pos':
+        if (partsOfSpeech) {
+          // Create word cloud from POS examples
+          const allWords = []
+          Object.entries(partsOfSpeech.posExamples).forEach(([pos, words]) => {
+            words.forEach(({ word, count }) => {
+              allWords.push({ text: word, value: count })
+            })
+          })
+          return allWords
+        }
+        break;
       default:
         return [];
     }
@@ -1080,8 +1095,8 @@ export default function App(){
   }
 
   const wordCloudData = useMemo(() =>
-    getWordCloudData(analysisType, tfidf, ngrams, entities, associations, yakeKeywords, tokenization, lemmatization),
-    [analysisType, tfidf, ngrams, entities, associations, yakeKeywords, tokenization, lemmatization]
+    getWordCloudData(analysisType, tfidf, ngrams, entities, associations, yakeKeywords, tokenization, lemmatization, partsOfSpeech),
+    [analysisType, tfidf, ngrams, entities, associations, yakeKeywords, tokenization, lemmatization, partsOfSpeech]
   );
   const networkData=useMemo(()=> {
     if (analysisType==='assoc'&&associations) {
@@ -1144,7 +1159,8 @@ export default function App(){
     entities,
     yakeKeywords,
     tokenization,
-    lemmatization
+    lemmatization,
+    partsOfSpeech
   }) {
     switch (analysisType) {
       case 'assoc':
@@ -1165,6 +1181,14 @@ export default function App(){
         return tokenization.slice(0,8).map(t=>({ name:t.token, count:t.count }));
       case 'lemmatization':
         return lemmatization.slice(0,8).map(l=>({ name:l.lemma, count:l.count }));
+      case 'pos':
+        if (partsOfSpeech) {
+          return Object.entries(partsOfSpeech.posCounts)
+            .filter(([_, count]) => count > 0)
+            .map(([pos, count])=>({ name:pos, count, percentage:+partsOfSpeech.percentages[pos] }))
+            .sort((a, b) => b.count - a.count);
+        }
+        break;
       default:
         return [];
     }
@@ -1172,8 +1196,8 @@ export default function App(){
   }
 
   const barData = useMemo(() =>
-    getBarData({analysisType, associations, tfidf, ngrams, entities, yakeKeywords, tokenization, lemmatization}),
-    [analysisType, associations, tfidf, ngrams, entities, yakeKeywords, tokenization, lemmatization]
+    getBarData({analysisType, associations, tfidf, ngrams, entities, yakeKeywords, tokenization, lemmatization, partsOfSpeech}),
+    [analysisType, associations, tfidf, ngrams, entities, yakeKeywords, tokenization, lemmatization, partsOfSpeech]
   );
   // Mutators
   // eslint-disable-next-line no-unused-vars
@@ -1910,6 +1934,7 @@ export default function App(){
                     <option value='ner'>NER</option>
                     <option value='yake'>YAKE</option>
                     <option value='lemmatization'>Lemmatization</option>
+                    <option value='pos'>Parts of Speech</option>
                     <option value='embeddings'>Embeddings</option>
                     <option value='dependency'>Dependency Parsing</option>
                   </select>
@@ -1949,6 +1974,11 @@ export default function App(){
                     <strong>Lemmatization:</strong> Reduces words to their base or dictionary form (e.g., "running" → "run", "better" → "good").
                   </div>
                 )}
+                {analysisType==='pos' && (
+                  <div className='notice' style={{marginTop:8}}>
+                    <strong>Parts of Speech:</strong> Identifies and categorizes words by grammatical function (nouns, verbs, adjectives, etc.).
+                  </div>
+                )}
                 {analysisType==='embeddings' && (
                   <div className='notice' style={{marginTop:8}}>
                     <strong>Embeddings:</strong> Visualizes document relationships in 2D space using dimensionality reduction.
@@ -1985,6 +2015,15 @@ export default function App(){
                     Method
                     <select value={lemmatizationMethod} onChange={e=>setLemmatizationMethod(e.target.value)} style={{width:'100%',marginTop:4}}>
                       <option value='wordnet'>Princeton WordNet</option>
+                      <option value='rules'>Rules-Based</option>
+                      <option value='compromise'>Compromise NLP</option>
+                    </select>
+                  </label>
+                )}
+                {analysisType==='pos' && (
+                  <label style={{fontSize:12}}>
+                    Method
+                    <select value={posMethod} onChange={e=>setPosMethod(e.target.value)} style={{width:'100%',marginTop:4}}>
                       <option value='rules'>Rules-Based</option>
                       <option value='compromise'>Compromise NLP</option>
                     </select>
@@ -2158,6 +2197,23 @@ export default function App(){
                         Each point represents a document in semantic space. Documents with similar content are positioned closer together.
                       </p>
                     </>}
+                    {analysisType==='pos' && partsOfSpeech && <>
+                      <h3>POS Distribution</h3>
+                      <div className='notice'>
+                        <p><strong>Total Words:</strong> {partsOfSpeech.totalWords}</p>
+                        <p><strong>Part of Speech Categories:</strong></p>
+                        <ul style={{marginTop:8,paddingLeft:20}}>
+                          {Object.entries(partsOfSpeech.posCounts)
+                            .filter(([_, count]) => count > 0)
+                            .sort((a, b) => b[1] - a[1])
+                            .map(([pos, count]) => (
+                              <li key={pos}>
+                                <strong>{pos}:</strong> {count} ({partsOfSpeech.percentages[pos]}%)
+                              </li>
+                            ))}
+                        </ul>
+                      </div>
+                    </>}
                   </div>
                   <div style={{flex:'1 1 320px',minWidth:300}} className='result-section'>
                     {analysisType==='assoc' && associations && <>
@@ -2184,6 +2240,22 @@ export default function App(){
                     </>}
                     {analysisType==='ngram' && <div className='notice'>Switch visualization mode for graphs.</div>}
                     {analysisType==='ner' && <div className='notice'>Aggregated entity counts shown.</div>}
+                    {analysisType==='pos' && partsOfSpeech && <>
+                      <h3>Example Words by POS</h3>
+                      <div style={{maxHeight:400,overflowY:'auto'}}>
+                        {Object.entries(partsOfSpeech.posExamples)
+                          .filter(([_, words]) => words.length > 0)
+                          .sort((a, b) => partsOfSpeech.posCounts[b[0]] - partsOfSpeech.posCounts[a[0]])
+                          .map(([pos, words]) => (
+                            <div key={pos} style={{marginBottom:16}}>
+                              <h4 style={{fontSize:13,marginBottom:4,textTransform:'capitalize'}}>{pos}</h4>
+                              <div style={{fontSize:11,color:'var(--c-text-muted)',marginBottom:4}}>
+                                {words.slice(0, 10).map(w => w.word).join(', ')}
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </>}
                   </div>
                   <div style={{flex:'1 1 420px',minWidth:360}} className='result-section'>
                     <div style={{marginBottom:12,display:'flex',gap:6,flexWrap:'wrap',alignItems:'center',justifyContent:'space-between'}}>
