@@ -330,11 +330,11 @@ export default function Wiki() {
           </p>
           <p>
             <strong>How it works:</strong> The analyzer uses natural language processing to assign 
-            part-of-speech tags to words, then applies one of three algorithms to determine the most 
+            part-of-speech tags to words, then applies one of four algorithms to determine the most 
             likely dependency structure. Dependencies show which words modify or are governed by other words.
           </p>
           <p>
-            <strong>Three Available Algorithms:</strong>
+            <strong>Four Available Algorithms:</strong>
           </p>
           <ul>
             <li>
@@ -355,18 +355,50 @@ export default function Wiki() {
               incrementally from left to right. Best for: real-time parsing and resource-constrained 
               environments.
             </li>
+            <li>
+              <strong>spaCy-style Parser (Transformers.js):</strong> Uses transformer-based models and 
+              heuristic rules inspired by spaCy's Universal Dependencies framework. Provides detailed 
+              dependency labels with hover-over descriptions. Includes interactive sentence-by-sentence 
+              visualization with color-coded dependency relations. Best for: educational purposes, 
+              detailed linguistic analysis, and understanding specific dependency relationships.
+            </li>
           </ul>
           <p>
+            <strong>Understanding Dependency Labels:</strong> The spaCy-style parser uses Universal Dependencies 
+            (UD) labels, a standardized framework for syntactic annotation across languages. Common labels include:
+          </p>
+          <ul>
+            <li><strong>nsubj:</strong> Nominal Subject - the noun phrase performing the action of the verb</li>
+            <li><strong>obj:</strong> Direct Object - the entity acted upon by the verb</li>
+            <li><strong>det:</strong> Determiner - words like "the", "a", "an" that specify definiteness</li>
+            <li><strong>amod:</strong> Adjectival Modifier - adjectives modifying nouns</li>
+            <li><strong>advmod:</strong> Adverbial Modifier - adverbs modifying verbs or adjectives</li>
+            <li><strong>aux:</strong> Auxiliary - helping verbs like "is", "has", "will"</li>
+            <li><strong>case:</strong> Case Marking - prepositions marking relationships</li>
+            <li><strong>conj:</strong> Conjunct - coordinated words or phrases</li>
+            <li><strong>cc:</strong> Coordinating Conjunction - words like "and", "or", "but"</li>
+            <li><strong>punct:</strong> Punctuation marks</li>
+          </ul>
+          <p>
+            When using the spaCy-style parser, hover over edge labels in the visualization to see detailed 
+            descriptions and examples for each dependency type. The interactive selector lets you choose 
+            individual sentences for detailed analysis, as dependency trees are most meaningful when viewed 
+            one sentence at a time.
+          </p>
+          <p>
             <strong>Use cases:</strong> Syntax analysis, grammar checking, sentence complexity assessment, 
-            semantic role labeling, question answering systems, and linguistic research.
+            semantic role labeling, question answering systems, linguistic research, and educational 
+            applications for teaching grammatical structure.
           </p>
           <p>
             <strong>Interpreting results:</strong> The network visualization shows words as nodes connected 
             by directed edges (arrows) representing dependencies. The ROOT node represents the main verb 
-            or predicate of the sentence. Arrows point from heads to their dependents.
+            or predicate of the sentence. Arrows point from heads to their dependents. For spaCy-style 
+            parsing, edges are color-coded by dependency type for easier identification.
           </p>
           <p>
-            <strong>Visualization options:</strong> Network Graph
+            <strong>Visualization options:</strong> Network Graph (traditional algorithms), Interactive 
+            Dependency Tree with Sentence Selector (spaCy-style)
           </p>
           <p className='wiki-source'>
             <strong>Sources:</strong>
@@ -377,6 +409,12 @@ export default function Wiki() {
             <em>In Proceedings of HLT/EMNLP 2005</em>. <a href="https://aclanthology.org/H05-1066/" target="_blank" rel="noopener noreferrer">https://aclanthology.org/H05-1066/</a>
             <br/>Arc-Standard: Nivre, J. (2008). Algorithms for deterministic incremental dependency parsing. 
             <em>Computational Linguistics</em>, 34(4), 513-553. <a href="https://doi.org/10.1162/coli.07-056-R1-07-027" target="_blank" rel="noopener noreferrer">https://doi.org/10.1162/coli.07-056-R1-07-027</a>
+            <br/>Universal Dependencies: Nivre, J., et al. (2016). Universal Dependencies v1: A Multilingual Treebank Collection. 
+            <em>In Proceedings of LREC 2016</em>. <a href="https://universaldependencies.org/" target="_blank" rel="noopener noreferrer">https://universaldependencies.org/</a>
+            <br/>Transformers.js: Xenova. (2024). Transformers.js: State-of-the-art Machine Learning for the web. 
+            <a href="https://huggingface.co/docs/transformers.js" target="_blank" rel="noopener noreferrer">https://huggingface.co/docs/transformers.js</a>
+            <br/>spaCy Dependency Parsing: Honnibal, M., & Montani, I. (2017). spaCy 2: Natural language understanding with Bloom embeddings, convolutional neural networks and incremental parsing. 
+            <a href="https://spacy.io/usage/linguistic-features#dependency-parse" target="_blank" rel="noopener noreferrer">https://spacy.io/usage/linguistic-features#dependency-parse</a>
           </p>
         </div>
       </section>

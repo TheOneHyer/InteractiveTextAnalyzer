@@ -76,12 +76,21 @@ export function initializeLazyLoading() {
   lazyLoader.register('Heatmap', () => import('../components/Heatmap'), 3)
   lazyLoader.register('ScatterPlot', () => import('../components/ScatterPlot'), 4)
   lazyLoader.register('Wiki', () => import('../components/Wiki'), 5)
+  lazyLoader.register('DependencyTreeVisualization', () => import('../components/DependencyTreeVisualization'), 6)
   
   // Register NLP library with lower priority (loads last)
   lazyLoader.register('compromise', async () => {
     const module = await import('compromise')
     return module.default || module
   }, 10)
+
+  // Note: Transformers.js registration is commented out to avoid large downloads
+  // The spaCy-style parser uses lightweight heuristic-based parsing instead
+  // If you want to enable full transformer models in the future, uncomment below:
+  // lazyLoader.register('transformers', async () => {
+  //   const module = await import('@huggingface/transformers')
+  //   return module
+  // }, 20)
 
   // Start loading after a brief delay to not interfere with initial render
   lazyLoader.startAfterDelay(100)
