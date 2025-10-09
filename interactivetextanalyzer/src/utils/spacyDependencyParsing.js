@@ -266,7 +266,10 @@ const tokensToVisualization = (tokens, sentence) => {
   
   for (let i = 0; i < tokens.length; i++) {
     const token = tokens[i]
-    const sourceId = token.head === -1 ? 'ROOT' : `${tokens[token.head].text}_${token.head}`
+    let sourceId = 'ROOT'
+    if (token.head !== -1) {
+      sourceId = `${tokens[token.head].text}_${token.head}`
+    }
     const targetId = `${token.text}_${i}`
     
     // Get label info for color

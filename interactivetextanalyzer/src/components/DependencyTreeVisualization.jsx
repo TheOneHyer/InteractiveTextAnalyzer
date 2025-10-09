@@ -24,7 +24,10 @@ export default function DependencyTreeVisualization({ sentences = [], width = 80
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 })
 
   // Get the selected sentence
-  const selectedSentence = sentences.length > 0 ? sentences[selectedSentenceIdx] : null
+  let selectedSentence = null
+  if (sentences.length > 0) {
+    selectedSentence = sentences[selectedSentenceIdx]
+  }
 
   useEffect(() => {
     const el = ref.current
@@ -137,8 +140,18 @@ export default function DependencyTreeVisualization({ sentences = [], width = 80
 
     // Add circles to nodes
     node.append('circle')
-      .attr('r', d => d.id === 'ROOT' ? 12 : 8)
-      .attr('fill', d => d.id === 'ROOT' ? '#2D3436' : '#74B9FF')
+      .attr('r', d => {
+        if (d.id === 'ROOT') {
+          return 12
+        }
+        return 8
+      })
+      .attr('fill', d => {
+        if (d.id === 'ROOT') {
+          return '#2D3436'
+        }
+        return '#74B9FF'
+      })
       .attr('stroke', '#fff')
       .attr('stroke-width', 2)
 
@@ -148,7 +161,12 @@ export default function DependencyTreeVisualization({ sentences = [], width = 80
       .attr('text-anchor', 'middle')
       .attr('font-size', 12)
       .attr('fill', '#1e293b')
-      .attr('font-weight', d => d.id === 'ROOT' ? 'bold' : 'normal')
+      .attr('font-weight', d => {
+        if (d.id === 'ROOT') {
+          return 'bold'
+        }
+        return 'normal'
+      })
       .text(d => d.label)
 
     // Add POS tag labels
@@ -158,7 +176,12 @@ export default function DependencyTreeVisualization({ sentences = [], width = 80
       .attr('font-size', 9)
       .attr('fill', '#666')
       .attr('font-style', 'italic')
-      .text(d => d.pos !== 'ROOT' ? d.pos : '')
+      .text(d => {
+        if (d.pos !== 'ROOT') {
+          return d.pos
+        }
+        return ''
+      })
 
     // Update positions on tick
     simulation.on('tick', () => {
@@ -189,7 +212,10 @@ export default function DependencyTreeVisualization({ sentences = [], width = 80
   }
 
   // Get dependency info for tooltip
-  const tooltipInfo = hoveredLabel ? getDependencyInfo(hoveredLabel) : null
+  let tooltipInfo = null
+  if (hoveredLabel) {
+    tooltipInfo = getDependencyInfo(hoveredLabel)
+  }
 
   if (sentences.length === 0) {
     return (
@@ -210,12 +236,19 @@ export default function DependencyTreeVisualization({ sentences = [], width = 80
             onChange={handleSentenceChange}
             className="sentence-selector"
           >
-            {sentences.map((sent, idx) => (
-              <option key={idx} value={idx}>
-                {idx + 1}. {sent.sentence.substring(0, 60)}
-                {sent.sentence.length > 60 ? '...' : ''}
-              </option>
-            ))}
+            {sentences.map((sent, idx) => {
+              let truncated = sent.sentence.substring(0, 60)
+              let ellipsis = ''
+              if (sent.sentence.length > 60) {
+                ellipsis = '...'
+              }
+              
+              return (
+                <option key={idx} value={idx}>
+                  {idx + 1}. {truncated}{ellipsis}
+                </option>
+              )
+            })}
           </select>
         </label>
         <div className="sentence-info">
