@@ -27,6 +27,7 @@ const NetworkGraph = createLazyComponent('NetworkGraph')
 const Heatmap = createLazyComponent('Heatmap')
 const ScatterPlot = createLazyComponent('ScatterPlot')
 const Wiki = createLazyComponent('Wiki')
+const DependencyTreeVisualization = createLazyComponent('DependencyTreeVisualization')
 
 // Debounce hook for input fields
 const useDebounced = (value, delay=400) => { 
@@ -49,6 +50,12 @@ const loadNlpLibs = async () => {
 const loadDependencyParsing = async () => {
   const module = await import('./utils/dependencyParsing')
   return module.performDependencyParsing
+}
+
+// Lazy load spaCy dependency parsing module
+const loadSpacyDependencyParsing = async () => {
+  const module = await import('./utils/spacyDependencyParsing')
+  return module.performSpacyDependencyParsing
 }
 
 
@@ -192,10 +199,11 @@ export default function App(){
   const [dimReductionLibs,setDimReductionLibs]=useState({tsne:null,umap:null})
   const [dimReductionMethod,setDimReductionMethod]=useState('tsne') // 'tsne' or 'umap'
   const [dimReductionLoading,setDimReductionLoading]=useState(false)
-  const [dependencyAlgorithm,setDependencyAlgorithm]=useState('eisner') // 'eisner', 'chu-liu', or 'arc-standard'
+  const [dependencyAlgorithm,setDependencyAlgorithm]=useState('eisner') // 'eisner', 'chu-liu', 'arc-standard', or 'spacy'
   const [dependencyResult,setDependencyResult]=useState(null)
   const [dependencyProgress,setDependencyProgress]=useState(0)
   const [dependencySamplePercent,setDependencySamplePercent]=useState(100) // Percentage of data to process (1-100)
+  const [spacyDependencyResult,setSpacyDependencyResult]=useState(null) // spaCy-specific results
   
   // Column types and categorical filters
   const [columnTypes, setColumnTypes] = useState({})
@@ -938,6 +946,7 @@ export default function App(){
   useEffect(() => {
     if (analysisType !== 'dependency' || textSamples.length === 0) {
       setDependencyResult(null)
+      setSpacyDependencyResult(null)
       setDependencyProgress(0)
       return
     }
@@ -947,30 +956,56 @@ export default function App(){
     const compute = async () => {
       try {
         setDependencyProgress(0)
-        const performDependencyParsing = await loadDependencyParsing()
-        if (cancelled) return
         
         // Calculate number of samples based on percentage
         const maxSamples = Math.ceil(textSamples.length * (dependencySamplePercent / 100))
         
-        const result = await performDependencyParsing(textSamples, { 
-          algorithm: dependencyAlgorithm,
-          maxSamples: maxSamples,
-          onProgress: (progress) => {
-            if (!cancelled) {
-              setDependencyProgress(progress)
+        // Check if using spaCy algorithm
+        if (dependencyAlgorithm === 'spacy') {
+          // Load spaCy dependency parsing
+          const performSpacyDependencyParsing = await loadSpacyDependencyParsing()
+          if (cancelled) return
+          
+          const result = await performSpacyDependencyParsing(textSamples, {
+            maxSamples: maxSamples,
+            onProgress: (progress) => {
+              if (!cancelled) {
+                setDependencyProgress(progress)
+              }
             }
+          })
+          
+          if (!cancelled) {
+            setSpacyDependencyResult(result)
+            setDependencyResult(null)
+            setDependencyProgress(100)
           }
-        })
-        
-        if (!cancelled) {
-          setDependencyResult(result)
-          setDependencyProgress(100)
+        } else {
+          // Use traditional algorithms (eisner, chu-liu, arc-standard)
+          const performDependencyParsing = await loadDependencyParsing()
+          if (cancelled) return
+          
+          const result = await performDependencyParsing(textSamples, { 
+            algorithm: dependencyAlgorithm,
+            maxSamples: maxSamples,
+            onProgress: (progress) => {
+              if (!cancelled) {
+                setDependencyProgress(progress)
+              }
+            }
+          })
+          
+          if (!cancelled) {
+            setDependencyResult(result)
+            setSpacyDependencyResult(null)
+            setDependencyProgress(100)
+          }
         }
       } catch (error) {
         console.error('Dependency parsing error:', error)
         if (!cancelled) {
           setDependencyResult({ nodes: [], edges: [], sentences: [], error: true })
+          setSpacyDependencyResult(null)
           setDependencyProgress(0)
         }
       }
@@ -1389,11 +1424,23 @@ export default function App(){
           </Suspense>
         ) : <div className='skel block' />
       case 'network':
-        return networkData.nodes.length>0 ? (
-          <Suspense fallback={<div className='skel block' />}>
-            <NetworkGraph nodes={networkData.nodes} edges={networkData.edges} weightedLines={weightedLines} />
-          </Suspense>
-        ) : <div className='skel block' />
+        // For spaCy dependency parsing, use specialized tree visualization
+        if (analysisType === 'dependency' && dependencyAlgorithm === 'spacy' && spacyDependencyResult && spacyDependencyResult.sentences && spacyDependencyResult.sentences.length > 0) {
+          return (
+            <Suspense fallback={<div className='skel block' />}>
+              <DependencyTreeVisualization sentences={spacyDependencyResult.sentences} />
+            </Suspense>
+          )
+        }
+        // For other cases, use standard network graph
+        if (networkData.nodes.length > 0) {
+          return (
+            <Suspense fallback={<div className='skel block' />}>
+              <NetworkGraph nodes={networkData.nodes} edges={networkData.edges} weightedLines={weightedLines} />
+            </Suspense>
+          )
+        }
+        return <div className='skel block' />
       case 'heatmap':
         return heatmapData.matrix.length>0 ? (
           <Suspense fallback={<div className='skel block' />}>
@@ -1911,6 +1958,7 @@ export default function App(){
                         <option value='eisner'>Eisner's Algorithm</option>
                         <option value='chu-liu'>Chu-Liu/Edmonds</option>
                         <option value='arc-standard'>Arc-Standard</option>
+                        <option value='spacy'>spaCy-style (Transformers.js)</option>
                       </select>
                     </label>
                     <label style={{fontSize:12}}>

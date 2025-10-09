@@ -76,12 +76,21 @@ export function initializeLazyLoading() {
   lazyLoader.register('Heatmap', () => import('../components/Heatmap'), 3)
   lazyLoader.register('ScatterPlot', () => import('../components/ScatterPlot'), 4)
   lazyLoader.register('Wiki', () => import('../components/Wiki'), 5)
+  lazyLoader.register('DependencyTreeVisualization', () => import('../components/DependencyTreeVisualization'), 6)
   
   // Register NLP library with lower priority (loads last)
   lazyLoader.register('compromise', async () => {
     const module = await import('compromise')
     return module.default || module
   }, 10)
+
+  // Register Transformers.js with lowest priority (very large library)
+  // Note: This is registered but not automatically loaded due to size
+  // It will only load when explicitly requested
+  lazyLoader.register('transformers', async () => {
+    const module = await import('@huggingface/transformers')
+    return module
+  }, 20)
 
   // Start loading after a brief delay to not interfere with initial render
   lazyLoader.startAfterDelay(100)
