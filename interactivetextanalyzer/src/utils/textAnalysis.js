@@ -421,21 +421,23 @@ export const analyzeLemmatization = (texts, { method = 'rules', top = 80, nlpLib
         }
         if (irregulars[word]) return irregulars[word]
         
-        // Rule-based transformations (order matters)
+        // Rule-based transformations (apply only ONE transformation per word)
         let lemma = word
         
         // Plural nouns
         if (lemma.endsWith('ies') && lemma.length > 4) {
-          lemma = lemma.slice(0, -3) + 'y'
-        } else if (lemma.endsWith('es') && lemma.length > 3) {
+          return lemma.slice(0, -3) + 'y'
+        }
+        if (lemma.endsWith('es') && lemma.length > 3) {
           // Check for -xes, -ches, -shes, -sses
           if (lemma.match(/(x|ch|sh|ss)es$/)) {
-            lemma = lemma.slice(0, -2)
+            return lemma.slice(0, -2)
           } else {
-            lemma = lemma.slice(0, -1)
+            return lemma.slice(0, -1)
           }
-        } else if (lemma.endsWith('s') && lemma.length > 2 && !lemma.endsWith('ss') && !lemma.endsWith('us')) {
-          lemma = lemma.slice(0, -1)
+        }
+        if (lemma.endsWith('s') && lemma.length > 2 && !lemma.endsWith('ss') && !lemma.endsWith('us')) {
+          return lemma.slice(0, -1)
         }
         
         // Verb forms
@@ -443,27 +445,42 @@ export const analyzeLemmatization = (texts, { method = 'rules', top = 80, nlpLib
           // Check for doubled consonant (running -> run)
           if (lemma[lemma.length - 4] === lemma[lemma.length - 5] && 
               !'aeiou'.includes(lemma[lemma.length - 4])) {
-            lemma = lemma.slice(0, -4)
+            return lemma.slice(0, -4)
           } else {
-            lemma = lemma.slice(0, -3)
+            return lemma.slice(0, -3)
           }
-        } else if (lemma.endsWith('ed') && lemma.length > 4) {
+        }
+        if (lemma.endsWith('ed') && lemma.length > 4) {
           // Check for doubled consonant (stopped -> stop)
           if (lemma[lemma.length - 3] === lemma[lemma.length - 4] &&
               !'aeiou'.includes(lemma[lemma.length - 3])) {
-            lemma = lemma.slice(0, -3)
+            return lemma.slice(0, -3)
           } else {
-            lemma = lemma.slice(0, -2)
+            return lemma.slice(0, -2)
           }
         }
         
         // Adjectives and adverbs
         if (lemma.endsWith('ly') && lemma.length > 4) {
-          lemma = lemma.slice(0, -2)
-        } else if (lemma.endsWith('er') && lemma.length > 4) {
-          lemma = lemma.slice(0, -2)
-        } else if (lemma.endsWith('est') && lemma.length > 5) {
-          lemma = lemma.slice(0, -3)
+          return lemma.slice(0, -2)
+        }
+        if (lemma.endsWith('er') && lemma.length > 4) {
+          // Check for doubled consonant (bigger -> big)
+          if (lemma[lemma.length - 3] === lemma[lemma.length - 4] &&
+              !'aeiou'.includes(lemma[lemma.length - 3])) {
+            return lemma.slice(0, -3)
+          } else {
+            return lemma.slice(0, -2)
+          }
+        }
+        if (lemma.endsWith('est') && lemma.length > 5) {
+          // Check for doubled consonant (biggest -> big)
+          if (lemma[lemma.length - 4] === lemma[lemma.length - 5] &&
+              !'aeiou'.includes(lemma[lemma.length - 4])) {
+            return lemma.slice(0, -4)
+          } else {
+            return lemma.slice(0, -3)
+          }
         }
         
         return lemma

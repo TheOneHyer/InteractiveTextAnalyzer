@@ -83,6 +83,7 @@ describe('Lemmatization Analysis', () => {
         expect(runLemma.originals).toContain('running')
         expect(runLemma.originals).toContain('runs')
         expect(runLemma.originals).toContain('run')
+        expect(typeof runLemma.originals).toBe('string')
       })
 
       it('should handle empty text', () => {
