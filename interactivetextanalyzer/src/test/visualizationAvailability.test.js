@@ -11,13 +11,14 @@ import { describe, it, expect } from 'vitest'
  * - ner: bar, wordcloud
  * - embeddings: scatter
  * - dependency: network
+ * - sentiment: bar
  */
 
 // Mock implementation of isVisualizationAvailable function for testing
 const isVisualizationAvailable = (analysisType, vizType) => {
   switch(vizType) {
     case 'bar':
-      return analysisType === 'tfidf' || analysisType === 'ngram' || analysisType === 'ner' || analysisType === 'assoc'
+      return analysisType === 'tfidf' || analysisType === 'ngram' || analysisType === 'ner' || analysisType === 'assoc' || analysisType === 'sentiment'
     case 'wordcloud':
       return analysisType === 'tfidf' || analysisType === 'ngram' || analysisType === 'ner' || analysisType === 'assoc'
     case 'network':
@@ -187,8 +188,32 @@ describe('Visualization Availability - Edge Cases', () => {
   })
 })
 
+describe('Visualization Availability - Sentiment Analysis', () => {
+  const analysisType = 'sentiment'
+  
+  it('should allow Bar Chart for Sentiment', () => {
+    expect(isVisualizationAvailable(analysisType, 'bar')).toBe(true)
+  })
+  
+  it('should not allow Word Cloud for Sentiment', () => {
+    expect(isVisualizationAvailable(analysisType, 'wordcloud')).toBe(false)
+  })
+  
+  it('should not allow Network Graph for Sentiment', () => {
+    expect(isVisualizationAvailable(analysisType, 'network')).toBe(false)
+  })
+  
+  it('should not allow Heatmap for Sentiment', () => {
+    expect(isVisualizationAvailable(analysisType, 'heatmap')).toBe(false)
+  })
+  
+  it('should not allow Scatter Plot for Sentiment', () => {
+    expect(isVisualizationAvailable(analysisType, 'scatter')).toBe(false)
+  })
+})
+
 describe('Visualization Availability - Comprehensive Matrix', () => {
-  const analyses = ['tfidf', 'ngram', 'assoc', 'ner', 'embeddings', 'dependency']
+  const analyses = ['tfidf', 'ngram', 'assoc', 'ner', 'embeddings', 'dependency', 'sentiment']
   const visualizations = ['bar', 'wordcloud', 'network', 'heatmap', 'scatter']
   
   // Expected mappings matrix
@@ -198,7 +223,8 @@ describe('Visualization Availability - Comprehensive Matrix', () => {
     'assoc': ['bar', 'wordcloud', 'network'],
     'ner': ['bar', 'wordcloud'],
     'embeddings': ['scatter'],
-    'dependency': ['network']
+    'dependency': ['network'],
+    'sentiment': ['bar']
   }
   
   analyses.forEach(analysis => {

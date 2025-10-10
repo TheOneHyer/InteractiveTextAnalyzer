@@ -166,6 +166,78 @@ const lemmas = analyzeLemmatization(texts, {
 // Returns: [{lemma: 'cat', count: 1, originals: 'cats'}, {lemma: 'run', count: 2, originals: 'running, ran'}, ...]
 ```
 
+##### `analyzeSentiment(texts, options)`
+Analyzes the sentiment (emotional tone) of texts, classifying them as positive, negative, or neutral.
+
+**Parameters:**
+- `texts` (string[]): Array of texts to analyze
+- `options.method` (string): Sentiment analysis method - 'lexicon', 'vader', or 'pattern' (default: 'lexicon')
+- `options.stopwords` (Set): Stopwords to exclude from analysis
+
+**Returns:** Object with sentiment results and summary statistics
+
+**Methods:**
+- `lexicon`: Simple lexicon-based approach using positive/negative word lists
+- `vader`: VADER-like approach with intensifiers, negations, and context awareness
+- `pattern`: Pattern-based approach with comparative/superlative detection and exclamation marks
+
+**Result Structure:**
+```javascript
+{
+  results: [
+    {
+      text: 'truncated text...',
+      sentiment: 'positive' | 'negative' | 'neutral',
+      score: number,        // -1 to 1 range
+      positive: number,     // count of positive words
+      negative: number,     // count of negative words
+      confidence: number,   // 0 to 1 range
+      index: number
+    }
+  ],
+  summary: {
+    total: number,
+    positive: number,
+    negative: number,
+    neutral: number,
+    positivePercent: number,
+    negativePercent: number,
+    neutralPercent: number,
+    avgScore: number,
+    avgConfidence: number
+  },
+  method: string
+}
+```
+
+**Example:**
+```javascript
+import { analyzeSentiment, DEFAULT_STOPWORDS } from './utils/textAnalysis'
+
+const texts = [
+  'This product is absolutely amazing!',
+  'Terrible experience, would not recommend',
+  'It works as expected'
+]
+
+const result = analyzeSentiment(texts, { 
+  method: 'vader', 
+  stopwords: DEFAULT_STOPWORDS 
+})
+
+console.log(result.summary)
+// {
+//   total: 3,
+//   positive: 1,
+//   negative: 1,
+//   neutral: 1,
+//   positivePercent: 33.33,
+//   negativePercent: 33.33,
+//   neutralPercent: 33.33,
+//   ...
+// }
+```
+
 ##### `computeDocumentEmbeddings(docs, options)`
 Computes TF-IDF-based document embeddings (vector representations).
 
@@ -326,6 +398,10 @@ All utility modules have comprehensive unit tests located in `src/test/`:
 - `dimensionalityReduction.test.js` - 12 tests for dimensionality reduction
 - `utils.test.js` - Tests for text analysis functions
 - `embeddings.test.js` - Tests for document embeddings
+- `sentiment.test.js` - Comprehensive tests for sentiment analysis (all 3 methods)
+- `lemmatization.test.js` - Tests for lemmatization
+- `tokenization.test.js` - Tests for tokenization
+- `partsOfSpeech.test.js` - Tests for POS tagging
 
 Run tests with:
 ```bash

@@ -388,6 +388,79 @@ export default function Wiki() {
         </div>
 
         <div className='wiki-item'>
+          <h4>Sentiment Analysis</h4>
+          <p>
+            <strong>What it does:</strong> Automatically determines the emotional tone or attitude 
+            expressed in text, classifying it as positive, negative, or neutral. Each text sample 
+            receives a sentiment label and confidence score.
+          </p>
+          <p>
+            <strong>How it works:</strong> The analyzer examines words and phrases in the text, 
+            comparing them against sentiment lexicons (dictionaries of positive and negative words). 
+            Different algorithms apply various techniques to handle linguistic nuances like negation, 
+            intensifiers, and context.
+          </p>
+          <p>
+            <strong>Three Available Algorithms:</strong>
+          </p>
+          <ul>
+            <li>
+              <strong>Lexicon-Based:</strong> Simple word-matching approach that counts positive 
+              and negative words from predefined dictionaries. Fast and transparent, works well 
+              for straightforward sentiment detection. Best for: quick sentiment overview, 
+              domain-general text.
+            </li>
+            <li>
+              <strong>VADER-Like:</strong> Enhanced approach that considers intensifiers 
+              ("very," "extremely"), negations ("not," "never"), and word proximity. More 
+              sophisticated than lexicon-based, handles nuanced expressions better. 
+              Best for: social media text, reviews with modifiers.
+            </li>
+            <li>
+              <strong>Pattern-Based:</strong> Advanced method that detects linguistic patterns 
+              including comparative/superlative forms ("better," "worst"), exclamation marks 
+              for intensity, and contextual negation. Most context-aware of the three methods. 
+              Best for: complex text with varied expressions, comparative statements.
+            </li>
+          </ul>
+          <p>
+            <strong>Key concepts:</strong>
+          </p>
+          <ul>
+            <li><strong>Sentiment Score:</strong> A numerical value from -1 (very negative) to +1 (very positive), with 0 being neutral</li>
+            <li><strong>Confidence:</strong> Ratio of sentiment-bearing words to total words; higher values indicate stronger sentiment signals</li>
+            <li><strong>Intensifiers:</strong> Words that amplify sentiment (e.g., "very good" is more positive than just "good")</li>
+            <li><strong>Negation:</strong> Words that flip sentiment polarity (e.g., "not good" becomes negative)</li>
+          </ul>
+          <p>
+            <strong>Use cases:</strong> Customer feedback analysis, product review monitoring, 
+            social media sentiment tracking, brand reputation analysis, survey response evaluation, 
+            content moderation, and market research.
+          </p>
+          <p>
+            <strong>Interpreting results:</strong> The summary shows the distribution of positive, 
+            negative, and neutral texts as both counts and percentages. Average score indicates 
+            overall sentiment tendency. Individual results show per-text sentiment with scores 
+            and confidence levels. High confidence scores indicate clear sentiment, while low 
+            confidence may suggest mixed or neutral content.
+          </p>
+          <p>
+            <strong>Limitations:</strong> Sentiment analysis works best on opinion-rich text. 
+            It may struggle with sarcasm, irony, domain-specific jargon, or highly nuanced 
+            expressions. Results should be validated against human judgment for critical applications.
+          </p>
+          <p>
+            <strong>Visualization options:</strong> Bar Chart (shows distribution of positive, negative, neutral)
+          </p>
+          <p className='wiki-source'>
+            <strong>Sources:</strong>
+            <br/>Sentiment Analysis Overview: Liu, B. (2012). Sentiment Analysis and Opinion Mining. <em>Synthesis Lectures on Human Language Technologies</em>, 5(1), 1-167. Morgan & Claypool Publishers.
+            <br/>VADER: Hutto, C. J., & Gilbert, E. (2014). VADER: A Parsimonious Rule-based Model for Sentiment Analysis of Social Media Text. <em>Proceedings of the International AAAI Conference on Web and Social Media</em>, 8(1), 216-225.
+            <br/>Lexicon-based Methods: Wilson, T., Wiebe, J., & Hoffmann, P. (2005). Recognizing contextual polarity in phrase-level sentiment analysis. <em>Proceedings of Human Language Technology Conference and Conference on Empirical Methods in Natural Language Processing</em>, 347-354.
+          </p>
+        </div>
+
+        <div className='wiki-item'>
           <h4>Document Embeddings with Dimensionality Reduction</h4>
           <p>
             <strong>What it does:</strong> Creates vector representations (embeddings) of your documents 
