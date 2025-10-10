@@ -1025,9 +1025,12 @@ export const analyzeSentiment = (texts, { method = 'lexicon', stopwords = new Se
         }
         
         // Look for exclamation marks (increases intensity)
-        if (text.includes('!')) {
-          score *= 1.1
-        }
+        // (Moved outside the token loop)
+      }
+      
+      // Apply exclamation mark intensity modifier once per text
+      if (text.includes('!')) {
+        score *= 1.1
       }
       
       // Normalize
