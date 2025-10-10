@@ -1245,3 +1245,205 @@ export const analyzeSentiment = (texts, { method = 'lexicon', stopwords = new Se
     method
   }
 }
+
+/**
+ * Analyze readability statistics of texts using multiple algorithms
+ * Implements 6 widely-used readability formulas to assess text difficulty
+ * @param {string[]} texts - Array of text documents to analyze
+ * @param {Object} options - Analysis options
+ * @param {boolean} options.perDocument - Return per-document scores (default: true)
+ * @returns {Object} Object with readability scores for each algorithm and interpretation
+ */
+export const analyzeReadability = (texts, { perDocument = true } = {}) => {
+  // Helper function to count syllables in a word
+  const countSyllables = (word) => {
+    word = word.toLowerCase().trim()
+    if (word.length <= 3) return 1
+    
+    // Remove silent 'e' at the end
+    word = word.replace(/(?:[^laeiouy]es|ed|[^laeiouy]e)$/, '')
+    // Remove trailing 'e'
+    word = word.replace(/^y/, '')
+    
+    // Count vowel groups
+    const syllableMatches = word.match(/[aeiouy]{1,2}/g)
+    return syllableMatches ? syllableMatches.length : 1
+  }
+  
+  // Helper function to count sentences in text
+  const countSentences = (text) => {
+    // Split on sentence-ending punctuation
+    const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0)
+    return Math.max(sentences.length, 1) // At least 1 sentence
+  }
+  
+  // Helper function to count complex words (3+ syllables)
+  const countComplexWords = (words) => {
+    return words.filter(word => countSyllables(word) >= 3).length
+  }
+  
+  // Helper function to count polysyllabic words (3+ syllables)
+  const countPolysyllabicWords = (words) => {
+    return words.filter(word => countSyllables(word) >= 3).length
+  }
+  
+  // Analyze a single document
+  const analyzeDocument = (text) => {
+    if (!text || text.trim().length === 0) {
+      return {
+        flesch: 0,
+        fleschKincaid: 0,
+        colemanLiau: 0,
+        gunningFog: 0,
+        smog: 0,
+        ari: 0,
+        words: 0,
+        sentences: 0,
+        syllables: 0,
+        characters: 0,
+        complexWords: 0
+      }
+    }
+    
+    // Tokenize and clean
+    const words = tokenize(text).filter(w => w.length > 0)
+    const wordCount = words.length
+    const sentenceCount = countSentences(text)
+    const syllableCount = words.reduce((sum, word) => sum + countSyllables(word), 0)
+    const characterCount = words.join('').length
+    const complexWordCount = countComplexWords(words)
+    const polysyllabicCount = countPolysyllabicWords(words)
+    
+    // Prevent division by zero
+    if (wordCount === 0 || sentenceCount === 0) {
+      return {
+        flesch: 0,
+        fleschKincaid: 0,
+        colemanLiau: 0,
+        gunningFog: 0,
+        smog: 0,
+        ari: 0,
+        words: wordCount,
+        sentences: sentenceCount,
+        syllables: syllableCount,
+        characters: characterCount,
+        complexWords: complexWordCount
+      }
+    }
+    
+    const avgWordsPerSentence = wordCount / sentenceCount
+    const avgSyllablesPerWord = syllableCount / wordCount
+    const avgCharactersPerWord = characterCount / wordCount
+    
+    // 1. Flesch Reading Ease (0-100 scale, higher = easier)
+    // Formula: 206.835 - 1.015(total words/total sentences) - 84.6(total syllables/total words)
+    const flesch = 206.835 - (1.015 * avgWordsPerSentence) - (84.6 * avgSyllablesPerWord)
+    
+    // 2. Flesch-Kincaid Grade Level (US grade level)
+    // Formula: 0.39(total words/total sentences) + 11.8(total syllables/total words) - 15.59
+    const fleschKincaid = (0.39 * avgWordsPerSentence) + (11.8 * avgSyllablesPerWord) - 15.59
+    
+    // 3. Coleman-Liau Index (US grade level, based on characters)
+    // Formula: 0.0588L - 0.296S - 15.8
+    // L = average number of letters per 100 words
+    // S = average number of sentences per 100 words
+    const L = (characterCount / wordCount) * 100
+    const S = (sentenceCount / wordCount) * 100
+    const colemanLiau = (0.0588 * L) - (0.296 * S) - 15.8
+    
+    // 4. Gunning Fog Index (years of education needed)
+    // Formula: 0.4 * ((words/sentences) + 100 * (complex words/words))
+    const percentComplexWords = (complexWordCount / wordCount) * 100
+    const gunningFog = 0.4 * (avgWordsPerSentence + percentComplexWords)
+    
+    // 5. SMOG Index (Simple Measure of Gobbledygook)
+    // Formula: 1.0430 * sqrt(polysyllables * (30/sentences)) + 3.1291
+    // Requires at least 30 sentences for accuracy, but we'll calculate anyway
+    const smog = 1.0430 * Math.sqrt(polysyllabicCount * (30 / sentenceCount)) + 3.1291
+    
+    // 6. Automated Readability Index (ARI)
+    // Formula: 4.71(characters/words) + 0.5(words/sentences) - 21.43
+    const ari = (4.71 * avgCharactersPerWord) + (0.5 * avgWordsPerSentence) - 21.43
+    
+    return {
+      flesch: parseFloat(flesch.toFixed(2)),
+      fleschKincaid: parseFloat(Math.max(0, fleschKincaid).toFixed(2)),
+      colemanLiau: parseFloat(Math.max(0, colemanLiau).toFixed(2)),
+      gunningFog: parseFloat(Math.max(0, gunningFog).toFixed(2)),
+      smog: parseFloat(Math.max(0, smog).toFixed(2)),
+      ari: parseFloat(Math.max(0, ari).toFixed(2)),
+      words: wordCount,
+      sentences: sentenceCount,
+      syllables: syllableCount,
+      characters: characterCount,
+      complexWords: complexWordCount
+    }
+  }
+  
+  // Analyze all documents
+  const results = texts.map((text, index) => ({
+    index,
+    text: text.substring(0, 100) + (text.length > 100 ? '...' : ''),
+    ...analyzeDocument(text)
+  }))
+  
+  // Calculate aggregate statistics (average across all documents)
+  const aggregate = {
+    flesch: parseFloat((results.reduce((sum, r) => sum + r.flesch, 0) / results.length).toFixed(2)),
+    fleschKincaid: parseFloat((results.reduce((sum, r) => sum + r.fleschKincaid, 0) / results.length).toFixed(2)),
+    colemanLiau: parseFloat((results.reduce((sum, r) => sum + r.colemanLiau, 0) / results.length).toFixed(2)),
+    gunningFog: parseFloat((results.reduce((sum, r) => sum + r.gunningFog, 0) / results.length).toFixed(2)),
+    smog: parseFloat((results.reduce((sum, r) => sum + r.smog, 0) / results.length).toFixed(2)),
+    ari: parseFloat((results.reduce((sum, r) => sum + r.ari, 0) / results.length).toFixed(2)),
+    totalWords: results.reduce((sum, r) => sum + r.words, 0),
+    totalSentences: results.reduce((sum, r) => sum + r.sentences, 0),
+    totalSyllables: results.reduce((sum, r) => sum + r.syllables, 0),
+    totalCharacters: results.reduce((sum, r) => sum + r.characters, 0),
+    totalComplexWords: results.reduce((sum, r) => sum + r.complexWords, 0),
+    avgWords: parseFloat((results.reduce((sum, r) => sum + r.words, 0) / results.length).toFixed(2)),
+    avgSentences: parseFloat((results.reduce((sum, r) => sum + r.sentences, 0) / results.length).toFixed(2))
+  }
+  
+  // Interpret Flesch Reading Ease score
+  const interpretFlesch = (score) => {
+    if (score >= 90) return 'Very Easy (5th grade)'
+    if (score >= 80) return 'Easy (6th grade)'
+    if (score >= 70) return 'Fairly Easy (7th grade)'
+    if (score >= 60) return 'Standard (8th-9th grade)'
+    if (score >= 50) return 'Fairly Difficult (10th-12th grade)'
+    if (score >= 30) return 'Difficult (College)'
+    return 'Very Difficult (College graduate)'
+  }
+  
+  // Interpret grade level scores
+  const interpretGradeLevel = (grade) => {
+    if (grade <= 6) return 'Elementary'
+    if (grade <= 8) return 'Middle School'
+    if (grade <= 12) return 'High School'
+    if (grade <= 16) return 'College'
+    return 'Graduate Level'
+  }
+  
+  const interpretation = {
+    flesch: interpretFlesch(aggregate.flesch),
+    fleschKincaid: interpretGradeLevel(aggregate.fleschKincaid),
+    colemanLiau: interpretGradeLevel(aggregate.colemanLiau),
+    gunningFog: interpretGradeLevel(aggregate.gunningFog),
+    smog: interpretGradeLevel(aggregate.smog),
+    ari: interpretGradeLevel(aggregate.ari)
+  }
+  
+  return {
+    results: perDocument ? results : [],
+    aggregate,
+    interpretation,
+    algorithms: [
+      'Flesch Reading Ease',
+      'Flesch-Kincaid Grade Level',
+      'Coleman-Liau Index',
+      'Gunning Fog Index',
+      'SMOG Index',
+      'Automated Readability Index (ARI)'
+    ]
+  }
+}

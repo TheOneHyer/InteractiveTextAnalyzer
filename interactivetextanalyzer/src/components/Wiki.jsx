@@ -660,6 +660,103 @@ export default function Wiki() {
             <a href="https://doi.org/10.1016/0306-4573(88)90021-0" target="_blank" rel="noopener noreferrer">https://doi.org/10.1016/0306-4573(88)90021-0</a>
           </p>
         </div>
+
+        <div className='wiki-item'>
+          <h4>Readability Statistics</h4>
+          <p>
+            <strong>What it does:</strong> Evaluates how easy or difficult your text is to read using 
+            six well-established readability formulas. Each algorithm assesses text complexity from a 
+            different perspective, providing a comprehensive view of your content's accessibility. 
+            Results are expressed as grade levels (years of education required) or standardized scores.
+          </p>
+          <p>
+            <strong>How it works:</strong> The analyzer examines multiple text features including word 
+            length (syllables, characters), sentence length, and vocabulary complexity. Each algorithm 
+            applies a distinct mathematical formula based on extensive linguistic research. The system 
+            automatically counts syllables using vowel clustering patterns, identifies sentence boundaries, 
+            and calculates complex word ratios.
+          </p>
+          <p>
+            <strong>The Six Algorithms:</strong>
+          </p>
+          <ul>
+            <li>
+              <strong>Flesch Reading Ease:</strong> Provides a score from 0-100 where higher scores 
+              indicate easier text. Developed by Rudolf Flesch in 1948, it's one of the most widely 
+              used readability metrics. Formula: 206.835 - 1.015(words/sentences) - 84.6(syllables/words). 
+              90-100 = 5th grade, 60-70 = 8th-9th grade, 0-30 = college graduate level.
+            </li>
+            <li>
+              <strong>Flesch-Kincaid Grade Level:</strong> Translates the Flesch score into U.S. grade 
+              levels. Developed for the U.S. Navy in 1975, it's used extensively in education and 
+              government. Formula: 0.39(words/sentences) + 11.8(syllables/words) - 15.59. A score of 
+              8.0 means 8th grade reading level.
+            </li>
+            <li>
+              <strong>Coleman-Liau Index:</strong> Uses character count instead of syllables, making it 
+              more reliable for computer analysis. Developed in 1975 by Meri Coleman and T. L. Liau. 
+              Formula: 0.0588L - 0.296S - 15.8 (L = letters per 100 words, S = sentences per 100 words). 
+              Returns U.S. grade level.
+            </li>
+            <li>
+              <strong>Gunning Fog Index:</strong> Estimates years of formal education needed to understand 
+              text on first reading. Created by Robert Gunning in 1952, it emphasizes complex words. 
+              Formula: 0.4 * ((words/sentences) + 100 * (complex words/words)). Complex words have 3+ 
+              syllables. Ideal score is 7-8 (readable), 17+ is very difficult.
+            </li>
+            <li>
+              <strong>SMOG Index:</strong> Simple Measure of Gobbledygook, developed by G. Harry McLaughlin 
+              in 1969. Specifically designed for health care materials. Formula: 1.0430 * √(polysyllables * 
+              30/sentences) + 3.1291. More reliable for texts with complex vocabulary.
+            </li>
+            <li>
+              <strong>Automated Readability Index (ARI):</strong> Developed in 1967 for real-time readability 
+              on electric typewriters. Uses character count and sentence length. Formula: 4.71(characters/words) 
+              + 0.5(words/sentences) - 21.43. Returns approximate U.S. grade level.
+            </li>
+          </ul>
+          <p>
+            <strong>Use cases:</strong> Educational content creation, technical writing assessment, marketing 
+            copy optimization, accessibility compliance, content strategy, health communication, legal document 
+            analysis, and ensuring materials match target audience reading level.
+          </p>
+          <p>
+            <strong>Interpreting results:</strong> Each document receives individual scores plus an aggregate 
+            average. Grade levels indicate the years of education needed: 6 = elementary, 8 = middle school, 
+            12 = high school, 16 = college. Most web content targets 8th-10th grade level. Technical papers 
+            typically score 13-16. Children's books score 2-4. Use multiple algorithms together for the most 
+            reliable assessment—if all algorithms agree, confidence is high.
+          </p>
+          <p>
+            <strong>Best practices:</strong> For general audiences, aim for 7th-8th grade level (Flesch-Kincaid 
+            7-8, Flesch Reading Ease 60-70). For specialized audiences (academic, technical), higher complexity 
+            is acceptable. Lower scores don't mean "dumbed down"—they mean clear, accessible communication. 
+            Analyze multiple documents together for consistent scoring. Use readability scores as guides, not 
+            absolute rules.
+          </p>
+          <p>
+            <strong>Visualization options:</strong> Bar Chart (compare scores across algorithms), List view 
+            (detailed per-document analysis)
+          </p>
+          <p className='wiki-source'>
+            <strong>Sources:</strong>
+            <br/>Flesch, R. (1948). A new readability yardstick. <em>Journal of Applied Psychology</em>, 32(3), 221-233. 
+            <a href="https://doi.org/10.1037/h0057532" target="_blank" rel="noopener noreferrer">https://doi.org/10.1037/h0057532</a>
+            <br/>Kincaid, J. P., Fishburne, R. P., Rogers, R. L., & Chissom, B. S. (1975). <em>Derivation of New Readability Formulas for Navy Enlisted Personnel</em>. 
+            Research Branch Report 8-75. Naval Technical Training Command. 
+            <a href="https://apps.dtic.mil/sti/citations/ADA006655" target="_blank" rel="noopener noreferrer">https://apps.dtic.mil/sti/citations/ADA006655</a>
+            <br/>Coleman, M., & Liau, T. L. (1975). A computer readability formula designed for machine scoring. <em>Journal of Applied Psychology</em>, 60(2), 283-284. 
+            <a href="https://doi.org/10.1037/h0076540" target="_blank" rel="noopener noreferrer">https://doi.org/10.1037/h0076540</a>
+            <br/>Gunning, R. (1952). <em>The Technique of Clear Writing</em>. New York: McGraw-Hill.
+            <br/>McLaughlin, G. H. (1969). SMOG Grading: A New Readability Formula. <em>Journal of Reading</em>, 12(8), 639-646. 
+            <a href="https://www.jstor.org/stable/40011226" target="_blank" rel="noopener noreferrer">https://www.jstor.org/stable/40011226</a>
+            <br/>Smith, E. A., & Senter, R. J. (1967). <em>Automated Readability Index</em>. AMRL-TR-66-220. 
+            Aerospace Medical Research Laboratories. 
+            <a href="https://apps.dtic.mil/sti/citations/AD0667273" target="_blank" rel="noopener noreferrer">https://apps.dtic.mil/sti/citations/AD0667273</a>
+            <br/>DuBay, W. H. (2004). <em>The Principles of Readability</em>. Costa Mesa, CA: Impact Information. 
+            <a href="http://www.impact-information.com/impactinfo/readability02.pdf" target="_blank" rel="noopener noreferrer">http://www.impact-information.com/impactinfo/readability02.pdf</a>
+          </p>
+        </div>
       </section>
 
       <section className='wiki-section'>

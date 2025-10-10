@@ -297,6 +297,141 @@ const result = performTopicModeling(docs, {
 5. Calculates document-topic distributions
 6. Identifies topic co-occurrence patterns
 
+##### `analyzeReadability(texts, options)`
+Analyzes text readability using six established readability formulas to assess content complexity and accessibility.
+
+**Parameters:**
+- `texts` (string[]): Array of text documents to analyze
+- `options.perDocument` (boolean): Return per-document scores (default: true)
+
+**Returns:** Object with:
+- `results`: Array of per-document readability scores (if perDocument is true)
+- `aggregate`: Average scores across all documents
+- `interpretation`: Human-readable interpretations for each algorithm
+- `algorithms`: List of algorithm names used
+
+**Six Readability Algorithms:**
+
+1. **Flesch Reading Ease** (0-100 scale, higher = easier)
+   - 90-100: Very Easy (5th grade)
+   - 60-70: Standard (8th-9th grade)
+   - 0-30: Very Difficult (college graduate)
+
+2. **Flesch-Kincaid Grade Level** (U.S. grade level)
+   - Returns approximate years of education needed
+   
+3. **Coleman-Liau Index** (U.S. grade level)
+   - Uses character count instead of syllables
+   - More reliable for computer analysis
+   
+4. **Gunning Fog Index** (years of education)
+   - Emphasizes complex words (3+ syllables)
+   - Ideal score: 7-8 (readable)
+   
+5. **SMOG Index** (grade level)
+   - Simple Measure of Gobbledygook
+   - Designed for health care materials
+   
+6. **Automated Readability Index (ARI)** (grade level)
+   - Uses character count and sentence length
+   - Fast and reliable
+
+**Result Structure:**
+```javascript
+{
+  results: [
+    {
+      index: 0,
+      text: 'truncated text...',
+      flesch: 65.5,
+      fleschKincaid: 8.2,
+      colemanLiau: 9.1,
+      gunningFog: 10.4,
+      smog: 9.8,
+      ari: 8.7,
+      words: 150,
+      sentences: 8,
+      syllables: 220,
+      characters: 650,
+      complexWords: 25
+    }
+  ],
+  aggregate: {
+    flesch: 65.5,
+    fleschKincaid: 8.2,
+    colemanLiau: 9.1,
+    gunningFog: 10.4,
+    smog: 9.8,
+    ari: 8.7,
+    totalWords: 150,
+    totalSentences: 8,
+    totalSyllables: 220,
+    totalCharacters: 650,
+    totalComplexWords: 25,
+    avgWords: 150,
+    avgSentences: 8
+  },
+  interpretation: {
+    flesch: 'Standard (8th-9th grade)',
+    fleschKincaid: 'Middle School',
+    colemanLiau: 'Middle School',
+    gunningFog: 'High School',
+    smog: 'Middle School',
+    ari: 'Middle School'
+  },
+  algorithms: [...]
+}
+```
+
+**Example:**
+```javascript
+import { analyzeReadability } from './utils/textAnalysis'
+
+const texts = [
+  'The cat sat on the mat. It was a sunny day.',
+  'Photosynthesis is a complex biochemical process that converts light energy into chemical energy.'
+]
+
+const result = analyzeReadability(texts, { perDocument: true })
+
+console.log(result.aggregate)
+// {
+//   flesch: 55.2,
+//   fleschKincaid: 10.5,
+//   colemanLiau: 9.8,
+//   ...
+// }
+
+console.log(result.interpretation.flesch)
+// 'Fairly Difficult (10th-12th grade)'
+
+// Get scores for individual documents
+result.results.forEach((doc, i) => {
+  console.log(`Document ${i + 1}: Grade Level ${doc.fleschKincaid}`)
+})
+```
+
+**Use Cases:**
+- Assessing content accessibility for target audiences
+- Optimizing marketing copy and web content (target 7th-8th grade)
+- Evaluating educational materials
+- Ensuring compliance with accessibility standards
+- Technical writing assessment
+- Health communication analysis
+
+**Best Practices:**
+- For general audiences, aim for Flesch-Kincaid grade 7-8
+- Use multiple algorithms together for most reliable assessment
+- Lower scores mean clearer communication, not "dumbed down" content
+- Analyze similar documents together for consistency
+- Consider audience expertise when interpreting scores
+
+**Academic Sources:**
+- Flesch, R. (1948). A new readability yardstick. *Journal of Applied Psychology*, 32(3), 221-233.
+- Kincaid et al. (1975). Derivation of New Readability Formulas. Naval Technical Training Command.
+- Coleman, M., & Liau, T. L. (1975). A computer readability formula. *Journal of Applied Psychology*, 60(2), 283-284.
+- McLaughlin, G. H. (1969). SMOG Grading. *Journal of Reading*, 12(8), 639-646.
+
 ---
 
 ## Statistics
