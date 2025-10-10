@@ -1451,8 +1451,23 @@ export const analyzeReadability = (texts, { perDocument = true } = {}) => {
 /**
  * Generate comprehensive report data for all-in-one reporting
  * Combines multiple analysis results into a unified report structure
- * @param {Object} analysisResults - Object containing all analysis results
- * @param {Array} texts - Array of text documents
+ * @param {Object} analysisResults - Object containing all analysis results.
+ *   Expected structure:
+ *   {
+ *     sentiment: {
+ *       summary: {
+ *         positive: number,
+ *         negative: number,
+ *         neutral: number,
+ *         avgScore: number
+ *       },
+ *       [other sentiment properties...]
+ *     },
+ *     topics: Array|Object, // Topic modeling results
+ *     readability: Object, // Readability analysis results
+ *     [other analysis types as needed]
+ *   }
+ * @param {Array<string>} texts - Array of text documents
  * @returns {Object} Comprehensive report data structure
  */
 export const generateReport = (analysisResults, texts) => {
