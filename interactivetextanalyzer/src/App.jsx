@@ -17,6 +17,7 @@ import {
   analyzeTokenization,
   analyzeLemmatization,
   analyzePartsOfSpeech,
+  analyzeSentiment,
   DEFAULT_STOPWORDS 
 } from './utils/textAnalysis'
 import { normalizeValue, getCategoricalValues } from './utils/categoricalUtils'
@@ -189,6 +190,7 @@ export default function App(){
   const [tokenizationLevel,setTokenizationLevel]=useState('word')
   const [lemmatizationMethod,setLemmatizationMethod]=useState('rules') // 'wordnet', 'rules', or 'compromise'
   const [posMethod,setPosMethod]=useState('rules') // 'rules' or 'compromise' for POS tagging
+  const [sentimentMethod,setSentimentMethod]=useState('lexicon') // 'lexicon', 'vader', or 'pattern'
   const [hiddenColumns,setHiddenColumns]=useState([])
   const [renames,setRenames]=useState({})
   const [viewMode,setViewMode]=useState('list')
@@ -944,6 +946,7 @@ export default function App(){
   const tokenization=useMemo(()=> analysisType==='tokenization'&& textSamples.length? analyzeTokenization(textSamples,{level:tokenizationLevel,top:80}): [],[analysisType,textSamples,tokenizationLevel])
   const lemmatization=useMemo(()=> analysisType==='lemmatization'&& textSamples.length? analyzeLemmatization(textSamples,{method:lemmatizationMethod,top:80,nlpLib:nlpLibs.nlp,stopwords:effectiveStopwords}): [],[analysisType,textSamples,lemmatizationMethod,nlpLibs,effectiveStopwords])
   const partsOfSpeech=useMemo(()=> analysisType==='pos'&& textSamples.length? analyzePartsOfSpeech(textSamples,{method:posMethod,top:50,nlpLib:nlpLibs.nlp,stopwords:effectiveStopwords}): null,[analysisType,textSamples,posMethod,nlpLibs,effectiveStopwords])
+  const sentiment=useMemo(()=> analysisType==='sentiment'&& textSamples.length? analyzeSentiment(textSamples,{method:sentimentMethod,stopwords:effectiveStopwords}): null,[analysisType,textSamples,sentimentMethod,effectiveStopwords])
   
   // Compute embeddings
   const embeddings=useMemo(()=> analysisType==='embeddings'&& textSamples.length>=3? computeDocumentEmbeddings(textSamples,params): null,[analysisType,textSamples,params])
@@ -1160,7 +1163,8 @@ export default function App(){
     yakeKeywords,
     tokenization,
     lemmatization,
-    partsOfSpeech
+    partsOfSpeech,
+    sentiment
   }) {
     switch (analysisType) {
       case 'assoc':
@@ -1189,6 +1193,15 @@ export default function App(){
             .sort((a, b) => b.count - a.count);
         }
         break;
+      case 'sentiment':
+        if (sentiment && sentiment.summary) {
+          return [
+            { name: 'Positive', count: sentiment.summary.positive, percentage: sentiment.summary.positivePercent },
+            { name: 'Negative', count: sentiment.summary.negative, percentage: sentiment.summary.negativePercent },
+            { name: 'Neutral', count: sentiment.summary.neutral, percentage: sentiment.summary.neutralPercent }
+          ].filter(item => item.count > 0);
+        }
+        break;
       default:
         return [];
     }
@@ -1196,8 +1209,8 @@ export default function App(){
   }
 
   const barData = useMemo(() =>
-    getBarData({analysisType, associations, tfidf, ngrams, entities, yakeKeywords, tokenization, lemmatization, partsOfSpeech}),
-    [analysisType, associations, tfidf, ngrams, entities, yakeKeywords, tokenization, lemmatization, partsOfSpeech]
+    getBarData({analysisType, associations, tfidf, ngrams, entities, yakeKeywords, tokenization, lemmatization, partsOfSpeech, sentiment}),
+    [analysisType, associations, tfidf, ngrams, entities, yakeKeywords, tokenization, lemmatization, partsOfSpeech, sentiment]
   );
   // Mutators
   // eslint-disable-next-line no-unused-vars
@@ -1410,6 +1423,11 @@ export default function App(){
         method: lemmatizationMethod,
         lemmas: lemmatization
       }
+    } else if (analysisType === 'sentiment') {
+      payload.sentiment = {
+        method: sentimentMethod,
+        ...sentiment
+      }
     }
     
     const blob = new Blob([JSON.stringify(payload, null, 2)], {type: 'application/json'})
@@ -1429,10 +1447,11 @@ export default function App(){
   // - embeddings: scatter
   // - dependency: network
   // - lemmatization: bar, wordcloud, network
+  // - sentiment: bar
   const isVisualizationAvailable = (vizType) => {
     switch(vizType) {
       case 'bar':
-        return analysisType === 'tfidf' || analysisType === 'ngram' || analysisType === 'ner' || analysisType === 'assoc' || analysisType === 'yake' || analysisType === 'lemmatization'
+        return analysisType === 'tfidf' || analysisType === 'ngram' || analysisType === 'ner' || analysisType === 'assoc' || analysisType === 'yake' || analysisType === 'lemmatization' || analysisType === 'sentiment'
       case 'wordcloud':
         return analysisType === 'tfidf' || analysisType === 'ngram' || analysisType === 'ner' || analysisType === 'assoc' || analysisType === 'yake' || analysisType === 'lemmatization'
       case 'network':
@@ -1935,6 +1954,7 @@ export default function App(){
                     <option value='yake'>YAKE</option>
                     <option value='lemmatization'>Lemmatization</option>
                     <option value='pos'>Parts of Speech</option>
+                    <option value='sentiment'>Sentiment Analysis</option>
                     <option value='embeddings'>Embeddings</option>
                     <option value='dependency'>Dependency Parsing</option>
                   </select>
@@ -1977,6 +1997,11 @@ export default function App(){
                 {analysisType==='pos' && (
                   <div className='notice' style={{marginTop:8}}>
                     <strong>Parts of Speech:</strong> Identifies and categorizes words by grammatical function (nouns, verbs, adjectives, etc.).
+                  </div>
+                )}
+                {analysisType==='sentiment' && (
+                  <div className='notice' style={{marginTop:8}}>
+                    <strong>Sentiment Analysis:</strong> Determines the emotional tone (positive, negative, neutral) of text using selected algorithm.
                   </div>
                 )}
                 {analysisType==='embeddings' && (
@@ -2026,6 +2051,16 @@ export default function App(){
                     <select value={posMethod} onChange={e=>setPosMethod(e.target.value)} style={{width:'100%',marginTop:4}}>
                       <option value='rules'>Rules-Based</option>
                       <option value='compromise'>Compromise NLP</option>
+                    </select>
+                  </label>
+                )}
+                {analysisType==='sentiment' && (
+                  <label style={{fontSize:12}}>
+                    Algorithm
+                    <select value={sentimentMethod} onChange={e=>setSentimentMethod(e.target.value)} style={{width:'100%',marginTop:4}}>
+                      <option value='lexicon'>Lexicon-Based</option>
+                      <option value='vader'>VADER-Like</option>
+                      <option value='pattern'>Pattern-Based</option>
                     </select>
                   </label>
                 )}

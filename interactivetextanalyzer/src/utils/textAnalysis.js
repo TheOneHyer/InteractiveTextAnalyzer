@@ -834,3 +834,257 @@ export const analyzePartsOfSpeech = (texts, { method = 'rules', top = 50, nlpLib
     }, {})
   }
 }
+
+/**
+ * Analyze sentiment of texts using various algorithms
+ * @param {string[]} texts - Array of texts to analyze
+ * @param {Object} options - Analysis options
+ * @param {string} options.method - Sentiment analysis method: 'lexicon', 'vader', 'pattern'
+ * @param {Set} options.stopwords - Set of stopwords to exclude
+ * @returns {Object} Sentiment analysis results with scores and classifications
+ */
+export const analyzeSentiment = (texts, { method = 'lexicon', stopwords = new Set() }) => {
+  // Sentiment lexicons
+  const positiveLexicon = new Set([
+    'good', 'great', 'excellent', 'amazing', 'wonderful', 'fantastic', 'love', 'loved',
+    'awesome', 'beautiful', 'best', 'brilliant', 'enjoy', 'enjoyed', 'happy', 'perfect',
+    'pleased', 'satisfied', 'outstanding', 'superb', 'terrific', 'delightful', 'impressive',
+    'appreciate', 'appreciated', 'fabulous', 'nice', 'pleasant', 'positive', 'recommended',
+    'superior', 'valuable', 'worthy', 'exceptional', 'marvelous', 'incredible', 'stunning',
+    'magnificent', 'spectacular', 'phenomenal', 'favorable', 'beneficial', 'advantage',
+    'success', 'successful', 'win', 'winner', 'wins', 'winning', 'triumph', 'victory',
+    'helpful', 'useful', 'effective', 'efficient', 'quality', 'reliable', 'trustworthy'
+  ])
+  
+  const negativeLexicon = new Set([
+    'bad', 'terrible', 'horrible', 'awful', 'poor', 'worst', 'hate', 'hated', 'disappointing',
+    'disappointed', 'dissatisfied', 'unhappy', 'useless', 'pathetic', 'disgusting', 'mediocre',
+    'inferior', 'defective', 'broken', 'failed', 'failure', 'problem', 'problems', 'issue',
+    'issues', 'concern', 'concerns', 'difficult', 'hard', 'complicated', 'confusing',
+    'annoying', 'frustrating', 'frustrated', 'waste', 'wasted', 'disappointing', 'lacking',
+    'missing', 'slow', 'expensive', 'overpriced', 'uncomfortable', 'unpleasant', 'negative',
+    'regret', 'sorry', 'unfortunately', 'sadly', 'boring', 'dull', 'bland', 'weak'
+  ])
+  
+  // Intensifiers for VADER-like approach
+  const intensifiers = {
+    'very': 1.5, 'really': 1.5, 'extremely': 2.0, 'absolutely': 1.8, 'completely': 1.8,
+    'totally': 1.8, 'highly': 1.5, 'incredibly': 2.0, 'remarkably': 1.7, 'exceptionally': 1.9,
+    'particularly': 1.3, 'especially': 1.5, 'quite': 1.3, 'fairly': 1.2, 'rather': 1.2,
+    'somewhat': 0.8, 'slightly': 0.7, 'barely': 0.5, 'hardly': 0.5, 'scarcely': 0.5
+  }
+  
+  // Negation words
+  const negations = new Set([
+    'not', 'no', 'never', 'neither', 'nobody', 'nothing', 'nowhere', 'none',
+    "n't", "don't", "doesn't", "didn't", "won't", "wouldn't", "can't", "cannot",
+    "couldn't", "shouldn't", "isn't", "aren't", "wasn't", "weren't"
+  ])
+  
+  const results = []
+  let totalPositive = 0
+  let totalNegative = 0
+  let totalNeutral = 0
+  
+  // Strategy pattern for different sentiment methods
+  const analyzeSingle = (text) => {
+    const tokens = tokenize(text).filter(tok => !stopwords.has(tok))
+    
+    if (method === 'lexicon') {
+      // Simple lexicon-based approach
+      let positiveCount = 0
+      let negativeCount = 0
+      
+      tokens.forEach(token => {
+        if (positiveLexicon.has(token)) positiveCount++
+        if (negativeLexicon.has(token)) negativeCount++
+      })
+      
+      const totalSentimentWords = positiveCount + negativeCount
+      if (totalSentimentWords === 0) {
+        return { sentiment: 'neutral', score: 0, positive: 0, negative: 0, confidence: 0 }
+      }
+      
+      const score = (positiveCount - negativeCount) / totalSentimentWords
+      const confidence = totalSentimentWords / tokens.length
+      
+      let sentiment = 'neutral'
+      if (score > 0.1) sentiment = 'positive'
+      else if (score < -0.1) sentiment = 'negative'
+      
+      return { 
+        sentiment, 
+        score: parseFloat(score.toFixed(3)), 
+        positive: positiveCount, 
+        negative: negativeCount,
+        confidence: parseFloat(confidence.toFixed(3))
+      }
+      
+    } else if (method === 'vader') {
+      // VADER-like approach with intensifiers and negations
+      let score = 0
+      let positiveCount = 0
+      let negativeCount = 0
+      
+      for (let i = 0; i < tokens.length; i++) {
+        const token = tokens[i]
+        const prevToken = i > 0 ? tokens[i - 1] : null
+        const prevPrevToken = i > 1 ? tokens[i - 2] : null
+        
+        let tokenScore = 0
+        if (positiveLexicon.has(token)) {
+          tokenScore = 1
+          positiveCount++
+        } else if (negativeLexicon.has(token)) {
+          tokenScore = -1
+          negativeCount++
+        }
+        
+        if (tokenScore !== 0) {
+          // Apply intensifier from previous token
+          if (prevToken && intensifiers[prevToken]) {
+            tokenScore *= intensifiers[prevToken]
+          }
+          
+          // Apply negation from previous tokens (within 3 words)
+          let negated = false
+          if (prevToken && negations.has(prevToken)) negated = true
+          if (prevPrevToken && negations.has(prevPrevToken)) negated = true
+          
+          if (negated) {
+            tokenScore *= -0.8  // Flip and slightly reduce
+          }
+          
+          score += tokenScore
+        }
+      }
+      
+      // Normalize score to [-1, 1]
+      if (tokens.length > 0) {
+        score = score / tokens.length
+        score = Math.max(-1, Math.min(1, score))
+      }
+      
+      const confidence = (positiveCount + negativeCount) / tokens.length
+      
+      let sentiment = 'neutral'
+      if (score > 0.05) sentiment = 'positive'
+      else if (score < -0.05) sentiment = 'negative'
+      
+      return { 
+        sentiment, 
+        score: parseFloat(score.toFixed(3)), 
+        positive: positiveCount, 
+        negative: negativeCount,
+        confidence: parseFloat(confidence.toFixed(3))
+      }
+      
+    } else if (method === 'pattern') {
+      // Pattern-based approach with additional context
+      let score = 0
+      let positiveCount = 0
+      let negativeCount = 0
+      
+      // Check for patterns like "not good" or "very bad"
+      for (let i = 0; i < tokens.length; i++) {
+        const token = tokens[i]
+        const prevToken = i > 0 ? tokens[i - 1] : null
+        const nextToken = i < tokens.length - 1 ? tokens[i + 1] : null
+        
+        let tokenScore = 0
+        if (positiveLexicon.has(token)) {
+          tokenScore = 0.5
+          positiveCount++
+        } else if (negativeLexicon.has(token)) {
+          tokenScore = -0.5
+          negativeCount++
+        }
+        
+        // Context modifiers
+        if (tokenScore !== 0) {
+          // Check for negation pattern
+          if (prevToken && negations.has(prevToken)) {
+            tokenScore *= -1
+          }
+          
+          // Check for intensifier pattern
+          if (prevToken && intensifiers[prevToken]) {
+            tokenScore *= intensifiers[prevToken]
+          }
+          
+          // Check for comparative/superlative patterns (better/best, worse/worst)
+          if (token === 'better' || token === 'best' || token === 'improved') {
+            tokenScore = 0.7
+            positiveCount++
+          } else if (token === 'worse' || token === 'worst' || token === 'deteriorated') {
+            tokenScore = -0.7
+            negativeCount++
+          }
+          
+          score += tokenScore
+        }
+        
+        // Look for exclamation marks (increases intensity)
+        if (text.includes('!')) {
+          score *= 1.1
+        }
+      }
+      
+      // Normalize
+      if (tokens.length > 0) {
+        score = score / Math.sqrt(tokens.length)  // Square root for softer normalization
+        score = Math.max(-1, Math.min(1, score))
+      }
+      
+      const confidence = (positiveCount + negativeCount) / tokens.length
+      
+      let sentiment = 'neutral'
+      if (score > 0.08) sentiment = 'positive'
+      else if (score < -0.08) sentiment = 'negative'
+      
+      return { 
+        sentiment, 
+        score: parseFloat(score.toFixed(3)), 
+        positive: positiveCount, 
+        negative: negativeCount,
+        confidence: parseFloat(confidence.toFixed(3))
+      }
+    }
+    
+    return { sentiment: 'neutral', score: 0, positive: 0, negative: 0, confidence: 0 }
+  }
+  
+  // Analyze each text
+  texts.forEach((text, index) => {
+    const analysis = analyzeSingle(text)
+    results.push({
+      text: text.substring(0, 100) + (text.length > 100 ? '...' : ''),  // Truncate for display
+      ...analysis,
+      index
+    })
+    
+    if (analysis.sentiment === 'positive') totalPositive++
+    else if (analysis.sentiment === 'negative') totalNegative++
+    else totalNeutral++
+  })
+  
+  // Calculate aggregate statistics
+  const avgScore = results.reduce((sum, r) => sum + r.score, 0) / results.length
+  const avgConfidence = results.reduce((sum, r) => sum + r.confidence, 0) / results.length
+  
+  return {
+    results,
+    summary: {
+      total: texts.length,
+      positive: totalPositive,
+      negative: totalNegative,
+      neutral: totalNeutral,
+      positivePercent: parseFloat(((totalPositive / texts.length) * 100).toFixed(2)),
+      negativePercent: parseFloat(((totalNegative / texts.length) * 100).toFixed(2)),
+      neutralPercent: parseFloat(((totalNeutral / texts.length) * 100).toFixed(2)),
+      avgScore: parseFloat(avgScore.toFixed(3)),
+      avgConfidence: parseFloat(avgConfidence.toFixed(3))
+    },
+    method
+  }
+}
