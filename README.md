@@ -8,8 +8,9 @@ The app is automatically deployed to GitHub Pages: [https://theonehyer.github.io
 
 ## Features
 
+- **Comprehensive Reporting** - All-in-one report with executive summary, content analysis, comparative analysis, and actionable insights
 - Text analysis with natural language processing
-- Multiple visualization types (Word Cloud, Network Graph, Heatmap)
+- Multiple visualization types (Word Cloud, Network Graph, Heatmap, Charts)
 - CSV and XLSX data import and export
 - Dark/Light theme support
 - Responsive design
@@ -82,3 +83,44 @@ The application is automatically deployed to GitHub Pages when changes are pushe
 4. Deploys to GitHub Pages
 
 The deployment workflow can also be triggered manually from the Actions tab.
+
+## Report Feature
+
+The **Report** tab provides a comprehensive all-in-one analysis report that automatically aggregates results from all analysis types. Located between the Analyzer and Wiki tabs in the navigation sidebar.
+
+### Report Sections
+
+#### 📊 Executive Summary
+- **Sentiment Distribution**: Pie chart showing positive, negative, and neutral sentiment percentages
+- **Key Topics & Themes**: Top identified topics with their representative terms
+- **Top Keywords**: Bar chart of most significant terms by TF-IDF score
+- **Readability Metrics**: Overview of text complexity with plain-language interpretations
+
+#### 📝 Content Analysis
+- **Named Entities**: Organizations, locations, and people mentioned in the text
+- **Parts of Speech Distribution**: Grammatical composition analysis
+- **Sentiment by Category**: Breakdown of sentiment across different content areas
+
+#### 📈 Comparative Analysis
+- **Text Complexity Metrics**: Radar chart comparing all 6 readability algorithms
+- **Statistical Summary**: Document count, token count, unique terms, and averages
+
+#### 💡 Actionable Insights
+- **Sentiment Concerns**: Warnings when significant negative sentiment is detected
+- **Readability Notices**: Alerts for unusually high or low text complexity
+- **Primary Focus Areas**: Summary of dominant topics and themes
+- **Recurring Themes**: Highlights of most frequent terms and patterns
+
+### Export Options
+- **Print Report**: Functional browser print for PDF generation
+- Export to PDF (coming soon)
+- Export to PowerPoint (coming soon)
+- Export to CSV (coming soon)
+
+### Technical Details
+- Automatically generates from available analysis results
+- Lazy loaded for optimal performance
+- Responsive design adapts to all screen sizes
+- Print-friendly CSS for report generation
+
+See [REPORT_FEATURE_SUMMARY.md](REPORT_FEATURE_SUMMARY.md) for detailed implementation documentation.
