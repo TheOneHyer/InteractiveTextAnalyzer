@@ -77,6 +77,7 @@ export function initializeLazyLoading() {
   lazyLoader.register('ScatterPlot', () => import('../components/ScatterPlot'), 4)
   lazyLoader.register('Wiki', () => import('../components/Wiki'), 5)
   lazyLoader.register('DependencyTreeVisualization', () => import('../components/DependencyTreeVisualization'), 6)
+  lazyLoader.register('Report', () => import('../components/Report'), 7)
   
   // Register NLP library with lower priority (loads last)
   lazyLoader.register('compromise', async () => {

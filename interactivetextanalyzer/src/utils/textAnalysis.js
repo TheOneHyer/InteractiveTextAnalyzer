@@ -1447,3 +1447,130 @@ export const analyzeReadability = (texts, { perDocument = true } = {}) => {
     ]
   }
 }
+
+/**
+ * Generate comprehensive report data for all-in-one reporting
+ * Combines multiple analysis results into a unified report structure
+ * @param {Object} analysisResults - Object containing all analysis results.
+ *   Expected structure:
+ *   {
+ *     sentiment: {
+ *       summary: {
+ *         positive: number,
+ *         negative: number,
+ *         neutral: number,
+ *         avgScore: number
+ *       },
+ *       [other sentiment properties...]
+ *     },
+ *     topics: Array|Object, // Topic modeling results
+ *     readability: Object, // Readability analysis results
+ *     [other analysis types as needed]
+ *   }
+ * @param {Array<string>} texts - Array of text documents
+ * @returns {Object} Comprehensive report data structure
+ */
+export const generateReport = (analysisResults, texts) => {
+  if (!analysisResults || !texts || texts.length === 0) {
+    return { hasData: false }
+  }
+
+  const report = {
+    hasData: true,
+    statistics: {
+      documentCount: texts.length,
+      totalTokens: 0,
+      uniqueTerms: 0
+    }
+  }
+
+  // Process sentiment data
+  if (analysisResults.sentiment) {
+    const sentimentData = analysisResults.sentiment
+    const positive = sentimentData.summary?.positive || 0
+    const negative = sentimentData.summary?.negative || 0
+    const neutral = sentimentData.summary?.neutral || 0
+    const total = positive + negative + neutral
+
+    report.sentiment = {
+      distribution: [
+        { name: 'Positive', value: positive },
+        { name: 'Negative', value: negative },
+        { name: 'Neutral', value: neutral }
+      ],
+      positiveCount: positive,
+      negativeCount: negative,
+      neutralCount: neutral,
+      negativePercentage: total > 0 ? Math.round((negative / total) * 100) : 0,
+      averageScore: sentimentData.summary?.avgScore || 0,
+      overall: positive > negative && positive > neutral ? 'Positive' :
+               negative > positive && negative > neutral ? 'Negative' : 'Neutral'
+    }
+  }
+
+  // Process topic modeling data
+  if (analysisResults.topics && analysisResults.topics.topics) {
+    report.topics = analysisResults.topics.topics.map(topic => ({
+      label: topic.label,
+      terms: topic.terms.map(t => ({ term: t.term, score: t.score }))
+    }))
+  }
+
+  // Process readability data
+  if (analysisResults.readability && analysisResults.readability.aggregate) {
+    const readabilityData = analysisResults.readability.aggregate
+    report.readability = {
+      flesch: readabilityData.flesch,
+      fleschKincaid: readabilityData.fleschKincaid,
+      colemanLiau: readabilityData.colemanLiau,
+      gunningFog: readabilityData.gunningFog,
+      smog: readabilityData.smog,
+      ari: readabilityData.ari,
+      avgWords: readabilityData.avgWords,
+      interpretation: analysisResults.readability.interpretation || {}
+    }
+  }
+
+  // Process word frequency data (TF-IDF)
+  if (analysisResults.tfidf && analysisResults.tfidf.aggregate) {
+    report.wordFrequency = analysisResults.tfidf.aggregate.map(item => ({
+      term: item.term,
+      score: Math.round(item.score * 100) / 100
+    }))
+    
+    // Calculate unique terms
+    report.statistics.uniqueTerms = report.wordFrequency.length
+  }
+
+  // Process parts of speech data
+  if (analysisResults.pos && analysisResults.pos.distribution) {
+    report.pos = Object.entries(analysisResults.pos.distribution)
+      .map(([pos, count]) => ({ pos, count }))
+      .sort((a, b) => b.count - a.count)
+  }
+
+  // Process named entities
+  if (analysisResults.entities && analysisResults.entities.byType) {
+    report.entities = {}
+    Object.entries(analysisResults.entities.byType).forEach(([type, entities]) => {
+      if (entities && entities.length > 0) {
+        report.entities[type] = entities.map(e => ({
+          text: e.text,
+          count: e.count
+        }))
+      }
+    })
+  }
+
+  // Extract total tokens from analysisResults if available, otherwise fallback to recomputation
+  if (analysisResults.tfidf && typeof analysisResults.tfidf.totalTokens === 'number') {
+    report.statistics.totalTokens = analysisResults.tfidf.totalTokens
+  } else {
+    texts.forEach(text => {
+      const tokens = tokenize(text)
+      report.statistics.totalTokens += tokens.length
+    })
+  }
+
+  return report
+}

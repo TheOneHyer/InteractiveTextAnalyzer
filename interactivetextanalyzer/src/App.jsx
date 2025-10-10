@@ -20,6 +20,7 @@ import {
   analyzeSentiment,
   performTopicModeling,
   analyzeReadability,
+  generateReport,
   DEFAULT_STOPWORDS 
 } from './utils/textAnalysis'
 import { normalizeValue, getCategoricalValues } from './utils/categoricalUtils'
@@ -33,6 +34,7 @@ const Heatmap = createLazyComponent('Heatmap')
 const ScatterPlot = createLazyComponent('ScatterPlot')
 const Wiki = createLazyComponent('Wiki')
 const DependencyTreeVisualization = createLazyComponent('DependencyTreeVisualization')
+const Report = createLazyComponent('Report')
 
 // Debounce hook for input fields
 const useDebounced = (value, delay=400) => { 
@@ -954,6 +956,36 @@ export default function App(){
   const topicModel=useMemo(()=> analysisType==='topic'&& textSamples.length? performTopicModeling(textSamples,{numTopics,termsPerTopic,stopwords:effectiveStopwords,stem:enableStemming,stemmer}): null,[analysisType,textSamples,numTopics,termsPerTopic,effectiveStopwords,enableStemming,stemmer])
   const readability=useMemo(()=> analysisType==='readability'&& textSamples.length? analyzeReadability(textSamples,{perDocument:true}): null,[analysisType,textSamples])
   
+  // Generate comprehensive report data (always available regardless of active analysis type)
+  const reportData = useMemo(() => {
+    if (!textSamples.length) return { hasData: false }
+    
+    // Compute all analyses needed for the report if we have text samples
+    const reportAnalyses = {}
+    
+    // Always compute these for the report
+    const reportTfidf = computeTfIdf(textSamples, params)
+    const reportSentiment = analyzeSentiment(textSamples, {method: sentimentMethod, stopwords: effectiveStopwords})
+    const reportTopics = performTopicModeling(textSamples, {numTopics: 5, termsPerTopic: 10, stopwords: effectiveStopwords, stem: enableStemming, stemmer})
+    const reportReadability = analyzeReadability(textSamples, {perDocument: true})
+    const reportPos = analyzePartsOfSpeech(textSamples, {method: posMethod, top: 50, nlpLib: nlpLibs.nlp, stopwords: effectiveStopwords})
+    
+    // Only compute entities if NLP library is loaded
+    let reportEntities = null
+    if (nlpLibs.nlp) {
+      reportEntities = extractEntities(textSamples, nlpLibs.nlp)
+    }
+    
+    reportAnalyses.tfidf = reportTfidf
+    reportAnalyses.sentiment = reportSentiment
+    reportAnalyses.topics = reportTopics
+    reportAnalyses.readability = reportReadability
+    reportAnalyses.pos = reportPos
+    reportAnalyses.entities = reportEntities
+    
+    return generateReport(reportAnalyses, textSamples)
+  }, [textSamples, params, sentimentMethod, effectiveStopwords, enableStemming, stemmer, posMethod, nlpLibs])
+  
   // Compute embeddings
   const embeddings=useMemo(()=> analysisType==='embeddings'&& textSamples.length>=3? computeDocumentEmbeddings(textSamples,params): null,[analysisType,textSamples,params])
   
@@ -1819,6 +1851,9 @@ export default function App(){
           <button className={activeView==='dashboard'?'active':''} onClick={()=>setActiveView('dashboard')} title='Analyzer'>
             {sidebarCollapsed ? '📊' : 'Analyzer'}
           </button>
+          <button className={activeView==='report'?'active':''} onClick={()=>setActiveView('report')} title='Report'>
+            {sidebarCollapsed ? '📄' : 'Report'}
+          </button>
           <button className={activeView==='wiki'?'active':''} onClick={()=>setActiveView('wiki')} title='Wiki'>
             {sidebarCollapsed ? '📖' : 'Wiki'}
           </button>
@@ -1827,7 +1862,7 @@ export default function App(){
       </aside>
       <div className='main'>
         <div className='topbar'>
-          <h1>{activeView === 'dashboard' ? 'Analyzer' : activeView === 'editor' ? 'Editor' : 'Wiki'}</h1>
+          <h1>{activeView === 'dashboard' ? 'Analyzer' : activeView === 'editor' ? 'Editor' : activeView === 'report' ? 'Report' : 'Wiki'}</h1>
           <div style={{display:'flex',gap:8,alignItems:'center'}}>
             <button className='theme-toggle' onClick={()=>setTheme(t=>t==='light'?'dark':'light')}>{theme==='light'? '🌙 Dark':'☀️ Light'}</button>
             {activeView === 'editor' && (
@@ -2507,6 +2542,11 @@ export default function App(){
             </div>
           </div>
           </>
+          ) : activeView === 'report' ? (
+            /* Report View */
+            <Suspense fallback={<div style={{padding: 40, textAlign: 'center'}}>Loading report...</div>}>
+              <Report reportData={reportData} />
+            </Suspense>
           ) : activeView === 'wiki' ? (
             /* Wiki View */
             <Wiki />
