@@ -861,7 +861,7 @@ export const analyzeSentiment = (texts, { method = 'lexicon', stopwords = new Se
     'disappointed', 'dissatisfied', 'unhappy', 'useless', 'pathetic', 'disgusting', 'mediocre',
     'inferior', 'defective', 'broken', 'failed', 'failure', 'problem', 'problems', 'issue',
     'issues', 'concern', 'concerns', 'difficult', 'hard', 'complicated', 'confusing',
-    'annoying', 'frustrating', 'frustrated', 'waste', 'wasted', 'disappointing', 'lacking',
+    'annoying', 'frustrating', 'frustrated', 'waste', 'wasted', 'lacking',
     'missing', 'slow', 'expensive', 'overpriced', 'uncomfortable', 'unpleasant', 'negative',
     'regret', 'sorry', 'unfortunately', 'sadly', 'boring', 'dull', 'bland', 'weak'
   ])
