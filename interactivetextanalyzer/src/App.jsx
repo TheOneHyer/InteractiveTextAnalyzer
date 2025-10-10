@@ -18,6 +18,7 @@ import {
   analyzeLemmatization,
   analyzePartsOfSpeech,
   analyzeSentiment,
+  performTopicModeling,
   DEFAULT_STOPWORDS 
 } from './utils/textAnalysis'
 import { normalizeValue, getCategoricalValues } from './utils/categoricalUtils'
@@ -210,6 +211,8 @@ export default function App(){
   const [dependencyProgress,setDependencyProgress]=useState(0)
   const [dependencySamplePercent,setDependencySamplePercent]=useState(100) // Percentage of data to process (1-100)
   const [spacyDependencyResult,setSpacyDependencyResult]=useState(null) // spaCy-specific results
+  const [numTopics,setNumTopics]=useState(5) // Number of topics for topic modeling
+  const [termsPerTopic,setTermsPerTopic]=useState(10) // Terms per topic
   
   // Column types and categorical filters
   const [columnTypes, setColumnTypes] = useState({})
@@ -947,6 +950,7 @@ export default function App(){
   const lemmatization=useMemo(()=> analysisType==='lemmatization'&& textSamples.length? analyzeLemmatization(textSamples,{method:lemmatizationMethod,top:80,nlpLib:nlpLibs.nlp,stopwords:effectiveStopwords}): [],[analysisType,textSamples,lemmatizationMethod,nlpLibs,effectiveStopwords])
   const partsOfSpeech=useMemo(()=> analysisType==='pos'&& textSamples.length? analyzePartsOfSpeech(textSamples,{method:posMethod,top:50,nlpLib:nlpLibs.nlp,stopwords:effectiveStopwords}): null,[analysisType,textSamples,posMethod,nlpLibs,effectiveStopwords])
   const sentiment=useMemo(()=> analysisType==='sentiment'&& textSamples.length? analyzeSentiment(textSamples,{method:sentimentMethod,stopwords:effectiveStopwords}): null,[analysisType,textSamples,sentimentMethod,effectiveStopwords])
+  const topicModel=useMemo(()=> analysisType==='topic'&& textSamples.length? performTopicModeling(textSamples,{numTopics,termsPerTopic,stopwords:effectiveStopwords,stem:enableStemming,stemmer}): null,[analysisType,textSamples,numTopics,termsPerTopic,effectiveStopwords,enableStemming,stemmer])
   
   // Compute embeddings
   const embeddings=useMemo(()=> analysisType==='embeddings'&& textSamples.length>=3? computeDocumentEmbeddings(textSamples,params): null,[analysisType,textSamples,params])
@@ -1061,7 +1065,7 @@ export default function App(){
   const statUniqueTerms=tfidf? tfidf.aggregate.length : (ngrams.length || entities.length || yakeKeywords.length || lemmatization.length || partsOfSpeech?.totalWords || 0)
 
   // Helper function to compute word cloud data based on analysis type
-  function getWordCloudData(analysisType, tfidf, ngrams, entities, associations, yakeKeywords, tokenization, lemmatization, partsOfSpeech) {
+  function getWordCloudData(analysisType, tfidf, ngrams, entities, associations, yakeKeywords, tokenization, lemmatization, partsOfSpeech, topicModel) {
     switch (analysisType) {
       case 'tfidf':
         if (tfidf) return tfidf.aggregate.map(t => ({ text: t.term, value: t.score }));
@@ -1091,6 +1095,18 @@ export default function App(){
           return allWords
         }
         break;
+      case 'topic':
+        if (topicModel) {
+          // Create word cloud from all topic terms
+          const allTerms = []
+          topicModel.topics.forEach(topic => {
+            topic.terms.forEach(({ term, score }) => {
+              allTerms.push({ text: term, value: score })
+            })
+          })
+          return allTerms
+        }
+        break;
       default:
         return [];
     }
@@ -1098,8 +1114,8 @@ export default function App(){
   }
 
   const wordCloudData = useMemo(() =>
-    getWordCloudData(analysisType, tfidf, ngrams, entities, associations, yakeKeywords, tokenization, lemmatization, partsOfSpeech),
-    [analysisType, tfidf, ngrams, entities, associations, yakeKeywords, tokenization, lemmatization, partsOfSpeech]
+    getWordCloudData(analysisType, tfidf, ngrams, entities, associations, yakeKeywords, tokenization, lemmatization, partsOfSpeech, topicModel),
+    [analysisType, tfidf, ngrams, entities, associations, yakeKeywords, tokenization, lemmatization, partsOfSpeech, topicModel]
   );
   const networkData=useMemo(()=> {
     if (analysisType==='assoc'&&associations) {
@@ -1107,6 +1123,20 @@ export default function App(){
     }
     if (analysisType==='dependency'&&dependencyResult) {
       return {nodes:dependencyResult.nodes, edges:dependencyResult.edges}
+    }
+    if (analysisType==='topic'&&topicModel) {
+      // Create network graph from topic co-occurrence
+      const nodes = topicModel.topics.map(t => ({
+        id: `topic_${t.id}`,
+        value: t.size,
+        label: t.label
+      }))
+      const edges = topicModel.topicCooccurrence.map(cooc => ({
+        source: `topic_${cooc.source}`,
+        target: `topic_${cooc.target}`,
+        value: cooc.weight
+      }))
+      return {nodes, edges}
     }
     if (analysisType==='lemmatization'&&lemmatization.length>0) {
       // Create a co-occurrence network from lemmas
@@ -1128,7 +1158,7 @@ export default function App(){
       return {nodes: lemmaNodes, edges: edges.slice(0, 40)}
     }
     return {nodes:[],edges:[]}
-  },[analysisType,associations,dependencyResult,lemmatization])
+  },[analysisType,associations,dependencyResult,lemmatization,topicModel])
   const heatmapData=useMemo(()=>{ 
     if(analysisType==='tfidf'&&tfidf){ 
       const top=tfidf.aggregate.slice(0,20).map(t=>t.term); 
@@ -1147,9 +1177,25 @@ export default function App(){
         return 'Doc ' + (i+1)
       })
       return {matrix, xLabels:top, yLabels}
-    } 
+    }
+    if(analysisType==='topic'&&topicModel){ 
+      // Create document-topic heatmap
+      const xLabels = topicModel.topics.map(t => `T${t.id+1}`)
+      const yLabels = topicModel.docTopicMatrix.slice(0,25).map((_, i) => {
+        if (i < textSamples.length) {
+          const text = textSamples[i]
+          const preview = text.slice(0, 40).replace(/\s+/g, ' ').trim()
+          return preview.length < text.length ? preview + '...' : preview
+        }
+        return 'Doc ' + (i+1)
+      })
+      const matrix = topicModel.docTopicMatrix.slice(0,25).map(docTopics => 
+        docTopics.map(score => Number(score.toFixed(3)))
+      )
+      return {matrix, xLabels, yLabels}
+    }
     return {matrix:[],xLabels:[],yLabels:[]} 
-  },[analysisType,tfidf,textSamples])
+  },[analysisType,tfidf,textSamples,topicModel])
 
   // Chart data (live updating) - pie chart removed, keeping bar chart
   // const pieData=useMemo(()=>{ if(analysisType==='assoc'&&associations) return associations.items.slice(0,6).map(i=>({ name:i.item, value:+(i.support*100).toFixed(2) })); if(analysisType==='tfidf'&&tfidf) return tfidf.aggregate.slice(0,6).map(t=>({ name:t.term, value:+t.score.toFixed(2) })); if(analysisType==='ngram') return ngrams.slice(0,6).map(g=>({ name:g.gram, value:g.count })); if(analysisType==='ner') return entities.slice(0,6).map(e=>({ name:e.value, value:e.count })); return [] },[analysisType,associations,tfidf,ngrams,entities])
@@ -1164,7 +1210,8 @@ export default function App(){
     tokenization,
     lemmatization,
     partsOfSpeech,
-    sentiment
+    sentiment,
+    topicModel
   }) {
     switch (analysisType) {
       case 'assoc':
@@ -1202,6 +1249,11 @@ export default function App(){
           ].filter(item => item.count > 0);
         }
         break;
+      case 'topic':
+        if (topicModel) {
+          return topicModel.topics.map(t => ({ name: `Topic ${t.id+1}`, size: +t.size.toFixed(2) }));
+        }
+        break;
       default:
         return [];
     }
@@ -1209,8 +1261,8 @@ export default function App(){
   }
 
   const barData = useMemo(() =>
-    getBarData({analysisType, associations, tfidf, ngrams, entities, yakeKeywords, tokenization, lemmatization, partsOfSpeech, sentiment}),
-    [analysisType, associations, tfidf, ngrams, entities, yakeKeywords, tokenization, lemmatization, partsOfSpeech, sentiment]
+    getBarData({analysisType, associations, tfidf, ngrams, entities, yakeKeywords, tokenization, lemmatization, partsOfSpeech, sentiment, topicModel}),
+    [analysisType, associations, tfidf, ngrams, entities, yakeKeywords, tokenization, lemmatization, partsOfSpeech, sentiment, topicModel]
   );
   // Mutators
   // eslint-disable-next-line no-unused-vars
@@ -1487,7 +1539,7 @@ export default function App(){
               <XAxis dataKey='name' hide={barData.length>6} tick={{fontSize:11}} interval={0} angle={-20} textAnchor='end'/>
               <YAxis tick={{fontSize:11}} />
               <Tooltip wrapperStyle={{fontSize:12}}/>
-              <Bar dataKey={analysisType==='tfidf'?'score': analysisType==='ngram'?'freq': analysisType==='assoc'?'lift':'count'} radius={[6,6,0,0]} fill='#0f172a'>
+              <Bar dataKey={analysisType==='tfidf'?'score': analysisType==='ngram'?'freq': analysisType==='assoc'?'lift': analysisType==='topic'?'size':'count'} radius={[6,6,0,0]} fill='#0f172a'>
                 {barData.map((_,i)=><Cell key={i} fill={['#0f172a','#ff9900','#0284c7','#475569','#06b6d4','#f59e0b'][i%6]} />)}
               </Bar>
             </BarChart>
@@ -1957,6 +2009,7 @@ export default function App(){
                     <option value='sentiment'>Sentiment Analysis</option>
                     <option value='embeddings'>Embeddings</option>
                     <option value='dependency'>Dependency Parsing</option>
+                    <option value='topic'>Topic Modeling</option>
                   </select>
                 </label>
                 {analysisType==='tokenization' && (
@@ -2020,6 +2073,11 @@ export default function App(){
                       </div>
                     )}
                   </>
+                )}
+                {analysisType==='topic' && (
+                  <div className='notice' style={{marginTop:8}}>
+                    <strong>Topic Modeling:</strong> Identifies granular sub-topics dynamically from document content using hierarchical TF-IDF clustering.
+                  </div>
                 )}
                 {analysisType==='tokenization' && (
                   <label style={{fontSize:12}}>
@@ -2097,6 +2155,18 @@ export default function App(){
                       <div className='notice' style={{marginTop:4}}>
                         {Math.ceil(textSamples.length * (dependencySamplePercent / 100))} of {textSamples.length} rows
                       </div>
+                    </label>
+                  </>
+                )}
+                {analysisType==='topic' && (
+                  <>
+                    <label style={{fontSize:12}}>
+                      Number of Topics
+                      <input type='number' min={2} max={20} value={numTopics} onChange={e=>setNumTopics(Number(e.target.value)||5)} style={{width:'100%',marginTop:4}}/>
+                    </label>
+                    <label style={{fontSize:12}}>
+                      Terms per Topic
+                      <input type='number' min={5} max={30} value={termsPerTopic} onChange={e=>setTermsPerTopic(Number(e.target.value)||10)} style={{width:'100%',marginTop:4}}/>
                     </label>
                   </>
                 )}
@@ -2270,6 +2340,27 @@ export default function App(){
                       {(tfidf.perDoc[0]||[]).length > 10 && (
                         <button className='btn secondary' style={{marginTop:8,padding:'4px 10px',fontSize:11}} onClick={()=>setDetailsExpanded(!detailsExpanded)}>
                           {detailsExpanded ? 'Show Less' : `Show More (${(tfidf.perDoc[0]||[]).length - 10} more)`}
+                        </button>
+                      )}
+                    </>}
+                    {analysisType==='topic' && topicModel && <>
+                      <h3>Identified Topics</h3>
+                      <div style={{maxHeight:400,overflowY:'auto'}}>
+                        {topicModel.topics.map(topic => (
+                          <div key={topic.id} style={{marginBottom:16,padding:10,background:'var(--c-surface)',borderRadius:6}}>
+                            <h4 style={{fontSize:13,marginBottom:6,fontWeight:600}}>{topic.label}</h4>
+                            <div style={{fontSize:11,color:'var(--c-text-muted)'}}>
+                              <strong>Top Terms:</strong> {topic.terms.slice(0, detailsExpanded ? 15 : 8).map(t => t.term).join(', ')}
+                            </div>
+                            <div style={{fontSize:11,color:'var(--c-text-muted)',marginTop:4}}>
+                              <strong>Score:</strong> {topic.size.toFixed(2)}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      {topicModel.topics.length > 0 && topicModel.topics[0].terms.length > 8 && (
+                        <button className='btn secondary' style={{marginTop:8,padding:'4px 10px',fontSize:11}} onClick={()=>setDetailsExpanded(!detailsExpanded)}>
+                          {detailsExpanded ? 'Show Less Terms' : 'Show More Terms'}
                         </button>
                       )}
                     </>}

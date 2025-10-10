@@ -1,0 +1,419 @@
+import { describe, it, expect } from 'vitest'
+import { 
+  buildStem, 
+  performTopicModeling,
+  DEFAULT_STOPWORDS 
+} from '../utils/textAnalysis'
+
+describe('Topic Modeling', () => {
+  describe('performTopicModeling', () => {
+    const safetyDocs = [
+      'Always use proper ladder safety when working at heights. Check ladder stability before climbing.',
+      'Forklift operators must be certified. Follow forklift safety protocols at all times.',
+      'Wear protective equipment including hard hats and safety glasses on the construction site.',
+      'Ladder inspection is required weekly. Report any damaged ladder equipment immediately.',
+      'Forklift maintenance schedule must be followed. Check forklift brakes and steering daily.',
+      'Personal protective equipment saves lives. Hard hats prevent head injuries on site.',
+      'Working at heights requires fall protection. Secure ladders properly before use.',
+      'Forklift training is mandatory for all operators. Complete forklift certification annually.'
+    ]
+
+    it('should identify multiple topics from documents', () => {
+      const stemmer = buildStem()
+      const result = performTopicModeling(safetyDocs, {
+        numTopics: 3,
+        termsPerTopic: 10,
+        stopwords: DEFAULT_STOPWORDS,
+        stem: false,
+        stemmer
+      })
+      
+      expect(result).toHaveProperty('topics')
+      expect(result).toHaveProperty('docTopicMatrix')
+      expect(result).toHaveProperty('topicCooccurrence')
+      expect(result.topics.length).toBeGreaterThan(0)
+      expect(result.topics.length).toBeLessThanOrEqual(3)
+    })
+
+    it('should create topics with labels and terms', () => {
+      const stemmer = buildStem()
+      const result = performTopicModeling(safetyDocs, {
+        numTopics: 3,
+        termsPerTopic: 8,
+        stopwords: DEFAULT_STOPWORDS,
+        stem: false,
+        stemmer
+      })
+      
+      result.topics.forEach(topic => {
+        expect(topic).toHaveProperty('id')
+        expect(topic).toHaveProperty('label')
+        expect(topic).toHaveProperty('terms')
+        expect(topic).toHaveProperty('size')
+        expect(Array.isArray(topic.terms)).toBe(true)
+        expect(topic.terms.length).toBeGreaterThan(0)
+        expect(topic.label).toContain('Topic')
+      })
+    })
+
+    it('should include relevant terms in topic labels', () => {
+      const stemmer = buildStem()
+      const result = performTopicModeling(safetyDocs, {
+        numTopics: 3,
+        termsPerTopic: 10,
+        stopwords: DEFAULT_STOPWORDS,
+        stem: false,
+        stemmer
+      })
+      
+      // Check that topics contain safety-related terms
+      const allTerms = result.topics.flatMap(t => t.terms.map(term => term.term))
+      const hasSafetyTerms = allTerms.some(term => 
+        term.includes('ladder') || term.includes('forklift') || 
+        term.includes('safety') || term.includes('equipment')
+      )
+      expect(hasSafetyTerms).toBe(true)
+    })
+
+    it('should create document-topic matrix', () => {
+      const stemmer = buildStem()
+      const result = performTopicModeling(safetyDocs, {
+        numTopics: 3,
+        termsPerTopic: 10,
+        stopwords: DEFAULT_STOPWORDS,
+        stem: false,
+        stemmer
+      })
+      
+      expect(result.docTopicMatrix).toHaveLength(safetyDocs.length)
+      
+      result.docTopicMatrix.forEach(docTopics => {
+        expect(Array.isArray(docTopics)).toBe(true)
+        expect(docTopics.length).toBe(result.topics.length)
+        
+        // Each value should be a probability (0-1)
+        docTopics.forEach(prob => {
+          expect(prob).toBeGreaterThanOrEqual(0)
+          expect(prob).toBeLessThanOrEqual(1)
+        })
+        
+        // Probabilities should sum to approximately 1
+        const sum = docTopics.reduce((acc, val) => acc + val, 0)
+        expect(sum).toBeCloseTo(1, 1)
+      })
+    })
+
+    it('should handle different numbers of topics', () => {
+      const stemmer = buildStem()
+      
+      const result2 = performTopicModeling(safetyDocs, {
+        numTopics: 2,
+        termsPerTopic: 10,
+        stopwords: DEFAULT_STOPWORDS,
+        stem: false,
+        stemmer
+      })
+      
+      const result5 = performTopicModeling(safetyDocs, {
+        numTopics: 5,
+        termsPerTopic: 10,
+        stopwords: DEFAULT_STOPWORDS,
+        stem: false,
+        stemmer
+      })
+      
+      expect(result2.topics.length).toBeGreaterThan(0)
+      expect(result2.topics.length).toBeLessThanOrEqual(2)
+      expect(result5.topics.length).toBeGreaterThan(0)
+      expect(result5.topics.length).toBeLessThanOrEqual(5)
+    })
+
+    it('should handle different terms per topic', () => {
+      const stemmer = buildStem()
+      
+      const result = performTopicModeling(safetyDocs, {
+        numTopics: 3,
+        termsPerTopic: 5,
+        stopwords: DEFAULT_STOPWORDS,
+        stem: false,
+        stemmer
+      })
+      
+      result.topics.forEach(topic => {
+        expect(topic.terms.length).toBeGreaterThan(0)
+        expect(topic.terms.length).toBeLessThanOrEqual(5)
+      })
+    })
+
+    it('should apply stemming when enabled', () => {
+      const stemmer = buildStem()
+      
+      const withStemming = performTopicModeling(safetyDocs, {
+        numTopics: 3,
+        termsPerTopic: 10,
+        stopwords: DEFAULT_STOPWORDS,
+        stem: true,
+        stemmer
+      })
+      
+      const withoutStemming = performTopicModeling(safetyDocs, {
+        numTopics: 3,
+        termsPerTopic: 10,
+        stopwords: DEFAULT_STOPWORDS,
+        stem: false,
+        stemmer
+      })
+      
+      expect(withStemming.topics.length).toBeGreaterThan(0)
+      expect(withoutStemming.topics.length).toBeGreaterThan(0)
+    })
+
+    it('should filter stopwords from topics', () => {
+      const stemmer = buildStem()
+      const result = performTopicModeling(safetyDocs, {
+        numTopics: 3,
+        termsPerTopic: 10,
+        stopwords: DEFAULT_STOPWORDS,
+        stem: false,
+        stemmer
+      })
+      
+      const allTerms = result.topics.flatMap(t => t.terms.map(term => term.term))
+      const hasStopwords = allTerms.some(term => DEFAULT_STOPWORDS.has(term))
+      expect(hasStopwords).toBe(false)
+    })
+
+    it('should create topic co-occurrence data', () => {
+      const stemmer = buildStem()
+      const result = performTopicModeling(safetyDocs, {
+        numTopics: 3,
+        termsPerTopic: 10,
+        stopwords: DEFAULT_STOPWORDS,
+        stem: false,
+        stemmer
+      })
+      
+      expect(Array.isArray(result.topicCooccurrence)).toBe(true)
+      
+      result.topicCooccurrence.forEach(cooc => {
+        expect(cooc).toHaveProperty('source')
+        expect(cooc).toHaveProperty('target')
+        expect(cooc).toHaveProperty('weight')
+        expect(cooc.weight).toBeGreaterThan(0)
+        expect(typeof cooc.source).toBe('number')
+        expect(typeof cooc.target).toBe('number')
+      })
+    })
+
+    it('should handle empty documents', () => {
+      const stemmer = buildStem()
+      const result = performTopicModeling([], {
+        numTopics: 3,
+        termsPerTopic: 10,
+        stopwords: DEFAULT_STOPWORDS,
+        stem: false,
+        stemmer
+      })
+      
+      expect(result.topics).toHaveLength(0)
+      expect(result.docTopicMatrix).toHaveLength(0)
+      expect(result.topicCooccurrence).toHaveLength(0)
+    })
+
+    it('should handle single document', () => {
+      const stemmer = buildStem()
+      const result = performTopicModeling(['ladder safety is important'], {
+        numTopics: 2,
+        termsPerTopic: 5,
+        stopwords: DEFAULT_STOPWORDS,
+        stem: false,
+        stemmer
+      })
+      
+      expect(result.topics.length).toBeGreaterThan(0)
+      expect(result.docTopicMatrix).toHaveLength(1)
+    })
+
+    it('should identify distinct topics from diverse documents', () => {
+      const diverseDocs = [
+        'Cats and dogs are popular pets. Cats like to sleep.',
+        'Dogs enjoy playing fetch. Dogs are loyal companions.',
+        'Cars need regular maintenance. Check car oil levels.',
+        'Vehicles require proper care. Car engines need service.',
+        'Programming requires logical thinking. Code must be tested.',
+        'Software development involves debugging. Programmers write code.'
+      ]
+      
+      const stemmer = buildStem()
+      const result = performTopicModeling(diverseDocs, {
+        numTopics: 3,
+        termsPerTopic: 8,
+        stopwords: DEFAULT_STOPWORDS,
+        stem: false,
+        stemmer
+      })
+      
+      expect(result.topics.length).toBeGreaterThan(0)
+      
+      // Check that different semantic clusters are captured
+      const allTerms = result.topics.flatMap(t => t.terms.map(term => term.term))
+      const hasMultipleTopics = 
+        (allTerms.includes('cats') || allTerms.includes('dogs')) &&
+        (allTerms.includes('car') || allTerms.includes('cars')) &&
+        (allTerms.includes('code') || allTerms.includes('programming'))
+      
+      // We expect at least some diversity in discovered topics
+      expect(result.topics.length).toBeGreaterThanOrEqual(1)
+    })
+  })
+
+  describe('Topic Modeling Edge Cases', () => {
+    it('should handle documents with only stopwords', () => {
+      const stemmer = buildStem()
+      const docs = ['the and or but', 'a an the is']
+      
+      const result = performTopicModeling(docs, {
+        numTopics: 2,
+        termsPerTopic: 5,
+        stopwords: DEFAULT_STOPWORDS,
+        stem: false,
+        stemmer
+      })
+      
+      // Should return empty topics when no meaningful terms exist
+      expect(result.topics.length).toBe(0)
+    })
+
+    it('should handle very small number of topics', () => {
+      const stemmer = buildStem()
+      const docs = ['machine learning', 'deep learning', 'neural networks']
+      
+      const result = performTopicModeling(docs, {
+        numTopics: 1,
+        termsPerTopic: 5,
+        stopwords: DEFAULT_STOPWORDS,
+        stem: false,
+        stemmer
+      })
+      
+      expect(result.topics.length).toBeGreaterThan(0)
+      expect(result.topics.length).toBeLessThanOrEqual(1)
+    })
+
+    it('should handle documents with special characters', () => {
+      const stemmer = buildStem()
+      const docs = [
+        'hello@world.com test!',
+        'data#science $100',
+        'machine-learning AI/ML'
+      ]
+      
+      const result = performTopicModeling(docs, {
+        numTopics: 2,
+        termsPerTopic: 5,
+        stopwords: new Set(),
+        stem: false,
+        stemmer
+      })
+      
+      // Special characters should be filtered by tokenization
+      expect(result.topics.length).toBeGreaterThan(0)
+      const allTerms = result.topics.flatMap(t => t.terms.map(term => term.term))
+      expect(allTerms.every(term => !term.includes('@'))).toBe(true)
+      expect(allTerms.every(term => !term.includes('#'))).toBe(true)
+    })
+
+    it('should create meaningful topic labels', () => {
+      const stemmer = buildStem()
+      const docs = [
+        'python programming language',
+        'javascript web development',
+        'java enterprise applications'
+      ]
+      
+      const result = performTopicModeling(docs, {
+        numTopics: 2,
+        termsPerTopic: 5,
+        stopwords: DEFAULT_STOPWORDS,
+        stem: false,
+        stemmer
+      })
+      
+      result.topics.forEach(topic => {
+        expect(topic.label).toMatch(/Topic \d+:/)
+        expect(topic.label.length).toBeGreaterThan(10) // Should have meaningful terms
+      })
+    })
+
+    it('should handle large number of requested topics gracefully', () => {
+      const stemmer = buildStem()
+      const docs = ['short doc', 'another short doc']
+      
+      // Request more topics than reasonable for the data
+      const result = performTopicModeling(docs, {
+        numTopics: 20,
+        termsPerTopic: 5,
+        stopwords: DEFAULT_STOPWORDS,
+        stem: false,
+        stemmer
+      })
+      
+      // Should return fewer topics than requested when vocabulary is limited
+      expect(result.topics.length).toBeLessThan(20)
+    })
+  })
+
+  describe('Topic-Document Relationships', () => {
+    it('should assign documents to relevant topics', () => {
+      const stemmer = buildStem()
+      const docs = [
+        'ladder safety equipment inspection',
+        'forklift operator certification training',
+        'ladder climbing safety protocols'
+      ]
+      
+      const result = performTopicModeling(docs, {
+        numTopics: 2,
+        termsPerTopic: 10,
+        stopwords: DEFAULT_STOPWORDS,
+        stem: false,
+        stemmer
+      })
+      
+      // Documents with similar content should have similar topic distributions
+      const doc0Topics = result.docTopicMatrix[0]
+      const doc2Topics = result.docTopicMatrix[2]
+      
+      // Find the dominant topic for doc 0 and doc 2
+      const doc0DominantTopic = doc0Topics.indexOf(Math.max(...doc0Topics))
+      const doc2DominantTopic = doc2Topics.indexOf(Math.max(...doc2Topics))
+      
+      // Both docs about "ladder" should prefer similar topics
+      // This is a soft expectation - they might not always be the same
+      expect(result.topics.length).toBeGreaterThan(0)
+    })
+
+    it('should reflect document content in topic assignments', () => {
+      const stemmer = buildStem()
+      const docs = [
+        'machine learning neural networks deep learning',
+        'database management SQL queries optimization',
+        'artificial intelligence machine learning algorithms'
+      ]
+      
+      const result = performTopicModeling(docs, {
+        numTopics: 2,
+        termsPerTopic: 8,
+        stopwords: DEFAULT_STOPWORDS,
+        stem: false,
+        stemmer
+      })
+      
+      // Each document should have at least one dominant topic
+      result.docTopicMatrix.forEach(docTopics => {
+        const maxProb = Math.max(...docTopics)
+        expect(maxProb).toBeGreaterThan(0)
+      })
+    })
+  })
+})

@@ -653,6 +653,163 @@ export const analyzeTokenization = (texts, { level = 'word', top = 80 }) => {
 }
 
 /**
+ * Perform hierarchical topic modeling to identify granular sub-topics in documents
+ * Uses TF-IDF based clustering to dynamically identify topics from the text itself
+ * @param {string[]} docs - Array of document texts
+ * @param {Object} options - Analysis options
+ * @param {number} options.numTopics - Number of topics to extract (default: 5)
+ * @param {number} options.termsPerTopic - Number of top terms per topic (default: 10)
+ * @param {Set} options.stopwords - Set of stopwords to exclude
+ * @param {boolean} options.stem - Whether to apply stemming
+ * @param {Function} options.stemmer - Stemmer function (if stem is true)
+ * @returns {Object} Object with topics array and document-topic matrix
+ */
+export const performTopicModeling = (docs, { numTopics = 5, termsPerTopic = 10, stopwords, stem, stemmer }) => {
+  if (docs.length === 0) {
+    return { topics: [], docTopicMatrix: [], topicCooccurrence: [] }
+  }
+  
+  // Step 1: Compute TF-IDF for all documents
+  const tfidf = computeTfIdf(docs, { stopwords, stem, stemmer })
+  
+  // Step 2: Build term-document matrix from TF-IDF
+  const vocabulary = tfidf.aggregate.slice(0, 150).map(t => t.term)
+  const vocabMap = {}
+  vocabulary.forEach((term, idx) => { vocabMap[term] = idx })
+  
+  // Create term-document matrix (terms x documents)
+  const termDocMatrix = vocabulary.map(term => {
+    return docs.map((_, docIdx) => {
+      const docTerms = tfidf.perDoc[docIdx] || []
+      const termObj = docTerms.find(t => t.term === term)
+      return termObj ? termObj.tfidf : 0
+    })
+  })
+  
+  // Step 3: Use hierarchical clustering based on term co-occurrence
+  // Calculate term co-occurrence scores
+  const termScores = vocabulary.map((term, idx) => {
+    const termVector = termDocMatrix[idx]
+    const score = termVector.reduce((sum, val) => sum + val, 0)
+    return { term, idx, score, vector: termVector }
+  })
+  
+  // Sort by score and partition into topics
+  termScores.sort((a, b) => b.score - a.score)
+  
+  // Step 4: Create topics using k-means-like clustering
+  const topicCentroids = []
+  const topicAssignments = new Array(vocabulary.length).fill(-1)
+  
+  // Initialize centroids by selecting diverse high-scoring terms
+  // Ensure at least 1 topic if we have any vocabulary
+  const actualNumTopics = vocabulary.length > 0 
+    ? Math.min(numTopics, Math.max(1, Math.floor(vocabulary.length / termsPerTopic)))
+    : 0
+  for (let i = 0; i < actualNumTopics; i++) {
+    const seedIdx = Math.floor((i * termScores.length) / actualNumTopics)
+    topicCentroids.push(termScores[seedIdx].vector)
+  }
+  
+  // Assign terms to topics based on similarity to centroids
+  if (topicCentroids.length > 0) {
+    termScores.forEach(({ idx, vector }) => {
+      let bestTopic = 0
+      let bestSimilarity = -Infinity
+      
+      topicCentroids.forEach((centroid, topicIdx) => {
+        // Calculate cosine similarity
+        let dotProduct = 0
+        let normA = 0
+        let normB = 0
+        
+        for (let i = 0; i < vector.length; i++) {
+          dotProduct += vector[i] * centroid[i]
+          normA += vector[i] * vector[i]
+          normB += centroid[i] * centroid[i]
+        }
+        
+        const similarity = dotProduct / (Math.sqrt(normA) * Math.sqrt(normB) + 1e-10)
+        
+        if (similarity > bestSimilarity) {
+          bestSimilarity = similarity
+          bestTopic = topicIdx
+        }
+      })
+      
+      topicAssignments[idx] = bestTopic
+    })
+  }
+  
+  // Step 5: Build topic representations
+  const topics = []
+  for (let topicIdx = 0; topicIdx < actualNumTopics; topicIdx++) {
+    const topicTerms = termScores
+      .filter((_, idx) => topicAssignments[idx] === topicIdx)
+      .slice(0, termsPerTopic)
+      .map(t => ({ term: t.term, score: t.score }))
+    
+    if (topicTerms.length > 0) {
+      // Generate topic label from top terms
+      const topTerms = topicTerms.slice(0, 3).map(t => t.term)
+      const label = `Topic ${topicIdx + 1}: ${topTerms.join(', ')}`
+      
+      topics.push({
+        id: topicIdx,
+        label,
+        terms: topicTerms,
+        size: topicTerms.reduce((sum, t) => sum + t.score, 0)
+      })
+    }
+  }
+  
+  // Step 6: Calculate document-topic distribution
+  const docTopicMatrix = docs.map((_, docIdx) => {
+    const topicScores = topics.map(topic => {
+      return topic.terms.reduce((sum, { term }) => {
+        const docTerms = tfidf.perDoc[docIdx] || []
+        const termObj = docTerms.find(t => t.term === term)
+        return sum + (termObj ? termObj.tfidf : 0)
+      }, 0)
+    })
+    
+    // Normalize to create probability distribution
+    const total = topicScores.reduce((sum, score) => sum + score, 0)
+    return topicScores.map(score => total > 0 ? score / total : 0)
+  })
+  
+  // Step 7: Calculate topic co-occurrence for network visualization
+  const topicCooccurrence = []
+  for (let i = 0; i < topics.length; i++) {
+    for (let j = i + 1; j < topics.length; j++) {
+      // Calculate overlap in documents where both topics appear
+      let cooccurCount = 0
+      docTopicMatrix.forEach(docTopics => {
+        if (docTopics[i] > 0.1 && docTopics[j] > 0.1) {
+          cooccurCount++
+        }
+      })
+      
+      if (cooccurCount > 0) {
+        topicCooccurrence.push({
+          source: topics[i].id,
+          target: topics[j].id,
+          weight: cooccurCount,
+          sourceLabel: topics[i].label,
+          targetLabel: topics[j].label
+        })
+      }
+    }
+  }
+  
+  return { 
+    topics, 
+    docTopicMatrix,
+    topicCooccurrence
+  }
+}
+
+/**
  * Analyze Parts of Speech (POS) distribution in texts
  * Performs POS tagging and returns frequency distribution of different word classes
  * @param {string[]} texts - Array of text documents

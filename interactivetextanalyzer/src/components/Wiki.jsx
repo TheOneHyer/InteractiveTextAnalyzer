@@ -603,6 +603,63 @@ export default function Wiki() {
             <a href="https://spacy.io/usage/linguistic-features#dependency-parse" target="_blank" rel="noopener noreferrer">https://spacy.io/usage/linguistic-features#dependency-parse</a>
           </p>
         </div>
+
+        <div className='wiki-item'>
+          <h4>Topic Modeling</h4>
+          <p>
+            <strong>What it does:</strong> Automatically discovers granular sub-topics within your documents 
+            by identifying clusters of related terms. For example, a safety document might reveal distinct 
+            topics for "ladder safety", "forklift operations", and "protective equipment".
+          </p>
+          <p>
+            <strong>How it works:</strong> Uses hierarchical TF-IDF clustering to dynamically identify topics 
+            from the text itself. The algorithm computes TF-IDF scores for all terms, creates a term-document 
+            matrix, and applies k-means-like clustering to group related terms into coherent topics. Each topic 
+            is represented by its most characteristic terms and assigned a relevance score.
+          </p>
+          <p>
+            <strong>Algorithm details:</strong> The implementation follows these steps:
+            <br/>1. Compute TF-IDF scores for all terms across documents
+            <br/>2. Build term-document matrix with TF-IDF weights
+            <br/>3. Calculate term co-occurrence patterns across documents
+            <br/>4. Apply cosine similarity-based clustering to group terms
+            <br/>5. Generate topic labels from top terms in each cluster
+            <br/>6. Compute document-topic distribution matrix
+            <br/>7. Identify topic co-occurrence for network visualization
+          </p>
+          <p>
+            <strong>Use cases:</strong> Document categorization, content discovery, exploratory data analysis, 
+            identifying themes in customer feedback, analyzing safety reports, discovering research trends, 
+            and organizing large document collections.
+          </p>
+          <p>
+            <strong>Interpreting results:</strong> Each topic is labeled with its top terms (e.g., "Topic 1: ladder, 
+            safety, height"). The heatmap shows document-topic distributions where higher values indicate stronger 
+            topic presence in a document. The network graph displays topic relationships based on co-occurrence 
+            patterns. Topic size/score reflects the cumulative importance of terms in that topic.
+          </p>
+          <p>
+            <strong>Parameters:</strong>
+            <br/><strong>Number of Topics:</strong> Controls how many distinct topics to extract (2-20). Use fewer 
+            topics for high-level themes, more topics for granular sub-topics. Too few topics create overly broad 
+            categories; too many may split coherent topics.
+            <br/><strong>Terms per Topic:</strong> Number of representative terms for each topic (5-30). More terms 
+            provide better topic characterization but may include less relevant terms.
+          </p>
+          <p>
+            <strong>Visualization options:</strong> Bar Chart (topic sizes), Word Cloud (all topic terms), 
+            Network Graph (topic relationships), Heatmap (document-topic matrix)
+          </p>
+          <p className='wiki-source'>
+            <strong>Sources:</strong> 
+            <br/>Blei, D. M., Ng, A. Y., & Jordan, M. I. (2003). Latent Dirichlet Allocation. <em>Journal of Machine Learning Research</em>, 3, 993-1022. 
+            <a href="https://www.jmlr.org/papers/volume3/blei03a/blei03a.pdf" target="_blank" rel="noopener noreferrer">https://www.jmlr.org/papers/volume3/blei03a/blei03a.pdf</a>
+            <br/>Hofmann, T. (1999). Probabilistic latent semantic indexing. <em>Proceedings of the 22nd Annual International ACM SIGIR Conference</em>, 50-57. 
+            <a href="https://doi.org/10.1145/312624.312649" target="_blank" rel="noopener noreferrer">https://doi.org/10.1145/312624.312649</a>
+            <br/>Salton, G., & Buckley, C. (1988). Term-weighting approaches in automatic text retrieval. <em>Information Processing & Management</em>, 24(5), 513-523.
+            <a href="https://doi.org/10.1016/0306-4573(88)90021-0" target="_blank" rel="noopener noreferrer">https://doi.org/10.1016/0306-4573(88)90021-0</a>
+          </p>
+        </div>
       </section>
 
       <section className='wiki-section'>
@@ -743,6 +800,7 @@ export default function Wiki() {
             <li>Use <strong>Lemmatization</strong> when you want to normalize word forms and group related terms together (better/best → good)</li>
             <li>Use <strong>Embeddings</strong> when visualizing document relationships and exploring corpus structure</li>
             <li>Use <strong>Dependency Parsing</strong> when analyzing sentence structure, grammar, or syntactic relationships</li>
+            <li>Use <strong>Topic Modeling</strong> when discovering hidden themes, categorizing documents, or identifying granular sub-topics in large collections</li>
           </ul>
           <p className='wiki-source'>
             <strong>Source:</strong> Feldman, R., & Sanger, J. (2007). <em>The Text Mining Handbook: Advanced Approaches in Analyzing Unstructured Data</em>. Cambridge University Press.
