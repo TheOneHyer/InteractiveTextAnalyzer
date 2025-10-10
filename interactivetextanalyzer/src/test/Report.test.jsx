@@ -1,6 +1,25 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import Report from '../components/Report'
+
+// Mock recharts components to avoid rendering issues in tests
+vi.mock('recharts', () => ({
+  PieChart: ({ children }) => <div data-testid="pie-chart">{children}</div>,
+  Pie: () => <div data-testid="pie" />,
+  Cell: () => <div data-testid="cell" />,
+  ResponsiveContainer: ({ children }) => <div data-testid="responsive-container">{children}</div>,
+  BarChart: ({ children }) => <div data-testid="bar-chart">{children}</div>,
+  Bar: () => <div data-testid="bar" />,
+  XAxis: () => <div data-testid="x-axis" />,
+  YAxis: () => <div data-testid="y-axis" />,
+  Tooltip: () => <div data-testid="tooltip" />,
+  RadarChart: ({ children }) => <div data-testid="radar-chart">{children}</div>,
+  PolarGrid: () => <div data-testid="polar-grid" />,
+  PolarAngleAxis: () => <div data-testid="polar-angle-axis" />,
+  PolarRadiusAxis: () => <div data-testid="polar-radius-axis" />,
+  Radar: () => <div data-testid="radar" />,
+  Legend: () => <div data-testid="legend" />
+}))
 
 describe('Report Component', () => {
   it('should render empty state when no data provided', () => {
