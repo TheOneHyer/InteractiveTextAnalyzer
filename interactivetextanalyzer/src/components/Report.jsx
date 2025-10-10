@@ -256,12 +256,12 @@ export default function Report({ reportData }) {
               <div className='report-chart-container'>
                 <ResponsiveContainer width="100%" height={300}>
                   <RadarChart data={[
-                    { metric: 'Flesch', value: Math.min(readability.flesch / 10, 10) },
-                    { metric: 'F-K Grade', value: Math.min(readability.fleschKincaid, 10) },
-                    { metric: 'Coleman-Liau', value: Math.min(readability.colemanLiau, 10) },
-                    { metric: 'Gunning Fog', value: Math.min(readability.gunningFog, 10) },
-                    { metric: 'SMOG', value: Math.min(readability.smog, 10) },
-                    { metric: 'ARI', value: Math.min(readability.ari, 10) }
+                    { metric: 'Flesch', value: Math.max(0, Math.min((readability.flesch / 100) * 10, 10)) },
+                    { metric: 'F-K Grade', value: Math.max(0, Math.min((readability.fleschKincaid / 18) * 10, 10)) },
+                    { metric: 'Coleman-Liau', value: Math.max(0, Math.min((readability.colemanLiau / 18) * 10, 10)) },
+                    { metric: 'Gunning Fog', value: Math.max(0, Math.min((readability.gunningFog / 18) * 10, 10)) },
+                    { metric: 'SMOG', value: Math.max(0, Math.min((readability.smog / 18) * 10, 10)) },
+                    { metric: 'ARI', value: Math.max(0, Math.min((readability.ari / 18) * 10, 10)) }
                   ]}>
                     <PolarGrid />
                     <PolarAngleAxis dataKey="metric" />
