@@ -702,7 +702,10 @@ export const performTopicModeling = (docs, { numTopics = 5, termsPerTopic = 10, 
   const topicAssignments = new Array(vocabulary.length).fill(-1)
   
   // Initialize centroids by selecting diverse high-scoring terms
-  const actualNumTopics = Math.min(numTopics, Math.floor(vocabulary.length / termsPerTopic))
+  // Ensure at least 1 topic if we have any vocabulary
+  const actualNumTopics = vocabulary.length > 0 
+    ? Math.min(numTopics, Math.max(1, Math.floor(vocabulary.length / termsPerTopic)))
+    : 0
   for (let i = 0; i < actualNumTopics; i++) {
     const seedIdx = Math.floor((i * termScores.length) / actualNumTopics)
     topicCentroids.push(termScores[seedIdx].vector)
