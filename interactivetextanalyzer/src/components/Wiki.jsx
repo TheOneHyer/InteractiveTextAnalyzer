@@ -895,6 +895,7 @@ export default function Wiki() {
             <li>Use <strong>NER</strong> when you need to extract specific entities like names and places</li>
             <li>Use <strong>YAKE</strong> when extracting keywords without training data or when working with any language</li>
             <li>Use <strong>Lemmatization</strong> when you want to normalize word forms and group related terms together (better/best → good)</li>
+            <li>Use <strong>Readability Statistics</strong> when assessing content complexity, optimizing for target audiences, or ensuring accessibility compliance</li>
             <li>Use <strong>Embeddings</strong> when visualizing document relationships and exploring corpus structure</li>
             <li>Use <strong>Dependency Parsing</strong> when analyzing sentence structure, grammar, or syntactic relationships</li>
             <li>Use <strong>Topic Modeling</strong> when discovering hidden themes, categorizing documents, or identifying granular sub-topics in large collections</li>
