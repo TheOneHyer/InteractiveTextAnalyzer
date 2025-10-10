@@ -947,9 +947,7 @@ export const analyzeSentiment = (texts, { method = 'lexicon', stopwords = new Se
           }
           
           // Apply negation from previous tokens (within 3 words)
-          let negated = false
-          if (prevToken && negations.has(prevToken)) negated = true
-          if (prevPrevToken && negations.has(prevPrevToken)) negated = true
+          let negated = (prevToken && negations.has(prevToken)) || (prevPrevToken && negations.has(prevPrevToken))
           
           if (negated) {
             tokenScore *= -0.8  // Flip and slightly reduce
