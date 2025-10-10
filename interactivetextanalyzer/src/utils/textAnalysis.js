@@ -1562,11 +1562,15 @@ export const generateReport = (analysisResults, texts) => {
     })
   }
 
-  // Calculate total tokens from texts
-  texts.forEach(text => {
-    const tokens = tokenize(text)
-    report.statistics.totalTokens += tokens.length
-  })
+  // Extract total tokens from analysisResults if available, otherwise fallback to recomputation
+  if (analysisResults.tfidf && typeof analysisResults.tfidf.totalTokens === 'number') {
+    report.statistics.totalTokens = analysisResults.tfidf.totalTokens
+  } else {
+    texts.forEach(text => {
+      const tokens = tokenize(text)
+      report.statistics.totalTokens += tokens.length
+    })
+  }
 
   return report
 }
