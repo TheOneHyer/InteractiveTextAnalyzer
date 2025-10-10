@@ -21,7 +21,8 @@ describe('Wiki Component', () => {
     expect(screen.getByText('NER (Named Entity Recognition)')).toBeTruthy()
     const dependencySections = screen.getAllByText('Dependency Parsing')
     expect(dependencySections.length).toBeGreaterThan(0)
-    expect(screen.getByText('Readability Statistics')).toBeTruthy()
+    const readabilitySections = screen.getAllByText('Readability Statistics')
+    expect(readabilitySections.length).toBeGreaterThan(0)
   })
 
   it('should render settings section', () => {
