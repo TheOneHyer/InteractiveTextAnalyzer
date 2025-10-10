@@ -651,3 +651,186 @@ export const analyzeTokenization = (texts, { level = 'word', top = 80 }) => {
   
   return tokens
 }
+
+/**
+ * Analyze Parts of Speech (POS) distribution in texts
+ * Performs POS tagging and returns frequency distribution of different word classes
+ * @param {string[]} texts - Array of text documents
+ * @param {Object} options - Analysis options
+ * @param {string} options.method - POS tagging method: 'rules', 'compromise'
+ * @param {number} options.top - Number of top words per POS category (default: 50)
+ * @param {Function} options.nlpLib - NLP library (compromise) for 'compromise' method
+ * @param {Set} options.stopwords - Set of stopwords to exclude
+ * @param {boolean} options.includeExamples - Include example words for each POS tag (default: true)
+ * @returns {Object} Object with posCounts (frequency distribution), posExamples (top words per category), and totalWords
+ */
+export const analyzePartsOfSpeech = (texts, { method = 'rules', top = 50, nlpLib = null, stopwords = new Set(), includeExamples = true }) => {
+  const posCounts = {
+    noun: 0,
+    verb: 0,
+    adjective: 0,
+    adverb: 0,
+    pronoun: 0,
+    preposition: 0,
+    conjunction: 0,
+    determiner: 0,
+    interjection: 0,
+    other: 0
+  }
+  
+  const posExamples = {
+    noun: {},
+    verb: {},
+    adjective: {},
+    adverb: {},
+    pronoun: {},
+    preposition: {},
+    conjunction: {},
+    determiner: {},
+    interjection: {},
+    other: {}
+  }
+  
+  let totalWords = 0
+  
+  // Strategy pattern: map method to handler function
+  const strategies = {
+    rules: () => {
+      // Rules-based POS tagging using lexical patterns and word lists
+      const posPatterns = {
+        determiner: new Set(['the', 'a', 'an', 'this', 'that', 'these', 'those', 'my', 'your', 'his', 'her', 'its', 'our', 'their', 'some', 'any', 'each', 'every', 'all', 'both', 'few', 'many', 'much', 'several', 'no']),
+        pronoun: new Set(['i', 'you', 'he', 'she', 'it', 'we', 'they', 'me', 'him', 'her', 'us', 'them', 'myself', 'yourself', 'himself', 'herself', 'itself', 'ourselves', 'themselves', 'who', 'whom', 'whose', 'which', 'what', 'this', 'that', 'these', 'those']),
+        preposition: new Set(['in', 'on', 'at', 'to', 'for', 'with', 'from', 'by', 'about', 'over', 'under', 'above', 'below', 'through', 'during', 'before', 'after', 'between', 'among', 'against', 'into', 'onto', 'upon', 'within', 'without', 'throughout', 'across', 'along', 'around', 'behind', 'beneath', 'beside', 'near', 'of', 'off', 'since', 'until', 'toward', 'via']),
+        conjunction: new Set(['and', 'or', 'but', 'nor', 'yet', 'so', 'for', 'because', 'although', 'though', 'while', 'if', 'when', 'where', 'whether', 'since', 'unless', 'until', 'after', 'before']),
+        interjection: new Set(['oh', 'wow', 'ouch', 'hey', 'hello', 'yes', 'no', 'well', 'hmm', 'ugh', 'yay', 'hurray', 'alas', 'oops']),
+        verb: new Set(['is', 'are', 'was', 'were', 'be', 'been', 'being', 'am', 'has', 'have', 'had', 'do', 'does', 'did', 'can', 'could', 'will', 'would', 'shall', 'should', 'may', 'might', 'must', 'go', 'make', 'take', 'come', 'see', 'know', 'get', 'give', 'find', 'think', 'tell', 'become', 'leave', 'feel', 'put', 'bring', 'begin', 'keep', 'hold', 'write', 'stand', 'hear', 'let', 'mean', 'set', 'meet', 'run', 'move', 'live', 'believe', 'happen', 'appear', 'continue', 'allow', 'lead', 'understand', 'watch', 'follow', 'stop', 'create', 'speak', 'read', 'spend', 'grow', 'open', 'walk', 'win', 'offer', 'remember', 'love', 'consider', 'appear', 'buy', 'wait', 'serve', 'die', 'send', 'expect', 'build', 'stay', 'fall', 'cut', 'reach', 'kill', 'remain', 'suggest', 'raise', 'pass', 'sell', 'require', 'report', 'decide', 'pull', 'fly', 'bark', 'play', 'work', 'use', 'try', 'ask', 'need', 'seem', 'help', 'show', 'talk', 'turn', 'start', 'call', 'try', 'provide', 'hold', 'lose', 'pay', 'sit', 'eat', 'sleep', 'drive', 'jump', 'dance', 'sing', 'laugh', 'cry', 'smile', 'look', 'listen', 'touch', 'taste', 'smell', 'like', 'want', 'wish', 'hope', 'care', 'enjoy'])
+      }
+      
+      texts.forEach(text => {
+        const words = tokenize(text)
+        words.forEach(word => {
+          if (stopwords.has(word)) return
+          totalWords++
+          
+          let pos = null
+          
+          // Check fixed word lists first (most reliable)
+          if (posPatterns.determiner.has(word)) {
+            pos = 'determiner'
+          } else if (posPatterns.pronoun.has(word)) {
+            pos = 'pronoun'
+          } else if (posPatterns.preposition.has(word)) {
+            pos = 'preposition'
+          } else if (posPatterns.conjunction.has(word)) {
+            pos = 'conjunction'
+          } else if (posPatterns.interjection.has(word)) {
+            pos = 'interjection'
+          } else if (posPatterns.verb.has(word)) {
+            pos = 'verb'
+          }
+          // Check if word without -s suffix is a verb (third person singular: runs -> run)
+          else if (word.endsWith('s') && word.length > 2 && posPatterns.verb.has(word.slice(0, -1))) {
+            pos = 'verb'
+          }
+          // Pattern-based detection for verbs
+          else if (word.match(/(ing|ed|en)$/) && word.length > 4) {
+            pos = 'verb'
+          }
+          // Pattern-based detection for adverbs
+          else if (word.endsWith('ly') && word.length > 3) {
+            pos = 'adverb'
+          }
+          // Pattern-based detection for adjectives
+          else if (word.match(/(ful|less|ous|ive|able|ible|al|ic|ish|y|ent|ant)$/) && word.length > 4) {
+            pos = 'adjective'
+          }
+          // Default to noun (most common for remaining words)
+          else {
+            pos = 'noun'
+          }
+          
+          // Update counts and examples
+          posCounts[pos]++
+          if (includeExamples) {
+            posExamples[pos][word] = (posExamples[pos][word] || 0) + 1
+          }
+        })
+      })
+    },
+    
+    compromise: () => {
+      // Compromise NLP-based POS tagging
+      if (!nlpLib) {
+        console.warn('NLP library not provided for compromise method, falling back to rules-based POS tagging')
+        strategies.rules()
+        return
+      }
+      
+      texts.forEach(text => {
+        const doc = nlpLib(text)
+        
+        // Process all terms and get their POS tags
+        doc.terms().forEach(term => {
+          const word = term.text('normal').toLowerCase()
+          if (stopwords.has(word)) return
+          
+          totalWords++
+          
+          let pos = 'other'
+          
+          // Compromise has built-in POS tagging
+          if (term.nouns().length > 0) {
+            pos = 'noun'
+          } else if (term.verbs().length > 0) {
+            pos = 'verb'
+          } else if (term.adjectives().length > 0) {
+            pos = 'adjective'
+          } else if (term.adverbs().length > 0) {
+            pos = 'adverb'
+          } else if (term.match('#Pronoun').length > 0) {
+            pos = 'pronoun'
+          } else if (term.match('#Preposition').length > 0) {
+            pos = 'preposition'
+          } else if (term.match('#Conjunction').length > 0) {
+            pos = 'conjunction'
+          } else if (term.match('#Determiner').length > 0) {
+            pos = 'determiner'
+          }
+          
+          // Update counts and examples
+          posCounts[pos]++
+          if (includeExamples) {
+            posExamples[pos][word] = (posExamples[pos][word] || 0) + 1
+          }
+        })
+      })
+    }
+  }
+  
+  // Execute the selected strategy
+  if (strategies[method]) {
+    strategies[method]()
+  } else {
+    // Default to rules-based if invalid method
+    strategies.rules()
+  }
+  
+  // Convert examples to sorted arrays
+  const sortedExamples = {}
+  Object.keys(posExamples).forEach(pos => {
+    sortedExamples[pos] = Object.entries(posExamples[pos])
+      .map(([word, count]) => ({ word, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, top)
+  })
+  
+  return {
+    posCounts,
+    posExamples: includeExamples ? sortedExamples : {},
+    totalWords,
+    percentages: Object.entries(posCounts).reduce((acc, [pos, count]) => {
+      acc[pos] = totalWords > 0 ? ((count / totalWords) * 100).toFixed(2) : '0.00'
+      return acc
+    }, {})
+  }
+}
