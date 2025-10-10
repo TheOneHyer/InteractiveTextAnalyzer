@@ -703,7 +703,7 @@ export const analyzePartsOfSpeech = (texts, { method = 'rules', top = 50, nlpLib
         preposition: new Set(['in', 'on', 'at', 'to', 'for', 'with', 'from', 'by', 'about', 'over', 'under', 'above', 'below', 'through', 'during', 'before', 'after', 'between', 'among', 'against', 'into', 'onto', 'upon', 'within', 'without', 'throughout', 'across', 'along', 'around', 'behind', 'beneath', 'beside', 'near', 'of', 'off', 'since', 'until', 'toward', 'via']),
         conjunction: new Set(['and', 'or', 'but', 'nor', 'yet', 'so', 'for', 'because', 'although', 'though', 'while', 'if', 'when', 'where', 'whether', 'since', 'unless', 'until', 'after', 'before']),
         interjection: new Set(['oh', 'wow', 'ouch', 'hey', 'hello', 'yes', 'no', 'well', 'hmm', 'ugh', 'yay', 'hurray', 'alas', 'oops']),
-        verb: new Set(['is', 'are', 'was', 'were', 'be', 'been', 'being', 'am', 'has', 'have', 'had', 'do', 'does', 'did', 'can', 'could', 'will', 'would', 'shall', 'should', 'may', 'might', 'must', 'go', 'make', 'take', 'come', 'see', 'know', 'get', 'give', 'find', 'think', 'tell', 'become', 'leave', 'feel', 'put', 'bring', 'begin', 'keep', 'hold', 'write', 'stand', 'hear', 'let', 'mean', 'set', 'meet', 'run', 'move', 'live', 'believe', 'happen', 'appear', 'continue', 'allow', 'lead', 'understand', 'watch', 'follow', 'stop', 'create', 'speak', 'read', 'spend', 'grow', 'open', 'walk', 'win', 'offer', 'remember', 'love', 'consider', 'appear', 'buy', 'wait', 'serve', 'die', 'send', 'expect', 'build', 'stay', 'fall', 'cut', 'reach', 'kill', 'remain', 'suggest', 'raise', 'pass', 'sell', 'require', 'report', 'decide', 'pull'])
+        verb: new Set(['is', 'are', 'was', 'were', 'be', 'been', 'being', 'am', 'has', 'have', 'had', 'do', 'does', 'did', 'can', 'could', 'will', 'would', 'shall', 'should', 'may', 'might', 'must', 'go', 'make', 'take', 'come', 'see', 'know', 'get', 'give', 'find', 'think', 'tell', 'become', 'leave', 'feel', 'put', 'bring', 'begin', 'keep', 'hold', 'write', 'stand', 'hear', 'let', 'mean', 'set', 'meet', 'run', 'move', 'live', 'believe', 'happen', 'appear', 'continue', 'allow', 'lead', 'understand', 'watch', 'follow', 'stop', 'create', 'speak', 'read', 'spend', 'grow', 'open', 'walk', 'win', 'offer', 'remember', 'love', 'consider', 'appear', 'buy', 'wait', 'serve', 'die', 'send', 'expect', 'build', 'stay', 'fall', 'cut', 'reach', 'kill', 'remain', 'suggest', 'raise', 'pass', 'sell', 'require', 'report', 'decide', 'pull', 'fly', 'bark', 'play', 'work', 'use', 'try', 'ask', 'need', 'seem', 'help', 'show', 'talk', 'turn', 'start', 'call', 'try', 'provide', 'hold', 'lose', 'pay', 'sit', 'eat', 'sleep', 'drive', 'jump', 'dance', 'sing', 'laugh', 'cry', 'smile', 'look', 'listen', 'touch', 'taste', 'smell', 'like', 'want', 'wish', 'hope', 'care', 'enjoy'])
       }
       
       texts.forEach(text => {
@@ -726,6 +726,10 @@ export const analyzePartsOfSpeech = (texts, { method = 'rules', top = 50, nlpLib
           } else if (posPatterns.interjection.has(word)) {
             pos = 'interjection'
           } else if (posPatterns.verb.has(word)) {
+            pos = 'verb'
+          }
+          // Check if word without -s suffix is a verb (third person singular: runs -> run)
+          else if (word.endsWith('s') && word.length > 2 && posPatterns.verb.has(word.slice(0, -1))) {
             pos = 'verb'
           }
           // Pattern-based detection for verbs
