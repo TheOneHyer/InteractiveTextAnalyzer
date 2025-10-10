@@ -64,9 +64,11 @@ describe('Report Component', () => {
       }
     }
     
-    render(<Report reportData={mockReportData} />)
+    const { container } = render(<Report reportData={mockReportData} />)
     expect(screen.getByText('Documents')).toBeTruthy()
-    expect(screen.getByText('10')).toBeTruthy()
+    // Use a more specific query to avoid multiple matches
+    const statsBar = container.querySelector('.report-stats-bar')
+    expect(statsBar.textContent).toContain('10')
   })
 
   it('should render executive summary section', () => {
