@@ -990,7 +990,15 @@ export const analyzeSentiment = (texts, { method = 'lexicon', stopwords = new Se
         const nextToken = i < tokens.length - 1 ? tokens[i + 1] : null
         
         let tokenScore = 0
-        if (positiveLexicon.has(token)) {
+        
+        // Check for comparative/superlative patterns first (before lexicon check)
+        if (token === 'better' || token === 'best' || token === 'improved') {
+          tokenScore = 0.7
+          positiveCount++
+        } else if (token === 'worse' || token === 'worst' || token === 'deteriorated') {
+          tokenScore = -0.7
+          negativeCount++
+        } else if (positiveLexicon.has(token)) {
           tokenScore = 0.5
           positiveCount++
         } else if (negativeLexicon.has(token)) {
@@ -1008,15 +1016,6 @@ export const analyzeSentiment = (texts, { method = 'lexicon', stopwords = new Se
           // Check for intensifier pattern
           if (prevToken && intensifiers[prevToken]) {
             tokenScore *= intensifiers[prevToken]
-          }
-          
-          // Check for comparative/superlative patterns (better/best, worse/worst)
-          if (token === 'better' || token === 'best' || token === 'improved') {
-            tokenScore = 0.7
-            positiveCount++
-          } else if (token === 'worse' || token === 'worst' || token === 'deteriorated') {
-            tokenScore = -0.7
-            negativeCount++
           }
           
           score += tokenScore
