@@ -19,6 +19,7 @@ import {
   analyzePartsOfSpeech,
   analyzeSentiment,
   performTopicModeling,
+  analyzeReadability,
   DEFAULT_STOPWORDS 
 } from './utils/textAnalysis'
 import { normalizeValue, getCategoricalValues } from './utils/categoricalUtils'
@@ -951,6 +952,7 @@ export default function App(){
   const partsOfSpeech=useMemo(()=> analysisType==='pos'&& textSamples.length? analyzePartsOfSpeech(textSamples,{method:posMethod,top:50,nlpLib:nlpLibs.nlp,stopwords:effectiveStopwords}): null,[analysisType,textSamples,posMethod,nlpLibs,effectiveStopwords])
   const sentiment=useMemo(()=> analysisType==='sentiment'&& textSamples.length? analyzeSentiment(textSamples,{method:sentimentMethod,stopwords:effectiveStopwords}): null,[analysisType,textSamples,sentimentMethod,effectiveStopwords])
   const topicModel=useMemo(()=> analysisType==='topic'&& textSamples.length? performTopicModeling(textSamples,{numTopics,termsPerTopic,stopwords:effectiveStopwords,stem:enableStemming,stemmer}): null,[analysisType,textSamples,numTopics,termsPerTopic,effectiveStopwords,enableStemming,stemmer])
+  const readability=useMemo(()=> analysisType==='readability'&& textSamples.length? analyzeReadability(textSamples,{perDocument:true}): null,[analysisType,textSamples])
   
   // Compute embeddings
   const embeddings=useMemo(()=> analysisType==='embeddings'&& textSamples.length>=3? computeDocumentEmbeddings(textSamples,params): null,[analysisType,textSamples,params])
@@ -1062,7 +1064,7 @@ export default function App(){
   // Derived quick stats
   const statDocs=textSamples.length
   const statTokens=useMemo(()=> textSamples.join(' ').split(/\s+/).filter(Boolean).length,[textSamples])
-  const statUniqueTerms=tfidf? tfidf.aggregate.length : (ngrams.length || entities.length || yakeKeywords.length || lemmatization.length || partsOfSpeech?.totalWords || 0)
+  const statUniqueTerms=tfidf? tfidf.aggregate.length : (ngrams.length || entities.length || yakeKeywords.length || lemmatization.length || partsOfSpeech?.totalWords || readability?.aggregate.totalWords || 0)
 
   // Helper function to compute word cloud data based on analysis type
   function getWordCloudData(analysisType, tfidf, ngrams, entities, associations, yakeKeywords, tokenization, lemmatization, partsOfSpeech, topicModel) {
@@ -1211,7 +1213,8 @@ export default function App(){
     lemmatization,
     partsOfSpeech,
     sentiment,
-    topicModel
+    topicModel,
+    readability
   }) {
     switch (analysisType) {
       case 'assoc':
@@ -1249,6 +1252,18 @@ export default function App(){
           ].filter(item => item.count > 0);
         }
         break;
+      case 'readability':
+        if (readability && readability.aggregate) {
+          return [
+            { name: 'Flesch Reading Ease', score: readability.aggregate.flesch },
+            { name: 'Flesch-Kincaid Grade', score: readability.aggregate.fleschKincaid },
+            { name: 'Coleman-Liau Index', score: readability.aggregate.colemanLiau },
+            { name: 'Gunning Fog Index', score: readability.aggregate.gunningFog },
+            { name: 'SMOG Index', score: readability.aggregate.smog },
+            { name: 'ARI', score: readability.aggregate.ari }
+          ];
+        }
+        break;
       case 'topic':
         if (topicModel) {
           return topicModel.topics.map(t => ({ name: `Topic ${t.id+1}`, size: +t.size.toFixed(2) }));
@@ -1261,8 +1276,8 @@ export default function App(){
   }
 
   const barData = useMemo(() =>
-    getBarData({analysisType, associations, tfidf, ngrams, entities, yakeKeywords, tokenization, lemmatization, partsOfSpeech, sentiment, topicModel}),
-    [analysisType, associations, tfidf, ngrams, entities, yakeKeywords, tokenization, lemmatization, partsOfSpeech, sentiment, topicModel]
+    getBarData({analysisType, associations, tfidf, ngrams, entities, yakeKeywords, tokenization, lemmatization, partsOfSpeech, sentiment, topicModel, readability}),
+    [analysisType, associations, tfidf, ngrams, entities, yakeKeywords, tokenization, lemmatization, partsOfSpeech, sentiment, topicModel, readability]
   );
   // Mutators
   // eslint-disable-next-line no-unused-vars
@@ -2007,6 +2022,7 @@ export default function App(){
                     <option value='lemmatization'>Lemmatization</option>
                     <option value='pos'>Parts of Speech</option>
                     <option value='sentiment'>Sentiment Analysis</option>
+                    <option value='readability'>Readability Statistics</option>
                     <option value='embeddings'>Embeddings</option>
                     <option value='dependency'>Dependency Parsing</option>
                     <option value='topic'>Topic Modeling</option>
@@ -2055,6 +2071,11 @@ export default function App(){
                 {analysisType==='sentiment' && (
                   <div className='notice' style={{marginTop:8}}>
                     <strong>Sentiment Analysis:</strong> Determines the emotional tone (positive, negative, neutral) of text using selected algorithm.
+                  </div>
+                )}
+                {analysisType==='readability' && (
+                  <div className='notice' style={{marginTop:8}}>
+                    <strong>Readability Statistics:</strong> Evaluates text complexity using six algorithms (Flesch, Flesch-Kincaid, Coleman-Liau, Gunning Fog, SMOG, ARI).
                   </div>
                 )}
                 {analysisType==='embeddings' && (
@@ -2319,6 +2340,48 @@ export default function App(){
                         </ul>
                       </div>
                     </>}
+                    {analysisType==='readability' && readability && <>
+                      <h3>Readability Scores</h3>
+                      <div className='notice' style={{padding:0}}>
+                        <table style={{width:'100%',fontSize:12,borderCollapse:'collapse'}}>
+                          <thead>
+                            <tr style={{background:'var(--c-surface)',borderBottom:'2px solid var(--c-border)'}}>
+                              <th style={{padding:'8px 12px',textAlign:'left'}}>Algorithm</th>
+                              <th style={{padding:'8px 12px',textAlign:'right'}}>Score</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr style={{borderBottom:'1px solid var(--c-border)'}}>
+                              <td style={{padding:'8px 12px'}}>Flesch Reading Ease</td>
+                              <td style={{padding:'8px 12px',textAlign:'right',fontWeight:600}}>{readability.aggregate.flesch}</td>
+                            </tr>
+                            <tr style={{borderBottom:'1px solid var(--c-border)'}}>
+                              <td style={{padding:'8px 12px'}}>Flesch-Kincaid Grade</td>
+                              <td style={{padding:'8px 12px',textAlign:'right',fontWeight:600}}>{readability.aggregate.fleschKincaid}</td>
+                            </tr>
+                            <tr style={{borderBottom:'1px solid var(--c-border)'}}>
+                              <td style={{padding:'8px 12px'}}>Coleman-Liau Index</td>
+                              <td style={{padding:'8px 12px',textAlign:'right',fontWeight:600}}>{readability.aggregate.colemanLiau}</td>
+                            </tr>
+                            <tr style={{borderBottom:'1px solid var(--c-border)'}}>
+                              <td style={{padding:'8px 12px'}}>Gunning Fog Index</td>
+                              <td style={{padding:'8px 12px',textAlign:'right',fontWeight:600}}>{readability.aggregate.gunningFog}</td>
+                            </tr>
+                            <tr style={{borderBottom:'1px solid var(--c-border)'}}>
+                              <td style={{padding:'8px 12px'}}>SMOG Index</td>
+                              <td style={{padding:'8px 12px',textAlign:'right',fontWeight:600}}>{readability.aggregate.smog}</td>
+                            </tr>
+                            <tr>
+                              <td style={{padding:'8px 12px'}}>ARI</td>
+                              <td style={{padding:'8px 12px',textAlign:'right',fontWeight:600}}>{readability.aggregate.ari}</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                      <p style={{fontSize:11,marginTop:12,color:'var(--c-text-muted)'}}>
+                        Lower grade levels indicate easier-to-read text. Most web content targets 7th-8th grade level.
+                      </p>
+                    </>}
                   </div>
                   <div style={{flex:'1 1 320px',minWidth:300}} className='result-section'>
                     {analysisType==='assoc' && associations && <>
@@ -2381,6 +2444,25 @@ export default function App(){
                             </div>
                           ))}
                       </div>
+                    </>}
+                    {analysisType==='readability' && readability && <>
+                      <h3>Readability Summary</h3>
+                      <div className='notice'>
+                        <p><strong>Documents Analyzed:</strong> {readability.results.length}</p>
+                        <p><strong>Total Words:</strong> {readability.aggregate.totalWords}</p>
+                        <p><strong>Total Sentences:</strong> {readability.aggregate.totalSentences}</p>
+                        <p><strong>Avg Words/Document:</strong> {readability.aggregate.avgWords}</p>
+                        <p><strong>Complex Words:</strong> {readability.aggregate.totalComplexWords}</p>
+                      </div>
+                      <h4 style={{marginTop:16,marginBottom:8,fontSize:13}}>Interpretations</h4>
+                      <ul style={{fontSize:11,paddingLeft:20,color:'var(--c-text-muted)'}}>
+                        <li><strong>Flesch Reading Ease:</strong> {readability.interpretation.flesch}</li>
+                        <li><strong>Flesch-Kincaid:</strong> {readability.interpretation.fleschKincaid}</li>
+                        <li><strong>Coleman-Liau:</strong> {readability.interpretation.colemanLiau}</li>
+                        <li><strong>Gunning Fog:</strong> {readability.interpretation.gunningFog}</li>
+                        <li><strong>SMOG:</strong> {readability.interpretation.smog}</li>
+                        <li><strong>ARI:</strong> {readability.interpretation.ari}</li>
+                      </ul>
                     </>}
                   </div>
                   <div style={{flex:'1 1 420px',minWidth:360}} className='result-section'>
