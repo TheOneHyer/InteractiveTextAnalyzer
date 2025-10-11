@@ -310,7 +310,7 @@ export default function App(){
     }
   },[analysisType,dimReductionLibs,dimReductionLoading])
   
-  useEffect(()=>{ loadDimReductionIfNeeded() },[analysisType,workbookData,loadDimReductionIfNeeded])
+  useEffect(()=>{ loadDimReductionIfNeeded() },[analysisType,loadDimReductionIfNeeded])
 
   const loadSampleExcel=async()=>{ 
     // Generate diverse review data with 200+ rows
