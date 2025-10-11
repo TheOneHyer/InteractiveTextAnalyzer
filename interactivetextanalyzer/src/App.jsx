@@ -85,14 +85,29 @@ const loadSpacyDependencyParsing = async () => {
 }
 
 
+/**
+ * Interactive Text Analyzer - Main Application Component
+ * 
+ * This is the primary application component that handles:
+ * - Data import from CSV/Excel files
+ * - Text analysis (N-grams, TF-IDF, NER, sentiment, etc.)
+ * - Data visualization (word clouds, network graphs, heatmaps, etc.)
+ * - Data transformation and version management
+ * - Export functionality
+ */
+
+// Constants for local storage and virtualization
 const LOCAL_KEY='ita_state_v1'
 const ROW_HEIGHT = 26
 const VIRTUAL_OVERSCAN = 8
 
 export default function App(){
+  // Data state - workbook data and sheet management
   const [workbookData,setWorkbookData]=useState({})
   const [activeSheet,setActiveSheet]=useState(null)
   const [selectedColumns,setSelectedColumns]=useState([])
+  
+  // Analysis configuration state
   const [analysisType,setAnalysisType]=useState('ngram')
   const [ngramN,setNgramN]=useState(2)
   const [yakeMaxNgram,setYakeMaxNgram]=useState(2)
@@ -100,25 +115,41 @@ export default function App(){
   const [lemmatizationMethod,setLemmatizationMethod]=useState('rules') // 'wordnet', 'rules', or 'compromise'
   const [posMethod,setPosMethod]=useState('rules') // 'rules' or 'compromise' for POS tagging
   const [sentimentMethod,setSentimentMethod]=useState('lexicon') // 'lexicon', 'vader', or 'pattern'
+  
+  // Column visibility and naming state
   const [hiddenColumns,setHiddenColumns]=useState([])
   const [renames,setRenames]=useState({})
   const [viewMode,setViewMode]=useState('list')
+  
+  // Stopwords and stemming configuration
   const [stopwordInput,setStopwordInput]=useState('')
   const debouncedStopwordInput=useDebounced(stopwordInput,500)
   const [customStopwords,setCustomStopwords]=useState(new Set())
   const [enableStemming,setEnableStemming]=useState(false)
+  
+  // NLP library loading state
   const [libsLoaded,setLibsLoaded]=useState(false)
   const [nlpLibs,setNlpLibs]=useState({nlp:null})
+  
+  // Association mining configuration
   const [minSupport,setMinSupport]=useState(0.05)
+  
+  // Theme management
   const [theme,setTheme]=useState(()=> localStorage.getItem('ita_theme')||'light')
+  
+  // Dimensionality reduction state
   const [dimReductionLibs,setDimReductionLibs]=useState({tsne:null,umap:null})
   const [dimReductionMethod,setDimReductionMethod]=useState('tsne') // 'tsne' or 'umap'
   const [dimReductionLoading,setDimReductionLoading]=useState(false)
+  
+  // Dependency parsing state
   const [dependencyAlgorithm,setDependencyAlgorithm]=useState('eisner') // 'eisner', 'chu-liu', 'arc-standard', or 'spacy'
   const [dependencyResult,setDependencyResult]=useState(null)
   const [dependencyProgress,setDependencyProgress]=useState(0)
   const [dependencySamplePercent,setDependencySamplePercent]=useState(100) // Percentage of data to process (1-100)
   const [spacyDependencyResult,setSpacyDependencyResult]=useState(null) // spaCy-specific results
+  
+  // Topic modeling configuration
   const [numTopics,setNumTopics]=useState(5) // Number of topics for topic modeling
   const [termsPerTopic,setTermsPerTopic]=useState(10) // Terms per topic
   
@@ -161,57 +192,113 @@ export default function App(){
   // Track which visualization selector dropdown is open
   const [openVizSelector, setOpenVizSelector] = useState(null) // null, 'pos1', 'pos2', 'pos3', 'pos4'
 
-  // Close dropdown when clicking outside
+  /**
+   * Close visualization selector dropdown when clicking outside
+   * This prevents the dropdown from staying open when user clicks elsewhere
+   */
   useEffect(() => {
     const handleClickOutside = () => {
-      if (openVizSelector) setOpenVizSelector(null)
+      if (openVizSelector) {
+        setOpenVizSelector(null)
+      }
     }
     document.addEventListener('click', handleClickOutside)
     return () => document.removeEventListener('click', handleClickOutside)
   }, [openVizSelector])
 
-  // Initialize lazy loading system on mount
+  /**
+   * Initialize lazy loading system on component mount
+   * Registers components and libraries to be loaded via queue system
+   */
   useEffect(() => {
     initializeLazyLoading()
   }, [])
 
-  // Restore settings (no eval)
-  useEffect(()=>{ try { const s=JSON.parse(localStorage.getItem(LOCAL_KEY)||'{}');
-    if(Array.isArray(s.selectedColumns)) setSelectedColumns(s.selectedColumns)
-    if(typeof s.analysisType==='string') setAnalysisType(s.analysisType)
-    if(typeof s.ngramN==='number') setNgramN(s.ngramN)
-    if(Array.isArray(s.hiddenColumns)) setHiddenColumns(s.hiddenColumns)
-    if(s.renames && typeof s.renames==='object') setRenames(s.renames)
-    if(typeof s.viewMode==='string') setViewMode(s.viewMode)
-    if(Array.isArray(s.stopwords)) setCustomStopwords(new Set(s.stopwords))
-    if(typeof s.enableStemming==='boolean') setEnableStemming(s.enableStemming)
-    if(typeof s.minSupport==='number') setMinSupport(s.minSupport)
-  } catch{ /* Ignore invalid stored state */ } }, [])
+  /**
+   * Restore user settings from localStorage on mount
+   * Safely handles invalid or missing stored data
+   */
+  useEffect(()=>{ 
+    try { 
+      const s=JSON.parse(localStorage.getItem(LOCAL_KEY)||'{}')
+      if(Array.isArray(s.selectedColumns)) setSelectedColumns(s.selectedColumns)
+      if(typeof s.analysisType==='string') setAnalysisType(s.analysisType)
+      if(typeof s.ngramN==='number') setNgramN(s.ngramN)
+      if(Array.isArray(s.hiddenColumns)) setHiddenColumns(s.hiddenColumns)
+      if(s.renames && typeof s.renames==='object') setRenames(s.renames)
+      if(typeof s.viewMode==='string') setViewMode(s.viewMode)
+      if(Array.isArray(s.stopwords)) setCustomStopwords(new Set(s.stopwords))
+      if(typeof s.enableStemming==='boolean') setEnableStemming(s.enableStemming)
+      if(typeof s.minSupport==='number') setMinSupport(s.minSupport)
+    } catch{ 
+      /* Ignore invalid stored state */ 
+    } 
+  }, [])
 
-  // Persist settings
-  useEffect(()=>{ localStorage.setItem(LOCAL_KEY, JSON.stringify({ selectedColumns, analysisType, ngramN, hiddenColumns, renames, viewMode, stopwords:[...customStopwords], enableStemming, minSupport })) }, [selectedColumns,analysisType,ngramN,hiddenColumns,renames,viewMode,customStopwords,enableStemming,minSupport])
-  useEffect(()=>{ localStorage.setItem('ita_theme', theme); document.documentElement.dataset.theme=theme },[theme])
+  /**
+   * Persist user settings to localStorage
+   * Updates whenever any setting changes
+   */
+  useEffect(()=>{ 
+    localStorage.setItem(LOCAL_KEY, JSON.stringify({ 
+      selectedColumns, 
+      analysisType, 
+      ngramN, 
+      hiddenColumns, 
+      renames, 
+      viewMode, 
+      stopwords:[...customStopwords], 
+      enableStemming, 
+      minSupport 
+    })) 
+  }, [selectedColumns,analysisType,ngramN,hiddenColumns,renames,viewMode,customStopwords,enableStemming,minSupport])
+  
+  /**
+   * Persist theme preference and apply to DOM
+   */
+  useEffect(()=>{ 
+    localStorage.setItem('ita_theme', theme)
+    document.documentElement.dataset.theme=theme 
+  },[theme])
 
-  // Stopwords parse
+  /**
+   * Parse stopwords from text input
+   * Supports comma, newline, and space-separated lists
+   */
   useEffect(() => {
     if (debouncedStopwordInput) {
       const list = debouncedStopwordInput.split(/[\n,\s,]+/).map(x => x.trim().toLowerCase()).filter(Boolean)
       setCustomStopwords(new Set(list))
     }
   }, [debouncedStopwordInput])
+  
+  // Combine default and custom stopwords
   const effectiveStopwords=useMemo(()=> new Set([...DEFAULT_STOPWORDS,...customStopwords]),[customStopwords])
 
+  /**
+   * Load NER libraries when needed for Named Entity Recognition
+   * Uses lazy loading to avoid loading heavy compromise library until needed
+   */
   const loadNERIfNeeded = useCallback(async () => {
-    if (libsLoaded || analysisType !== 'ner') return
+    if (libsLoaded || analysisType !== 'ner') {
+      return
+    }
     
     const libs = await loadNlpLibs()
     setNlpLibs(libs)
     setLibsLoaded(true)
   }, [libsLoaded, analysisType])
+  
   useEffect(()=>{ loadNERIfNeeded() },[analysisType,workbookData,loadNERIfNeeded])
 
+  /**
+   * Load dimensionality reduction libraries (t-SNE, UMAP) when needed
+   * Only loads when embeddings analysis is selected
+   */
   const loadDimReductionIfNeeded=useCallback(async()=>{ 
-    if(analysisType!=='embeddings' || dimReductionLibs.loaded || dimReductionLoading) return
+    if(analysisType!=='embeddings' || dimReductionLibs.loaded || dimReductionLoading) {
+      return
+    }
     setDimReductionLoading(true)
     try {
       const libs=await loadDimReductionLibs()
@@ -222,6 +309,7 @@ export default function App(){
       setDimReductionLoading(false)
     }
   },[analysisType,dimReductionLibs,dimReductionLoading])
+  
   useEffect(()=>{ loadDimReductionIfNeeded() },[analysisType,workbookData,loadDimReductionIfNeeded])
 
   const loadSampleExcel=async()=>{ 
@@ -914,9 +1002,7 @@ export default function App(){
     [analysisType,tfidf,textSamples,topicModel]
   )
 
-  // Chart data (live updating) - pie chart removed, keeping bar chart
-  // const pieData=useMemo(()=>{ if(analysisType==='assoc'&&associations) return associations.items.slice(0,6).map(i=>({ name:i.item, value:+(i.support*100).toFixed(2) })); if(analysisType==='tfidf'&&tfidf) return tfidf.aggregate.slice(0,6).map(t=>({ name:t.term, value:+t.score.toFixed(2) })); if(analysisType==='ngram') return ngrams.slice(0,6).map(g=>({ name:g.gram, value:g.count })); if(analysisType==='ner') return entities.slice(0,6).map(e=>({ name:e.value, value:e.count })); return [] },[analysisType,associations,tfidf,ngrams,entities])
-
+  
   const barData = useMemo(() =>
     getBarData({analysisType, associations, tfidf, ngrams, entities, yakeKeywords, tokenization, lemmatization, partsOfSpeech, sentiment, topicModel, readability}),
     [analysisType, associations, tfidf, ngrams, entities, yakeKeywords, tokenization, lemmatization, partsOfSpeech, sentiment, topicModel, readability]
