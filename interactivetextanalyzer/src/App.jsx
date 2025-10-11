@@ -289,7 +289,7 @@ export default function App(){
     setLibsLoaded(true)
   }, [libsLoaded, analysisType])
   
-  useEffect(()=>{ loadNERIfNeeded() },[analysisType,workbookData,loadNERIfNeeded])
+  useEffect(()=>{ loadNERIfNeeded() },[analysisType,loadNERIfNeeded])
 
   /**
    * Load dimensionality reduction libraries (t-SNE, UMAP) when needed
