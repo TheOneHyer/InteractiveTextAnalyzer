@@ -5,7 +5,15 @@
  * and column detection operations.
  */
 
-import { normalizeValue } from './categoricalUtils'
+/**
+ * Normalize a value for categorical comparison.
+ * Converts value to string, trims whitespace, and lowercases.
+ * @param {any} value
+ * @returns {string}
+ */
+function normalizeValue(value) {
+  return String(value).trim().toLowerCase();
+}
 
 /**
  * Auto-detect categorical columns based on unique value count
