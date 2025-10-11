@@ -1363,7 +1363,9 @@ export default function App(){
   // Visualization selector component
   const VisualizationSelector = ({ position, currentViz }) => {
     const isOpen = openVizSelector === position
-    const visualizations = ['bar', 'wordcloud', 'network', 'heatmap', 'scatter']
+    const allVisualizations = ['bar', 'wordcloud', 'network', 'heatmap', 'scatter']
+    // Filter to only show available visualizations for the current analysis type
+    const availableVisualizations = allVisualizations.filter(viz => isVisualizationAvailable(viz))
     
     return (
       <div style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
@@ -1400,8 +1402,7 @@ export default function App(){
               minWidth: 140
             }}
           >
-            {visualizations.map(viz => {
-              const isAvailable = isVisualizationAvailable(viz)
+            {availableVisualizations.map(viz => {
               const isSelected = currentViz === viz
               return (
                 <button
@@ -1415,20 +1416,15 @@ export default function App(){
                     fontSize: 12,
                     border: 'none',
                     background: isSelected ? 'var(--c-accent)' : 'transparent',
-                    color: isAvailable ? (isSelected ? '#111' : 'var(--c-text)') : 'var(--c-subtle)',
-                    cursor: isAvailable ? 'pointer' : 'not-allowed',
-                    opacity: isAvailable ? 1 : 0.5,
+                    color: isSelected ? '#111' : 'var(--c-text)',
+                    cursor: 'pointer',
                     borderRadius: 0,
                     fontWeight: isSelected ? 600 : 400
                   }}
                   onClick={() => {
-                    if (isAvailable) {
-                      setChartVisualizations(prev => ({ ...prev, [position]: viz }))
-                      setOpenVizSelector(null)
-                    }
+                    setChartVisualizations(prev => ({ ...prev, [position]: viz }))
+                    setOpenVizSelector(null)
                   }}
-                  disabled={!isAvailable}
-                  title={!isAvailable ? `Not available for ${analysisType} analysis` : ''}
                 >
                   {getVisualizationName(viz)}
                 </button>
