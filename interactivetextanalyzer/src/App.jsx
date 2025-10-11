@@ -762,14 +762,23 @@ export default function App(){
     setRenames({})
   }
 
+  /**
+   * Handle file upload from user
+   * Supports both CSV and Excel (.xlsx) files
+   * Automatically detects categorical columns and sheet structure
+   */
   const handleFile=e=>{ 
     const file=e.target.files?.[0]
-    if(!file) return
+    if(!file) {
+      return
+    }
     const ext=file.name.split('.').pop().toLowerCase()
     const reader=new FileReader()
     
     reader.onload=async(evt)=>{ 
       let parsedData = {}
+      
+      // Parse based on file type
       if(ext==='csv'){ 
         const text=evt.target.result
         const parsed=parseCsv(text)
@@ -784,7 +793,7 @@ export default function App(){
         })
       }
       
-      // Directly load the data without showing import modal
+      // Initialize version manager with loaded data
       versionManager.current.initialize(parsedData)
       setHistoryInfo(versionManager.current.getHistoryInfo())
       
@@ -794,11 +803,11 @@ export default function App(){
       setHiddenColumns([])
       setRenames({})
       
-      // Auto-detect sheets for analysis
+      // Auto-detect sheets suitable for analysis
       const detectedInclusion = autoDetectSheetsForAnalysis(parsedData)
       setIncludedSheets(detectedInclusion)
       
-      // Auto-detect categorical columns
+      // Auto-detect categorical columns (≤5 unique values)
       const firstSheet = Object.keys(parsedData)[0]
       if (firstSheet && parsedData[firstSheet]) {
         const detected = detectCategoricalColumns(parsedData[firstSheet].rows, parsedData[firstSheet].columns)
@@ -806,15 +815,26 @@ export default function App(){
       }
     }
     
-    ext==='csv'? reader.readAsText(file): reader.readAsArrayBuffer(file)
+    // Read file based on type
+    if (ext === 'csv') {
+      reader.readAsText(file)
+    } else {
+      reader.readAsArrayBuffer(file)
+    }
   }
 
+  // Get rows for active sheet (or all sheets if '__ALL__' selected)
   const rawRows=useMemo(()=> getActiveSheetRows(activeSheet, workbookData),[activeSheet,workbookData])
   
+  // Get columns for active sheet (or unique columns from all sheets)
   const currentColumns=useMemo(()=> getActiveSheetColumns(activeSheet, workbookData),[activeSheet,workbookData])
   const displayedColumns=currentColumns.filter(c=>!hiddenColumns.includes(c))
   
-  // Apply categorical filters and text search to rows
+  /**
+   * Apply filters to rows
+   * 1. Categorical filters (e.g., category = 'Books')
+   * 2. Text search (only in editor view)
+   */
   const currentRows = useMemo(() => {
     let filtered = rawRows
     
@@ -829,10 +849,21 @@ export default function App(){
     
     return filtered
   }, [rawRows, categoricalFilters, activeView, textSearchFilter, currentColumns, hiddenColumns])
+  
+  // Combine selected columns into text samples for analysis
   const textSamples=useMemo(()=> !selectedColumns.length? [] : currentRows.map(r=>selectedColumns.map(c=>r[c]).join(' ')),[currentRows,selectedColumns])
+  
+  // Build stemmer if enabled
   const stemmer=useMemo(()=> enableStemming? buildStem(): (t)=>t,[enableStemming])
+  
+  // Analysis parameters used across multiple analysis types
   const params=useMemo(()=>({stopwords:effectiveStopwords,stem:enableStemming,stemmer,n:ngramN}),[effectiveStopwords,enableStemming,stemmer,ngramN])
 
+  /**
+   * Text Analysis Results
+   * Each analysis is computed only when the corresponding analysis type is selected
+   * This avoids unnecessary computation and improves performance
+   */
   const tfidf=useMemo(()=> analysisType==='tfidf'&& textSamples.length? computeTfIdf(textSamples,params): null,[analysisType,textSamples,params])
   const ngrams=useMemo(()=> analysisType==='ngram'&& textSamples.length? generateNGrams(textSamples,params): [],[analysisType,textSamples,params])
   const associations=useMemo(()=> analysisType==='assoc'&& textSamples.length? mineAssociations(currentRows,selectedColumns,{...params,minSupport}): null,[analysisType,textSamples,currentRows,selectedColumns,params,minSupport])
