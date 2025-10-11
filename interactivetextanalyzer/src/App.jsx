@@ -3,6 +3,11 @@ import './App.css'
 import ExcelJS from 'exceljs'
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts'
 import VisualModal from './components/VisualModal'
+import SheetSelector from './components/SheetSelector'
+import InfoTooltip from './components/InfoTooltip'
+import ColumnManager from './components/ColumnManager'
+import SimpleColumnSelector from './components/SimpleColumnSelector'
+import HistoryModal from './components/HistoryModal'
 import { DataVersionManager, applyDataTransformation } from './utils/dataVersioning'
 import { initializeLazyLoading } from './utils/useLazyLoader'
 import { createLazyComponent } from './components/LazyComponent'
@@ -26,6 +31,20 @@ import {
 import { normalizeValue, getCategoricalValues } from './utils/categoricalUtils'
 import { loadDimReductionLibs, applyDimensionalityReduction } from './utils/dimensionalityReduction'
 import { autoDetectSheetsForAnalysis } from './utils/sheetUtils'
+import { parseCsv, parseWorksheet } from './utils/fileHandlers'
+import { 
+  detectCategoricalColumns, 
+  getActiveSheetRows, 
+  getActiveSheetColumns,
+  applyCategoricalFilters,
+  applyTextSearchFilter 
+} from './utils/dataHelpers'
+import { 
+  getWordCloudData, 
+  getBarData, 
+  getNetworkData, 
+  getHeatmapData 
+} from './utils/visualizationHelpers'
 
 // Code-split heavy visualization pieces using centralized lazy loader
 const WordCloud = createLazyComponent('WordCloud')
@@ -65,120 +84,6 @@ const loadSpacyDependencyParsing = async () => {
   return module.performSpacyDependencyParsing
 }
 
-
-const SheetSelector = ({ sheets, activeSheet, setActiveSheet }) => (
-  <div className='flex-row'>
-    {sheets.map(n=> <button key={n} className='btn secondary' style={{background:n===activeSheet?'var(--c-accent)':'#e2e8f0',color:n===activeSheet?'#111':'#1e293b'}} onClick={()=>setActiveSheet(n)}>{n}</button>)}
-    <button className='btn secondary' style={{background:activeSheet==='__ALL__'?'var(--c-accent)':'#e2e8f0',color:activeSheet==='__ALL__'?'#111':'#1e293b'}} onClick={()=>setActiveSheet('__ALL__')}>All Sheets</button>
-  </div>
-)
-
-const InfoTooltip = ({ text, onNavigateToWiki }) => (
-  <div className='tooltip-wrapper'>
-    <span 
-      className='info-icon' 
-      onClick={onNavigateToWiki}
-      title="Click for more info"
-    >
-      ?
-    </span>
-    <div className='tooltip'>{text}</div>
-  </div>
-)
-
-function ColumnManager({ columns, hiddenColumns, renames, toggleHide, setRename, selectColumnForText, selectedTextColumns }) {
-  return (
-    <div className='column-editor'>
-      {columns.map(col=>{
-        const hidden=hiddenColumns.includes(col)
-        const selected=selectedTextColumns.includes(col)
-        return (
-          <div className='column-row' key={col}>
-            <input value={renames[col]||''} placeholder={col} onChange={e=>setRename(col,e.target.value)} />
-            <div className='col-buttons'>
-              <button className={`tag-btn ${selected?'active':''}`} onClick={()=>selectColumnForText(col)}>TXT</button>
-              <button className={`hide-btn ${hidden?'hidden':''}`} onClick={()=>toggleHide(col)}>{hidden? 'Show':'Hide'}</button>
-            </div>
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-function SimpleColumnSelector({ columns, selectedColumns, toggleColumn }) {
-  return (
-    <div className='column-editor'>
-      {columns.map(col=>{
-        const selected=selectedColumns.includes(col)
-        return (
-          <div className='column-row' key={col} style={{padding:'8px 10px'}}>
-            <span style={{flex:1, fontSize:13, fontWeight:500}}>{col}</span>
-            <button 
-              className={`tag-btn ${selected?'active':''}`} 
-              onClick={()=>toggleColumn(col)}
-            >
-              {selected ? '✓ Active' : 'Inactive'}
-            </button>
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-function HistoryModal({ isOpen, onClose, versionManager, onJumpToVersion }) {
-  if (!isOpen) return null
-  
-  const historyItems = versionManager.getHistoryWithSummaries()
-  
-  return (
-    <div className='modal-overlay' onClick={onClose}>
-      <div className='modal-content' onClick={(e) => e.stopPropagation()}>
-        <div className='modal-header'>
-          <h2>Version History</h2>
-          <button className='modal-close' onClick={onClose}>×</button>
-        </div>
-        <div className='modal-body'>
-          <p style={{fontSize: 13, color: 'var(--c-text-muted)', marginBottom: 16}}>
-            Click on any version to jump to that point in history. Current version is highlighted.
-          </p>
-          <div style={{display: 'flex', flexDirection: 'column', gap: 8}}>
-            {historyItems.map((item) => (
-              <button
-                key={item.index}
-                className='btn'
-                onClick={() => onJumpToVersion(item.index)}
-                style={{
-                  padding: '12px 16px',
-                  textAlign: 'left',
-                  background: item.isCurrent ? 'var(--c-accent)' : 'var(--c-surface)',
-                  border: item.isCurrent ? '2px solid var(--c-accent)' : '1px solid var(--c-border)',
-                  color: item.isCurrent ? '#111' : 'var(--c-text)',
-                  fontWeight: item.isCurrent ? 600 : 400,
-                  cursor: 'pointer'
-                }}
-              >
-                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-                  <span>
-                    <strong>Version {item.index + 1}</strong>
-                    {item.isCurrent && ' (Current)'}
-                  </span>
-                  <span style={{fontSize: 12, opacity: 0.7}}>
-                    {item.index === 0 ? 'Original' : `${historyItems.length - item.index - 1} steps ago`}
-                  </span>
-                </div>
-                <div style={{fontSize: 13, marginTop: 4, opacity: 0.8}}>
-                  {item.summary}
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
 
 const LOCAL_KEY='ita_state_v1'
 const ROW_HEIGHT = 26
@@ -318,77 +223,6 @@ export default function App(){
     }
   },[analysisType,dimReductionLibs,dimReductionLoading])
   useEffect(()=>{ loadDimReductionIfNeeded() },[analysisType,workbookData,loadDimReductionIfNeeded])
-
-  const parseCsv=text=>{ 
-    const lines = text.trim().split('\n')
-    if (lines.length === 0) return { rows: [], columns: [] }
-    
-    // Parse CSV header
-    const parseCSVLine = (line) => {
-      const result = []
-      let current = ''
-      let inQuotes = false
-      
-      for (let i = 0; i < line.length; i++) {
-        const char = line[i]
-        if (char === '"') {
-          inQuotes = !inQuotes
-        } else if (char === ',' && !inQuotes) {
-          result.push(current.trim())
-          current = ''
-        } else {
-          current += char
-        }
-      }
-      result.push(current.trim())
-      return result
-    }
-    
-    const columns = parseCSVLine(lines[0])
-    const rows = lines.slice(1).filter(line => line.trim()).map(line => {
-      const values = parseCSVLine(line)
-      const row = {}
-      columns.forEach((col, i) => {
-        row[col] = values[i] || ''
-      })
-      return row
-    })
-    
-    return { rows, columns }
-  }
-
-  // Helper function to parse ExcelJS worksheet into rows and columns
-  const parseWorksheet = (ws) => {
-    const rows = []
-    const columns = []
-    
-    // Get column headers from first row
-    const headerRow = ws.getRow(1)
-    headerRow.eachCell((cell, colNumber) => {
-      const header = cell.value || `Column${colNumber}`
-      columns.push(String(header))
-    })
-    
-    // Get data rows (skip header row)
-    ws.eachRow((row, rowNumber) => {
-      if (rowNumber === 1) return // Skip header
-      const rowData = {}
-      columns.forEach((col, i) => {
-        const cellValue = row.getCell(i + 1).value
-        // Handle rich text and formula values
-        if (cellValue && typeof cellValue === 'object' && cellValue.richText) {
-          rowData[col] = cellValue.richText.map(t => t.text).join('')
-        } else if (cellValue && typeof cellValue === 'object' && cellValue.result !== undefined) {
-          rowData[col] = cellValue.result
-        } else {
-          rowData[col] = cellValue || ''
-        }
-      })
-      rows.push(rowData)
-    })
-    
-    return { rows, columns }
-  }
 
   const loadSampleExcel=async()=>{ 
     // Generate diverse review data with 200+ rows
@@ -887,55 +721,22 @@ export default function App(){
     ext==='csv'? reader.readAsText(file): reader.readAsArrayBuffer(file)
   }
 
-  // Auto-detect categorical columns based on unique value count
-  const detectCategoricalColumns = useCallback((rows, columns) => {
-    const detected = []
-    columns.forEach(col => {
-      const uniqueValues = new Set(
-        rows.map(row => row[col])
-          .filter(val => val !== null && val !== undefined && String(val).trim() !== '')
-          .map(normalizeValue)
-      )
-      // Auto-detect as categorical if 5 or fewer unique values
-      if (uniqueValues.size > 0 && uniqueValues.size <= 5) {
-        detected.push(col)
-      }
-    })
-    return detected
-  }, [])
-
-  const rawRows=useMemo(()=> activeSheet==='__ALL__'? Object.values(workbookData).flatMap(s=>s.rows): (activeSheet && workbookData[activeSheet]?.rows)||[],[activeSheet,workbookData])
+  const rawRows=useMemo(()=> getActiveSheetRows(activeSheet, workbookData),[activeSheet,workbookData])
   
-  const currentColumns=useMemo(()=> activeSheet==='__ALL__'? [...new Set(Object.values(workbookData).flatMap(s=>s.columns))] : (activeSheet && workbookData[activeSheet]?.columns)||[],[activeSheet,workbookData])
+  const currentColumns=useMemo(()=> getActiveSheetColumns(activeSheet, workbookData),[activeSheet,workbookData])
   const displayedColumns=currentColumns.filter(c=>!hiddenColumns.includes(c))
   
-  // Apply categorical filters to rows
+  // Apply categorical filters and text search to rows
   const currentRows = useMemo(() => {
     let filtered = rawRows
     
     // Apply categorical filters
-    Object.entries(categoricalFilters).forEach(([col, selectedValues]) => {
-      if (selectedValues && selectedValues.length > 0) {
-        filtered = filtered.filter(row => {
-          const val = row[col]
-          if (val === null || val === undefined) return false
-          const normalized = normalizeValue(val)
-          return selectedValues.includes(normalized)
-        })
-      }
-    })
+    filtered = applyCategoricalFilters(filtered, categoricalFilters)
     
     // Apply text search filter (only in editor view)
     if (activeView === 'editor' && textSearchFilter.trim()) {
-      const searchLower = textSearchFilter.toLowerCase().trim()
       const columnsToSearch = currentColumns.filter(c => !hiddenColumns.includes(c))
-      filtered = filtered.filter(row => {
-        return columnsToSearch.some(col => {
-          const val = row[col]
-          if (val === null || val === undefined) return false
-          return String(val).toLowerCase().includes(searchLower)
-        })
-      })
+      filtered = applyTextSearchFilter(filtered, textSearchFilter, columnsToSearch)
     }
     
     return filtered
@@ -1098,214 +899,23 @@ export default function App(){
   const statTokens=useMemo(()=> textSamples.join(' ').split(/\s+/).filter(Boolean).length,[textSamples])
   const statUniqueTerms=tfidf? tfidf.aggregate.length : (ngrams.length || entities.length || yakeKeywords.length || lemmatization.length || partsOfSpeech?.totalWords || readability?.aggregate.totalWords || 0)
 
-  // Helper function to compute word cloud data based on analysis type
-  function getWordCloudData(analysisType, tfidf, ngrams, entities, associations, yakeKeywords, tokenization, lemmatization, partsOfSpeech, topicModel) {
-    switch (analysisType) {
-      case 'tfidf':
-        if (tfidf) return tfidf.aggregate.map(t => ({ text: t.term, value: t.score }));
-        break;
-      case 'ngram':
-        return ngrams.map(g => ({ text: g.gram, value: g.count }));
-      case 'ner':
-        return entities.map(e => ({ text: e.value, value: e.count }));
-      case 'assoc':
-        if (associations) return associations.items.map(i => ({ text: i.item, value: i.support }));
-        break;
-      case 'yake':
-        return yakeKeywords.map(k => ({ text: k.keyword, value: 1 / k.score }));
-      case 'tokenization':
-        return tokenization.map(t => ({ text: t.token, value: t.count }));
-      case 'lemmatization':
-        return lemmatization.map(l => ({ text: l.lemma, value: l.count }));
-      case 'pos':
-        if (partsOfSpeech) {
-          // Create word cloud from POS examples
-          const allWords = []
-          Object.entries(partsOfSpeech.posExamples).forEach(([pos, words]) => {
-            words.forEach(({ word, count }) => {
-              allWords.push({ text: word, value: count })
-            })
-          })
-          return allWords
-        }
-        break;
-      case 'topic':
-        if (topicModel) {
-          // Create word cloud from all topic terms
-          const allTerms = []
-          topicModel.topics.forEach(topic => {
-            topic.terms.forEach(({ term, score }) => {
-              allTerms.push({ text: term, value: score })
-            })
-          })
-          return allTerms
-        }
-        break;
-      default:
-        return [];
-    }
-    return [];
-  }
-
   const wordCloudData = useMemo(() =>
-    getWordCloudData(analysisType, tfidf, ngrams, entities, associations, yakeKeywords, tokenization, lemmatization, partsOfSpeech, topicModel),
+    getWordCloudData({analysisType, tfidf, ngrams, entities, associations, yakeKeywords, tokenization, lemmatization, partsOfSpeech, topicModel}),
     [analysisType, tfidf, ngrams, entities, associations, yakeKeywords, tokenization, lemmatization, partsOfSpeech, topicModel]
-  );
-  const networkData=useMemo(()=> {
-    if (analysisType==='assoc'&&associations) {
-      return {nodes:associations.items.slice(0,50).map(i=>({id:i.item,value:i.support})), edges:associations.pairs.filter(p=>p.lift>=1).map(p=>({source:p.a,target:p.b,value:p.lift}))}
-    }
-    if (analysisType==='dependency'&&dependencyResult) {
-      return {nodes:dependencyResult.nodes, edges:dependencyResult.edges}
-    }
-    if (analysisType==='topic'&&topicModel) {
-      // Create network graph from topic co-occurrence
-      const nodes = topicModel.topics.map(t => ({
-        id: `topic_${t.id}`,
-        value: t.size,
-        label: t.label
-      }))
-      const edges = topicModel.topicCooccurrence.map(cooc => ({
-        source: `topic_${cooc.source}`,
-        target: `topic_${cooc.target}`,
-        value: cooc.weight
-      }))
-      return {nodes, edges}
-    }
-    if (analysisType==='lemmatization'&&lemmatization.length>0) {
-      // Create a co-occurrence network from lemmas
-      // Build a graph where nodes are lemmas and edges represent shared contexts
-      const lemmaNodes = lemmatization.slice(0, 30).map(l => ({id: l.lemma, value: l.count}))
-      const edges = []
-      // Simple approach: connect top lemmas based on their frequency
-      for (let i = 0; i < Math.min(lemmatization.length, 20); i++) {
-        for (let j = i + 1; j < Math.min(lemmatization.length, 20); j++) {
-          if (i !== j) {
-            // Create edges with decreasing weights based on position
-            const weight = 1 / (Math.abs(i - j) + 1)
-            if (weight > 0.2) {
-              edges.push({source: lemmatization[i].lemma, target: lemmatization[j].lemma, value: weight})
-            }
-          }
-        }
-      }
-      return {nodes: lemmaNodes, edges: edges.slice(0, 40)}
-    }
-    return {nodes:[],edges:[]}
-  },[analysisType,associations,dependencyResult,lemmatization,topicModel])
-  const heatmapData=useMemo(()=>{ 
-    if(analysisType==='tfidf'&&tfidf){ 
-      const top=tfidf.aggregate.slice(0,20).map(t=>t.term); 
-      const matrix=tfidf.perDoc.slice(0,25).map(doc=>top.map(term=>{
-        const f=doc.find(x=>x.term===term); 
-        return f? Number(f.tfidf.toFixed(2)):0
-      })); 
-      // Create better document labels using text preview
-      const yLabels = matrix.map((_, i) => {
-        if (i < textSamples.length) {
-          const text = textSamples[i]
-          // Get first 40 chars or up to first sentence
-          const preview = text.slice(0, 40).replace(/\s+/g, ' ').trim()
-          return preview.length < text.length ? preview + '...' : preview
-        }
-        return 'Doc ' + (i+1)
-      })
-      return {matrix, xLabels:top, yLabels}
-    }
-    if(analysisType==='topic'&&topicModel){ 
-      // Create document-topic heatmap
-      const xLabels = topicModel.topics.map(t => `T${t.id+1}`)
-      const yLabels = topicModel.docTopicMatrix.slice(0,25).map((_, i) => {
-        if (i < textSamples.length) {
-          const text = textSamples[i]
-          const preview = text.slice(0, 40).replace(/\s+/g, ' ').trim()
-          return preview.length < text.length ? preview + '...' : preview
-        }
-        return 'Doc ' + (i+1)
-      })
-      const matrix = topicModel.docTopicMatrix.slice(0,25).map(docTopics => 
-        docTopics.map(score => Number(score.toFixed(3)))
-      )
-      return {matrix, xLabels, yLabels}
-    }
-    return {matrix:[],xLabels:[],yLabels:[]} 
-  },[analysisType,tfidf,textSamples,topicModel])
+  )
+  
+  const networkData=useMemo(()=> 
+    getNetworkData({analysisType, associations, dependencyResult, lemmatization, topicModel}),
+    [analysisType,associations,dependencyResult,lemmatization,topicModel]
+  )
+  
+  const heatmapData=useMemo(()=> 
+    getHeatmapData({analysisType, tfidf, textSamples, topicModel}),
+    [analysisType,tfidf,textSamples,topicModel]
+  )
 
   // Chart data (live updating) - pie chart removed, keeping bar chart
   // const pieData=useMemo(()=>{ if(analysisType==='assoc'&&associations) return associations.items.slice(0,6).map(i=>({ name:i.item, value:+(i.support*100).toFixed(2) })); if(analysisType==='tfidf'&&tfidf) return tfidf.aggregate.slice(0,6).map(t=>({ name:t.term, value:+t.score.toFixed(2) })); if(analysisType==='ngram') return ngrams.slice(0,6).map(g=>({ name:g.gram, value:g.count })); if(analysisType==='ner') return entities.slice(0,6).map(e=>({ name:e.value, value:e.count })); return [] },[analysisType,associations,tfidf,ngrams,entities])
-
-  function getBarData({
-    analysisType,
-    associations,
-    tfidf,
-    ngrams,
-    entities,
-    yakeKeywords,
-    tokenization,
-    lemmatization,
-    partsOfSpeech,
-    sentiment,
-    topicModel,
-    readability
-  }) {
-    switch (analysisType) {
-      case 'assoc':
-        if (associations)
-          return associations.pairs.slice(0,8).map(p=>({ name:`${p.a}+${p.b}`, lift:+p.lift.toFixed(2) }));
-        break;
-      case 'tfidf':
-        if (tfidf)
-          return tfidf.aggregate.slice(0,8).map(t=>({ name:t.term, score:+t.score.toFixed(2) }));
-        break;
-      case 'ngram':
-        return ngrams.slice(0,8).map(g=>({ name:g.gram, freq:g.count }));
-      case 'ner':
-        return entities.slice(0,8).map(e=>({ name:e.value, count:e.count }));
-      case 'yake':
-        return yakeKeywords.slice(0,8).map(k=>({ name:k.keyword, score:+(1/k.score).toFixed(2) }));
-      case 'tokenization':
-        return tokenization.slice(0,8).map(t=>({ name:t.token, count:t.count }));
-      case 'lemmatization':
-        return lemmatization.slice(0,8).map(l=>({ name:l.lemma, count:l.count }));
-      case 'pos':
-        if (partsOfSpeech) {
-          return Object.entries(partsOfSpeech.posCounts)
-            .filter(([_, count]) => count > 0)
-            .map(([pos, count])=>({ name:pos, count, percentage:+partsOfSpeech.percentages[pos] }))
-            .sort((a, b) => b.count - a.count);
-        }
-        break;
-      case 'sentiment':
-        if (sentiment && sentiment.summary) {
-          return [
-            { name: 'Positive', count: sentiment.summary.positive, percentage: sentiment.summary.positivePercent },
-            { name: 'Negative', count: sentiment.summary.negative, percentage: sentiment.summary.negativePercent },
-            { name: 'Neutral', count: sentiment.summary.neutral, percentage: sentiment.summary.neutralPercent }
-          ].filter(item => item.count > 0);
-        }
-        break;
-      case 'readability':
-        if (readability && readability.aggregate) {
-          return [
-            { name: 'Flesch Reading Ease', score: readability.aggregate.flesch },
-            { name: 'Flesch-Kincaid Grade', score: readability.aggregate.fleschKincaid },
-            { name: 'Coleman-Liau Index', score: readability.aggregate.colemanLiau },
-            { name: 'Gunning Fog Index', score: readability.aggregate.gunningFog },
-            { name: 'SMOG Index', score: readability.aggregate.smog },
-            { name: 'ARI', score: readability.aggregate.ari }
-          ];
-        }
-        break;
-      case 'topic':
-        if (topicModel) {
-          return topicModel.topics.map(t => ({ name: `Topic ${t.id+1}`, size: +t.size.toFixed(2) }));
-        }
-        break;
-      default:
-        return [];
-    }
-    return [];
-  }
 
   const barData = useMemo(() =>
     getBarData({analysisType, associations, tfidf, ngrams, entities, yakeKeywords, tokenization, lemmatization, partsOfSpeech, sentiment, topicModel, readability}),
