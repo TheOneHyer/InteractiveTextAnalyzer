@@ -2288,7 +2288,7 @@ export default function App(){
                   <div style={{flex:'1 1 420px',minWidth:360}} className='result-section'>
                     <div style={{marginBottom:12,display:'flex',gap:6,flexWrap:'wrap',alignItems:'center',justifyContent:'space-between'}}>
                       <div style={{display:'flex',gap:6,flexWrap:'wrap',alignItems:'center'}}>
-                        {['list', ...['bar', 'wordcloud', 'network', 'heatmap', 'scatter'].filter(v => isVisualizationAvailable(v))].map(m => <button key={m} className='btn secondary' style={{padding:'4px 10px',fontSize:11,background:viewMode===m?'var(--c-accent)':'#e2e8f0',color:viewMode===m?'#111':'#1e293b'}} onClick={()=>setViewMode(m)}>{m.charAt(0).toUpperCase()+m.slice(1)}</button>)}
+                        {['list', ...['bar', 'wordcloud', 'network', 'heatmap', 'scatter'].filter(v => isVisualizationAvailable(analysisType, v))].map(m => <button key={m} className='btn secondary' style={{padding:'4px 10px',fontSize:11,background:viewMode===m?'var(--c-accent)':'#e2e8f0',color:viewMode===m?'#111':'#1e293b'}} onClick={()=>setViewMode(m)}>{m.charAt(0).toUpperCase()+m.slice(1)}</button>)}
                         {viewMode==='network' && <label style={{fontSize:11,display:'flex',alignItems:'center',gap:4,marginLeft:8}}><input type='checkbox' checked={weightedLines} onChange={e=>setWeightedLines(e.target.checked)} />Weighted Lines</label>}
                       </div>
                       {viewMode !== 'list' && (
