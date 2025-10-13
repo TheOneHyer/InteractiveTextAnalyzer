@@ -210,7 +210,7 @@ export default function App(){
    * Reset viewMode if current selection is no longer available for the analysis type
    */
   useEffect(() => {
-    if (viewMode !== 'list' && !isVisualizationAvailable(viewMode)) {
+    if (viewMode !== 'list' && !isVisualizationAvailable(analysisType, viewMode)) {
       setViewMode('list')
     }
   }, [analysisType, viewMode])
@@ -220,7 +220,7 @@ export default function App(){
    */
   useEffect(() => {
     const allVisualizations = ['bar', 'wordcloud', 'network', 'heatmap', 'scatter']
-    const availableVisualizations = allVisualizations.filter(viz => isVisualizationAvailable(viz))
+    const availableVisualizations = allVisualizations.filter(viz => isVisualizationAvailable(analysisType, viz))
     
     // If no visualizations available, do nothing
     if (availableVisualizations.length === 0) return
@@ -231,7 +231,7 @@ export default function App(){
       let changed = false
       
       for (const position of ['pos1', 'pos2', 'pos3', 'pos4']) {
-        if (!isVisualizationAvailable(prev[position])) {
+        if (!isVisualizationAvailable(analysisType, prev[position])) {
           updated[position] = availableVisualizations[0]
           changed = true
         }
@@ -1309,18 +1309,22 @@ export default function App(){
   // - dependency: network
   // - lemmatization: bar, wordcloud, network
   // - sentiment: bar
-  const isVisualizationAvailable = (vizType) => {
+  const isVisualizationAvailable = (vizTypeOrAnalysis, vizTypeIfTwo) => {
+    // Support both (vizType) and (analysisType, vizType) signatures
+    const vizType = vizTypeIfTwo !== undefined ? vizTypeIfTwo : vizTypeOrAnalysis
+    const type = vizTypeIfTwo !== undefined ? vizTypeOrAnalysis : analysisType
+    
     switch(vizType) {
       case 'bar':
-        return analysisType === 'tfidf' || analysisType === 'ngram' || analysisType === 'ner' || analysisType === 'assoc' || analysisType === 'yake' || analysisType === 'lemmatization' || analysisType === 'sentiment'
+        return type === 'tfidf' || type === 'ngram' || type === 'ner' || type === 'assoc' || type === 'yake' || type === 'lemmatization' || type === 'sentiment'
       case 'wordcloud':
-        return analysisType === 'tfidf' || analysisType === 'ngram' || analysisType === 'ner' || analysisType === 'assoc' || analysisType === 'yake' || analysisType === 'lemmatization'
+        return type === 'tfidf' || type === 'ngram' || type === 'ner' || type === 'assoc' || type === 'yake' || type === 'lemmatization'
       case 'network':
-        return analysisType === 'assoc' || analysisType === 'dependency' || analysisType === 'lemmatization'
+        return type === 'assoc' || type === 'dependency' || type === 'lemmatization'
       case 'heatmap':
-        return analysisType === 'tfidf'
+        return type === 'tfidf'
       case 'scatter':
-        return analysisType === 'embeddings'
+        return type === 'embeddings'
       default:
         return false
     }
@@ -1400,7 +1404,7 @@ export default function App(){
     const isOpen = openVizSelector === position
     const allVisualizations = ['bar', 'wordcloud', 'network', 'heatmap', 'scatter']
     // Filter to only show available visualizations for the current analysis type
-    const availableVisualizations = allVisualizations.filter(viz => isVisualizationAvailable(viz))
+    const availableVisualizations = allVisualizations.filter(viz => isVisualizationAvailable(analysisType, viz))
     
     return (
       <div style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
