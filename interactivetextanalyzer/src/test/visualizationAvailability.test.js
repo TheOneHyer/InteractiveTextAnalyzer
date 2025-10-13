@@ -9,8 +9,10 @@ import { describe, it, expect } from 'vitest'
  * - ngram: bar, wordcloud
  * - assoc: bar, wordcloud, network
  * - ner: bar, wordcloud
+ * - yake: bar, wordcloud
  * - embeddings: scatter
  * - dependency: network
+ * - lemmatization: bar, wordcloud, network
  * - sentiment: bar
  */
 
@@ -18,11 +20,11 @@ import { describe, it, expect } from 'vitest'
 const isVisualizationAvailable = (analysisType, vizType) => {
   switch(vizType) {
     case 'bar':
-      return analysisType === 'tfidf' || analysisType === 'ngram' || analysisType === 'ner' || analysisType === 'assoc' || analysisType === 'sentiment'
+      return analysisType === 'tfidf' || analysisType === 'ngram' || analysisType === 'ner' || analysisType === 'assoc' || analysisType === 'yake' || analysisType === 'lemmatization' || analysisType === 'sentiment'
     case 'wordcloud':
-      return analysisType === 'tfidf' || analysisType === 'ngram' || analysisType === 'ner' || analysisType === 'assoc'
+      return analysisType === 'tfidf' || analysisType === 'ngram' || analysisType === 'ner' || analysisType === 'assoc' || analysisType === 'yake' || analysisType === 'lemmatization'
     case 'network':
-      return analysisType === 'assoc' || analysisType === 'dependency'
+      return analysisType === 'assoc' || analysisType === 'dependency' || analysisType === 'lemmatization'
     case 'heatmap':
       return analysisType === 'tfidf'
     case 'scatter':
@@ -212,8 +214,56 @@ describe('Visualization Availability - Sentiment Analysis', () => {
   })
 })
 
+describe('Visualization Availability - YAKE Keyword Extraction', () => {
+  const analysisType = 'yake'
+  
+  it('should allow Bar Chart for YAKE', () => {
+    expect(isVisualizationAvailable(analysisType, 'bar')).toBe(true)
+  })
+  
+  it('should allow Word Cloud for YAKE', () => {
+    expect(isVisualizationAvailable(analysisType, 'wordcloud')).toBe(true)
+  })
+  
+  it('should not allow Network Graph for YAKE', () => {
+    expect(isVisualizationAvailable(analysisType, 'network')).toBe(false)
+  })
+  
+  it('should not allow Heatmap for YAKE', () => {
+    expect(isVisualizationAvailable(analysisType, 'heatmap')).toBe(false)
+  })
+  
+  it('should not allow Scatter Plot for YAKE', () => {
+    expect(isVisualizationAvailable(analysisType, 'scatter')).toBe(false)
+  })
+})
+
+describe('Visualization Availability - Lemmatization Analysis', () => {
+  const analysisType = 'lemmatization'
+  
+  it('should allow Bar Chart for Lemmatization', () => {
+    expect(isVisualizationAvailable(analysisType, 'bar')).toBe(true)
+  })
+  
+  it('should allow Word Cloud for Lemmatization', () => {
+    expect(isVisualizationAvailable(analysisType, 'wordcloud')).toBe(true)
+  })
+  
+  it('should allow Network Graph for Lemmatization', () => {
+    expect(isVisualizationAvailable(analysisType, 'network')).toBe(true)
+  })
+  
+  it('should not allow Heatmap for Lemmatization', () => {
+    expect(isVisualizationAvailable(analysisType, 'heatmap')).toBe(false)
+  })
+  
+  it('should not allow Scatter Plot for Lemmatization', () => {
+    expect(isVisualizationAvailable(analysisType, 'scatter')).toBe(false)
+  })
+})
+
 describe('Visualization Availability - Comprehensive Matrix', () => {
-  const analyses = ['tfidf', 'ngram', 'assoc', 'ner', 'embeddings', 'dependency', 'sentiment']
+  const analyses = ['tfidf', 'ngram', 'assoc', 'ner', 'yake', 'embeddings', 'dependency', 'lemmatization', 'sentiment']
   const visualizations = ['bar', 'wordcloud', 'network', 'heatmap', 'scatter']
   
   // Expected mappings matrix
@@ -222,8 +272,10 @@ describe('Visualization Availability - Comprehensive Matrix', () => {
     'ngram': ['bar', 'wordcloud'],
     'assoc': ['bar', 'wordcloud', 'network'],
     'ner': ['bar', 'wordcloud'],
+    'yake': ['bar', 'wordcloud'],
     'embeddings': ['scatter'],
     'dependency': ['network'],
+    'lemmatization': ['bar', 'wordcloud', 'network'],
     'sentiment': ['bar']
   }
   

@@ -207,6 +207,41 @@ export default function App(){
   }, [openVizSelector])
 
   /**
+   * Reset viewMode if current selection is no longer available for the analysis type
+   */
+  useEffect(() => {
+    if (viewMode !== 'list' && !isVisualizationAvailable(analysisType, viewMode)) {
+      setViewMode('list')
+    }
+  }, [analysisType, viewMode])
+
+  /**
+   * Reset chart visualizations if current selections are no longer available for the analysis type
+   */
+  useEffect(() => {
+    const allVisualizations = ['bar', 'wordcloud', 'network', 'heatmap', 'scatter']
+    const availableVisualizations = allVisualizations.filter(viz => isVisualizationAvailable(analysisType, viz))
+    
+    // If no visualizations available, do nothing
+    if (availableVisualizations.length === 0) return
+    
+    // Reset each position if its current visualization is no longer available
+    setChartVisualizations(prev => {
+      const updated = { ...prev }
+      let changed = false
+      
+      for (const position of ['pos1', 'pos2', 'pos3', 'pos4']) {
+        if (!isVisualizationAvailable(analysisType, prev[position])) {
+          updated[position] = availableVisualizations[0]
+          changed = true
+        }
+      }
+      
+      return changed ? updated : prev
+    })
+  }, [analysisType])
+
+  /**
    * Initialize lazy loading system on component mount
    * Registers components and libraries to be loaded via queue system
    */
@@ -1274,18 +1309,22 @@ export default function App(){
   // - dependency: network
   // - lemmatization: bar, wordcloud, network
   // - sentiment: bar
-  const isVisualizationAvailable = (vizType) => {
+  const isVisualizationAvailable = (vizTypeOrAnalysis, vizTypeIfTwo) => {
+    // Support both (vizType) and (analysisType, vizType) signatures
+    const vizType = vizTypeIfTwo !== undefined ? vizTypeIfTwo : vizTypeOrAnalysis
+    const type = vizTypeIfTwo !== undefined ? vizTypeOrAnalysis : analysisType
+    
     switch(vizType) {
       case 'bar':
-        return analysisType === 'tfidf' || analysisType === 'ngram' || analysisType === 'ner' || analysisType === 'assoc' || analysisType === 'yake' || analysisType === 'lemmatization' || analysisType === 'sentiment'
+        return type === 'tfidf' || type === 'ngram' || type === 'ner' || type === 'assoc' || type === 'yake' || type === 'lemmatization' || type === 'sentiment'
       case 'wordcloud':
-        return analysisType === 'tfidf' || analysisType === 'ngram' || analysisType === 'ner' || analysisType === 'assoc' || analysisType === 'yake' || analysisType === 'lemmatization'
+        return type === 'tfidf' || type === 'ngram' || type === 'ner' || type === 'assoc' || type === 'yake' || type === 'lemmatization'
       case 'network':
-        return analysisType === 'assoc' || analysisType === 'dependency' || analysisType === 'lemmatization'
+        return type === 'assoc' || type === 'dependency' || type === 'lemmatization'
       case 'heatmap':
-        return analysisType === 'tfidf'
+        return type === 'tfidf'
       case 'scatter':
-        return analysisType === 'embeddings'
+        return type === 'embeddings'
       default:
         return false
     }
@@ -1365,7 +1404,7 @@ export default function App(){
     const isOpen = openVizSelector === position
     const allVisualizations = ['bar', 'wordcloud', 'network', 'heatmap', 'scatter']
     // Filter to only show available visualizations for the current analysis type
-    const availableVisualizations = allVisualizations.filter(viz => isVisualizationAvailable(viz))
+    const availableVisualizations = allVisualizations.filter(viz => isVisualizationAvailable(analysisType, viz))
     
     return (
       <div style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
@@ -1481,6 +1520,23 @@ export default function App(){
     let title = ''
     
     switch(type) {
+      case 'bar':
+        title = 'Bar Chart'
+        content = barData.length>0 ? (
+          <div className='chart-box' style={{width: '100%', height: '100%', minHeight: 500}}>
+            <ResponsiveContainer width='100%' height='100%'>
+              <BarChart data={barData} margin={{top:10,right:10,bottom:10,left:0}}>
+                <XAxis dataKey='name' hide={barData.length>6} tick={{fontSize:11}} interval={0} angle={-20} textAnchor='end'/>
+                <YAxis tick={{fontSize:11}} />
+                <Tooltip wrapperStyle={{fontSize:12}}/>
+                <Bar dataKey={analysisType==='tfidf'?'score': analysisType==='ngram'?'freq': analysisType==='assoc'?'lift': analysisType==='topic'?'size':'count'} radius={[6,6,0,0]} fill='#0f172a'>
+                  {barData.map((_,i)=><Cell key={i} fill={['#0f172a','#ff9900','#0284c7','#475569','#06b6d4','#f59e0b'][i%6]} />)}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        ) : <div>No data available</div>
+        break
       case 'wordcloud':
         title = 'Word Cloud'
         content = wordCloudData.length>0 ? (
@@ -1507,6 +1563,16 @@ export default function App(){
           <div className='chart-box' style={{width: '100%', height: '100%', overflow: 'auto'}}>
             <Suspense fallback={<div className='skel block' />}>
               <Heatmap matrix={heatmapData.matrix} xLabels={heatmapData.xLabels} yLabels={heatmapData.yLabels} />
+            </Suspense>
+          </div>
+        ) : <div>No data available</div>
+        break
+      case 'scatter':
+        title = 'Scatter Plot'
+        content = embeddingPoints.length>0 ? (
+          <div className='chart-box' style={{width: '100%', height: '100%', minHeight: 500}}>
+            <Suspense fallback={<div className='skel block' />}>
+              <ScatterPlot data={embeddingPoints} xLabel={`${dimReductionMethod.toUpperCase()} Dimension 1`} yLabel={`${dimReductionMethod.toUpperCase()} Dimension 2`} width={900} height={650} />
             </Suspense>
           </div>
         ) : <div>No data available</div>
@@ -2226,7 +2292,7 @@ export default function App(){
                   <div style={{flex:'1 1 420px',minWidth:360}} className='result-section'>
                     <div style={{marginBottom:12,display:'flex',gap:6,flexWrap:'wrap',alignItems:'center',justifyContent:'space-between'}}>
                       <div style={{display:'flex',gap:6,flexWrap:'wrap',alignItems:'center'}}>
-                        {['list','wordcloud','network','heatmap'].map(m => <button key={m} className='btn secondary' style={{padding:'4px 10px',fontSize:11,background:viewMode===m?'var(--c-accent)':'#e2e8f0',color:viewMode===m?'#111':'#1e293b'}} onClick={()=>setViewMode(m)}>{m.charAt(0).toUpperCase()+m.slice(1)}</button>)}
+                        {['list', ...['bar', 'wordcloud', 'network', 'heatmap', 'scatter'].filter(v => isVisualizationAvailable(analysisType, v))].map(m => <button key={m} className='btn secondary' style={{padding:'4px 10px',fontSize:11,background:viewMode===m?'var(--c-accent)':'#e2e8f0',color:viewMode===m?'#111':'#1e293b'}} onClick={()=>setViewMode(m)}>{m.charAt(0).toUpperCase()+m.slice(1)}</button>)}
                         {viewMode==='network' && <label style={{fontSize:11,display:'flex',alignItems:'center',gap:4,marginLeft:8}}><input type='checkbox' checked={weightedLines} onChange={e=>setWeightedLines(e.target.checked)} />Weighted Lines</label>}
                       </div>
                       {viewMode !== 'list' && (
@@ -2239,9 +2305,26 @@ export default function App(){
                         </button>
                       )}
                     </div>
+                    {viewMode==='bar' && barData.length>0 && (
+                      <ResponsiveContainer width='100%' height={300}>
+                        <BarChart data={barData} margin={{top:10,right:10,bottom:10,left:0}}>
+                          <XAxis dataKey='name' hide={barData.length>6} tick={{fontSize:11}} interval={0} angle={-20} textAnchor='end'/>
+                          <YAxis tick={{fontSize:11}} />
+                          <Tooltip wrapperStyle={{fontSize:12}}/>
+                          <Bar dataKey={analysisType==='tfidf'?'score': analysisType==='ngram'?'freq': analysisType==='assoc'?'lift': analysisType==='topic'?'size':'count'} radius={[6,6,0,0]} fill='#0f172a'>
+                            {barData.map((_,i)=><Cell key={i} fill={['#0f172a','#ff9900','#0284c7','#475569','#06b6d4','#f59e0b'][i%6]} />)}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    )}
                     {viewMode==='wordcloud' && <WordCloud data={wordCloudData} />}
                     {viewMode==='network' && <NetworkGraph nodes={networkData.nodes} edges={networkData.edges} weightedLines={weightedLines} />}
                     {viewMode==='heatmap' && <Heatmap matrix={heatmapData.matrix} xLabels={heatmapData.xLabels} yLabels={heatmapData.yLabels} />}
+                    {viewMode==='scatter' && embeddingPoints.length>0 && (
+                      <Suspense fallback={<div className='skel block' />}>
+                        <ScatterPlot data={embeddingPoints} xLabel={`${dimReductionMethod.toUpperCase()} Dimension 1`} yLabel={`${dimReductionMethod.toUpperCase()} Dimension 2`} />
+                      </Suspense>
+                    )}
                     {viewMode==='list' && <div className='notice'>Choose a visualization mode.</div>}
                   </div>
                 </div>
