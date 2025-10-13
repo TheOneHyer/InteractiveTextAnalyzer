@@ -207,6 +207,41 @@ export default function App(){
   }, [openVizSelector])
 
   /**
+   * Reset viewMode if current selection is no longer available for the analysis type
+   */
+  useEffect(() => {
+    if (viewMode !== 'list' && !isVisualizationAvailable(viewMode)) {
+      setViewMode('list')
+    }
+  }, [analysisType, viewMode])
+
+  /**
+   * Reset chart visualizations if current selections are no longer available for the analysis type
+   */
+  useEffect(() => {
+    const allVisualizations = ['bar', 'wordcloud', 'network', 'heatmap', 'scatter']
+    const availableVisualizations = allVisualizations.filter(viz => isVisualizationAvailable(viz))
+    
+    // If no visualizations available, do nothing
+    if (availableVisualizations.length === 0) return
+    
+    // Reset each position if its current visualization is no longer available
+    setChartVisualizations(prev => {
+      const updated = { ...prev }
+      let changed = false
+      
+      for (const position of ['pos1', 'pos2', 'pos3', 'pos4']) {
+        if (!isVisualizationAvailable(prev[position])) {
+          updated[position] = availableVisualizations[0]
+          changed = true
+        }
+      }
+      
+      return changed ? updated : prev
+    })
+  }, [analysisType])
+
+  /**
    * Initialize lazy loading system on component mount
    * Registers components and libraries to be loaded via queue system
    */
