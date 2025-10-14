@@ -60,15 +60,13 @@ describe('Duplicate Sheet Name Handling', () => {
       worksheets: [mockWorksheet1, mockWorksheet2]
     }
     
-    const { container } = render(<App />)
-    const fileInput = container.querySelector('input[type="file"]')
-    
-    // Mock FileReader
+    // Mock FileReader BEFORE rendering
     const mockFileReader = {
       readAsArrayBuffer: vi.fn(function() {
-        setTimeout(() => {
+        // Call onload synchronously to avoid timing issues
+        if (this.onload) {
           this.onload({ target: { result: new ArrayBuffer(8) } })
-        }, 0)
+        }
       }),
       readAsText: vi.fn(),
       onerror: null,
@@ -76,6 +74,9 @@ describe('Duplicate Sheet Name Handling', () => {
     }
     
     global.FileReader = vi.fn(() => mockFileReader)
+    
+    const { container } = render(<App />)
+    const fileInput = container.querySelector('input[type="file"]')
     
     // Create a mock Excel file
     const file = new File(['mock excel data'], 'test.xlsx', { 
@@ -126,14 +127,12 @@ describe('Duplicate Sheet Name Handling', () => {
       worksheets: [mockWorksheet1, mockWorksheet2]
     }
     
-    const { container } = render(<App />)
-    const fileInput = container.querySelector('input[type="file"]')
-    
+    // Mock FileReader BEFORE rendering
     const mockFileReader = {
       readAsArrayBuffer: vi.fn(function() {
-        setTimeout(() => {
+        if (this.onload) {
           this.onload({ target: { result: new ArrayBuffer(8) } })
-        }, 0)
+        }
       }),
       readAsText: vi.fn(),
       onerror: null,
@@ -141,6 +140,9 @@ describe('Duplicate Sheet Name Handling', () => {
     }
     
     global.FileReader = vi.fn(() => mockFileReader)
+    
+    const { container } = render(<App />)
+    const fileInput = container.querySelector('input[type="file"]')
     
     const file = new File(['mock data'], 'test.xlsx', { 
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
@@ -185,14 +187,12 @@ describe('Duplicate Sheet Name Handling', () => {
       worksheets: [mockWorksheet1, mockWorksheet2]
     }
     
-    const { container } = render(<App />)
-    const fileInput = container.querySelector('input[type="file"]')
-    
+    // Mock FileReader BEFORE rendering
     const mockFileReader = {
       readAsArrayBuffer: vi.fn(function() {
-        setTimeout(() => {
+        if (this.onload) {
           this.onload({ target: { result: new ArrayBuffer(8) } })
-        }, 0)
+        }
       }),
       readAsText: vi.fn(),
       onerror: null,
@@ -200,6 +200,9 @@ describe('Duplicate Sheet Name Handling', () => {
     }
     
     global.FileReader = vi.fn(() => mockFileReader)
+    
+    const { container } = render(<App />)
+    const fileInput = container.querySelector('input[type="file"]')
     
     const file = new File(['mock'], 'test.xlsx', { 
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
@@ -250,14 +253,12 @@ describe('Duplicate Sheet Name Handling', () => {
       worksheets: [mockWorksheet1, mockWorksheet2]
     }
     
-    const { container } = render(<App />)
-    const fileInput = container.querySelector('input[type="file"]')
-    
+    // Mock FileReader BEFORE rendering
     const mockFileReader = {
       readAsArrayBuffer: vi.fn(function() {
-        setTimeout(() => {
+        if (this.onload) {
           this.onload({ target: { result: new ArrayBuffer(8) } })
-        }, 0)
+        }
       }),
       readAsText: vi.fn(),
       onerror: null,
@@ -265,6 +266,9 @@ describe('Duplicate Sheet Name Handling', () => {
     }
     
     global.FileReader = vi.fn(() => mockFileReader)
+    
+    const { container } = render(<App />)
+    const fileInput = container.querySelector('input[type="file"]')
     
     const file = new File(['mock'], 'test.xlsx', { 
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
@@ -307,14 +311,12 @@ describe('Duplicate Sheet Name Handling', () => {
       worksheets: [mockWorksheet1, mockWorksheet2]
     }
     
-    const { container } = render(<App />)
-    const fileInput = container.querySelector('input[type="file"]')
-    
+    // Mock FileReader BEFORE rendering
     const mockFileReader = {
       readAsArrayBuffer: vi.fn(function() {
-        setTimeout(() => {
+        if (this.onload) {
           this.onload({ target: { result: new ArrayBuffer(8) } })
-        }, 0)
+        }
       }),
       readAsText: vi.fn(),
       onerror: null,
@@ -322,6 +324,9 @@ describe('Duplicate Sheet Name Handling', () => {
     }
     
     global.FileReader = vi.fn(() => mockFileReader)
+    
+    const { container } = render(<App />)
+    const fileInput = container.querySelector('input[type="file"]')
     
     const file = new File(['mock'], 'test.xlsx', { 
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
