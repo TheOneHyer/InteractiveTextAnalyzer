@@ -802,8 +802,9 @@ export const getTermPOS = (term) => {
     return 'adverb'
   }
   
-  // Adjective patterns
-  if (word.match(/(ful|less|ous|ive|able|ible|al|ic|ish|y|ent|ant)$/) && word.length > 4) {
+  // Adjective patterns (but exclude -ment nouns)
+  if (word.match(/(ful|less|ous|ive|able|ible|al|ic|ish|ent|ant)$/) && 
+      !word.endsWith('ment') && word.length > 4) {
     return 'adjective'
   }
   
