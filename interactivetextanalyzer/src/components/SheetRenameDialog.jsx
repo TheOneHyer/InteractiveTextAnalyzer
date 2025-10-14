@@ -127,7 +127,7 @@ export default function SheetRenameDialog({
               </button>
               <button 
                 type='submit'
-                className='btn primary' 
+                className='btn accent' 
                 disabled={!newName.trim() || newName.trim() === conflictingName}
                 style={{ padding: '8px 16px' }}
               >
