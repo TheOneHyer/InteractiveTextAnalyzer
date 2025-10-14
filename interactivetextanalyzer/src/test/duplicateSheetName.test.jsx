@@ -30,10 +30,7 @@ describe('Duplicate Sheet Name Handling', () => {
   })
 
   it('should detect duplicate sheet names and show rename dialog', async () => {
-    const { container } = render(<App />)
-    const fileInput = container.querySelector('input[type="file"]')
-    
-    // Mock ExcelJS workbook with duplicate sheet names
+    // Mock ExcelJS workbook with duplicate sheet names BEFORE rendering
     const mockWorksheet1 = {
       name: 'Sheet1',
       getRow: vi.fn(() => ({ values: ['Header1', 'Header2'] })),
@@ -62,6 +59,9 @@ describe('Duplicate Sheet Name Handling', () => {
       },
       worksheets: [mockWorksheet1, mockWorksheet2]
     }
+    
+    const { container } = render(<App />)
+    const fileInput = container.querySelector('input[type="file"]')
     
     // Mock FileReader
     const mockFileReader = {
@@ -99,9 +99,6 @@ describe('Duplicate Sheet Name Handling', () => {
   })
 
   it('should suggest name with _1 suffix for duplicate sheets', async () => {
-    const { container } = render(<App />)
-    const fileInput = container.querySelector('input[type="file"]')
-    
     const mockWorksheet1 = {
       name: 'Data',
       getRow: vi.fn(() => ({ values: ['A', 'B'] })),
@@ -128,6 +125,9 @@ describe('Duplicate Sheet Name Handling', () => {
       },
       worksheets: [mockWorksheet1, mockWorksheet2]
     }
+    
+    const { container } = render(<App />)
+    const fileInput = container.querySelector('input[type="file"]')
     
     const mockFileReader = {
       readAsArrayBuffer: vi.fn(function() {
@@ -158,9 +158,6 @@ describe('Duplicate Sheet Name Handling', () => {
   })
 
   it('should allow user to edit the suggested name', async () => {
-    const { container } = render(<App />)
-    const fileInput = container.querySelector('input[type="file"]')
-    
     const mockWorksheet1 = {
       name: 'Report',
       getRow: vi.fn(() => ({ values: ['X'] })),
@@ -187,6 +184,9 @@ describe('Duplicate Sheet Name Handling', () => {
       },
       worksheets: [mockWorksheet1, mockWorksheet2]
     }
+    
+    const { container } = render(<App />)
+    const fileInput = container.querySelector('input[type="file"]')
     
     const mockFileReader = {
       readAsArrayBuffer: vi.fn(function() {
@@ -223,9 +223,6 @@ describe('Duplicate Sheet Name Handling', () => {
   })
 
   it('should have cancel button to abort import', async () => {
-    const { container } = render(<App />)
-    const fileInput = container.querySelector('input[type="file"]')
-    
     const mockWorksheet1 = {
       name: 'Test',
       getRow: vi.fn(() => ({ values: ['A'] })),
@@ -252,6 +249,9 @@ describe('Duplicate Sheet Name Handling', () => {
       },
       worksheets: [mockWorksheet1, mockWorksheet2]
     }
+    
+    const { container } = render(<App />)
+    const fileInput = container.querySelector('input[type="file"]')
     
     const mockFileReader = {
       readAsArrayBuffer: vi.fn(function() {
@@ -280,9 +280,6 @@ describe('Duplicate Sheet Name Handling', () => {
   })
 
   it('should have rename button disabled when name is empty or same as conflicting name', async () => {
-    const { container } = render(<App />)
-    const fileInput = container.querySelector('input[type="file"]')
-    
     const mockWorksheet1 = {
       name: 'MySheet',
       getRow: vi.fn(() => ({ values: ['A'] })),
@@ -309,6 +306,9 @@ describe('Duplicate Sheet Name Handling', () => {
       },
       worksheets: [mockWorksheet1, mockWorksheet2]
     }
+    
+    const { container } = render(<App />)
+    const fileInput = container.querySelector('input[type="file"]')
     
     const mockFileReader = {
       readAsArrayBuffer: vi.fn(function() {
