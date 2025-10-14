@@ -3,10 +3,30 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import App from '../App'
 
+// Mock ExcelJS module
+vi.mock('exceljs', () => {
+  return {
+    default: {
+      Workbook: vi.fn()
+    }
+  }
+})
+
 describe('Duplicate Sheet Name Handling', () => {
-  beforeEach(() => {
+  let mockWorkbookInstance
+  
+  beforeEach(async () => {
     // Reset mocks before each test
     vi.clearAllMocks()
+    
+    // Get the mocked ExcelJS
+    const ExcelJS = await import('exceljs')
+    
+    // Reset the mock implementation
+    mockWorkbookInstance = null
+    ExcelJS.default.Workbook.mockImplementation(function() {
+      return mockWorkbookInstance
+    })
   })
 
   it('should detect duplicate sheet names and show rename dialog', async () => {
@@ -36,16 +56,12 @@ describe('Duplicate Sheet Name Handling', () => {
       })
     }
     
-    const mockWorkbook = {
+    mockWorkbookInstance = {
       xlsx: {
         load: vi.fn().mockResolvedValue()
       },
       worksheets: [mockWorksheet1, mockWorksheet2]
     }
-    
-    // Mock ExcelJS
-    const ExcelJS = await import('exceljs')
-    vi.spyOn(ExcelJS, 'default').mockImplementation(() => mockWorkbook)
     
     // Mock FileReader
     const mockFileReader = {
@@ -106,15 +122,12 @@ describe('Duplicate Sheet Name Handling', () => {
       })
     }
     
-    const mockWorkbook = {
+    mockWorkbookInstance = {
       xlsx: {
         load: vi.fn().mockResolvedValue()
       },
       worksheets: [mockWorksheet1, mockWorksheet2]
     }
-    
-    const ExcelJS = await import('exceljs')
-    vi.spyOn(ExcelJS, 'default').mockImplementation(() => mockWorkbook)
     
     const mockFileReader = {
       readAsArrayBuffer: vi.fn(function() {
@@ -168,15 +181,12 @@ describe('Duplicate Sheet Name Handling', () => {
       })
     }
     
-    const mockWorkbook = {
+    mockWorkbookInstance = {
       xlsx: {
         load: vi.fn().mockResolvedValue()
       },
       worksheets: [mockWorksheet1, mockWorksheet2]
     }
-    
-    const ExcelJS = await import('exceljs')
-    vi.spyOn(ExcelJS, 'default').mockImplementation(() => mockWorkbook)
     
     const mockFileReader = {
       readAsArrayBuffer: vi.fn(function() {
@@ -236,15 +246,12 @@ describe('Duplicate Sheet Name Handling', () => {
       })
     }
     
-    const mockWorkbook = {
+    mockWorkbookInstance = {
       xlsx: {
         load: vi.fn().mockResolvedValue()
       },
       worksheets: [mockWorksheet1, mockWorksheet2]
     }
-    
-    const ExcelJS = await import('exceljs')
-    vi.spyOn(ExcelJS, 'default').mockImplementation(() => mockWorkbook)
     
     const mockFileReader = {
       readAsArrayBuffer: vi.fn(function() {
@@ -296,15 +303,12 @@ describe('Duplicate Sheet Name Handling', () => {
       })
     }
     
-    const mockWorkbook = {
+    mockWorkbookInstance = {
       xlsx: {
         load: vi.fn().mockResolvedValue()
       },
       worksheets: [mockWorksheet1, mockWorksheet2]
     }
-    
-    const ExcelJS = await import('exceljs')
-    vi.spyOn(ExcelJS, 'default').mockImplementation(() => mockWorkbook)
     
     const mockFileReader = {
       readAsArrayBuffer: vi.fn(function() {
