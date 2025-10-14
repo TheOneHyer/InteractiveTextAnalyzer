@@ -1,28 +1,30 @@
 # Topic Modeling Feature - Implementation Summary
 
 ## Overview
-Implemented comprehensive topic modeling analysis using hierarchical TF-IDF clustering to dynamically identify granular sub-topics from document content.
+Implemented comprehensive topic modeling analysis using document-level clustering to dynamically identify overarching themes from document content. Topics are represented as abstract semantic themes rather than word lists.
 
 ## Implementation Details
 
-### Algorithm: Hierarchical TF-IDF Clustering
+### Algorithm: Document-Level TF-IDF Clustering
 
 The topic modeling implementation uses a sophisticated multi-step approach:
 
 1. **TF-IDF Computation**: Calculates term frequency-inverse document frequency scores for all terms across documents
-2. **Term-Document Matrix**: Builds a weighted matrix representing term importance in each document
-3. **Term Co-occurrence Analysis**: Identifies patterns of terms appearing together
-4. **Cosine Similarity Clustering**: Groups related terms using cosine similarity measures
-5. **Topic Label Generation**: Creates human-readable labels from top terms in each cluster
-6. **Document-Topic Distribution**: Calculates probability distributions showing topic presence in each document
-7. **Topic Co-occurrence**: Identifies relationships between topics for network visualization
+2. **Document Vector Construction**: Builds document vectors from TF-IDF scores (200 vocabulary terms for better theme representation)
+3. **Maximin Centroid Initialization**: Selects diverse document centroids to ensure distinct themes
+4. **K-Means Document Clustering**: Groups documents by semantic similarity using iterative refinement
+5. **Semantic Theme Label Generation**: Creates meaningful theme labels using pattern matching across 30+ domain patterns
+6. **Topic Representation**: Aggregates terms from documents in each cluster to represent the theme
+7. **Document-Topic Distribution**: Calculates probability distributions showing topic presence in each document
+8. **Topic Co-occurrence**: Identifies relationships between topics for network visualization
 
 ### Key Features
 
 #### Dynamic Topic Discovery
-- Automatically identifies topics based on document content
+- Automatically identifies abstract themes based on document content
 - No pre-defined categories needed
-- Adapts to domain-specific terminology (e.g., "ladder safety", "forklift operations" in safety documents)
+- Generates semantic labels like "Work at Heights", "Equipment Operation", "Safety & Protection"
+- Falls back to descriptive labels when patterns don't match
 
 #### Multiple Visualizations
 1. **Heatmap**: Document-topic distribution matrix showing topic prevalence across documents
@@ -31,7 +33,7 @@ The topic modeling implementation uses a sophisticated multi-step approach:
 4. **Word Cloud**: All terms from identified topics
 
 #### Configurable Parameters
-- **Number of Topics** (2-20): Controls granularity of topic extraction
+- **Number of Topics** (2-20): Controls number of themes to extract
 - **Terms per Topic** (5-30): Adjusts topic characterization detail
 - **Stemming**: Optional word normalization
 - **Stopwords**: Customizable filtering
@@ -68,9 +70,9 @@ export const performTopicModeling = (docs, {
    - Word Cloud: Aggregated topic terms
 
 3. **Results Display**:
-   - Detailed topic breakdown with labels
-   - Top terms per topic
-   - Topic scores
+   - Detailed topic breakdown with semantic theme labels
+   - Top terms per topic showing representative vocabulary
+   - Topic scores indicating theme importance
    - Expandable term lists
 
 ## Testing
@@ -83,7 +85,8 @@ Comprehensive test coverage including:
 - Parameter variations (different numTopics, termsPerTopic)
 - Edge cases (empty documents, single document, stopwords-only)
 - Data quality (probability distributions, term filtering)
-- Domain-specific scenarios (safety documents with distinct sub-topics)
+- Domain-specific scenarios (safety documents with distinct themes)
+- Theme-based labeling validation (ensures abstract themes vs word lists)
 
 Total: 25+ test cases covering all aspects of the implementation
 

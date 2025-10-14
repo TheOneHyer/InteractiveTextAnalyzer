@@ -2142,7 +2142,7 @@ export default function App(){
                 )}
                 {analysisType==='topic' && (
                   <div className='notice' style={{marginTop:8}}>
-                    <strong>Topic Modeling:</strong> Identifies granular sub-topics dynamically from document content using hierarchical TF-IDF clustering.
+                    <strong>Topic Modeling:</strong> Identifies overarching themes dynamically from document content using document-level clustering. Topics are represented as abstract concepts rather than word lists.
                   </div>
                 )}
                 {analysisType==='tokenization' && (

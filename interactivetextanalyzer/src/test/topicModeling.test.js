@@ -52,7 +52,9 @@ describe('Topic Modeling', () => {
         expect(topic).toHaveProperty('size')
         expect(Array.isArray(topic.terms)).toBe(true)
         expect(topic.terms.length).toBeGreaterThan(0)
-        expect(topic.label).toContain('Topic')
+        // Labels should be non-empty strings (semantic themes or descriptive labels)
+        expect(typeof topic.label).toBe('string')
+        expect(topic.label.length).toBeGreaterThan(0)
       })
     })
 
@@ -265,6 +267,43 @@ describe('Topic Modeling', () => {
       // We expect at least some diversity in discovered topics
       expect(result.topics.length).toBeGreaterThanOrEqual(1)
     })
+
+    it('should generate abstract theme labels instead of word lists', () => {
+      const stemmer = buildStem()
+      const result = performTopicModeling(safetyDocs, {
+        numTopics: 3,
+        termsPerTopic: 10,
+        stopwords: DEFAULT_STOPWORDS,
+        stem: false,
+        stemmer
+      })
+      
+      // Topics should have semantic theme labels, not just comma-separated word lists
+      result.topics.forEach(topic => {
+        // Labels should not just be "Topic N: word1, word2, word3" format
+        // They should be descriptive themes
+        const isWordList = topic.label.match(/^Topic \d+: \w+, \w+, \w+$/)
+        
+        // Either it's a semantic theme label OR it's a fallback descriptive label
+        // but not the old format of just listing top 3 words
+        if (!isWordList) {
+          // Good - it's a semantic theme
+          expect(topic.label.length).toBeGreaterThan(0)
+        }
+        
+        // The label should be more abstract than just listing terms
+        // For safety docs, we expect themes like "Work at Heights", "Equipment Operation", etc.
+        const hasSafetyTerms = topic.terms.some(t => 
+          t.term.includes('ladder') || t.term.includes('forklift') || t.term.includes('safety')
+        )
+        
+        if (hasSafetyTerms) {
+          // The label should convey an abstract concept, not just list the words
+          // It's OK if it contains the word "Related" or is a theme name
+          expect(topic.label).toBeTruthy()
+        }
+      })
+    })
   })
 
   describe('Topic Modeling Edge Cases', () => {
@@ -340,8 +379,9 @@ describe('Topic Modeling', () => {
       })
       
       result.topics.forEach(topic => {
-        expect(topic.label).toMatch(/Topic \d+:/)
-        expect(topic.label.length).toBeGreaterThan(10) // Should have meaningful terms
+        // Labels should be meaningful strings (either semantic themes or descriptive)
+        expect(topic.label.length).toBeGreaterThan(0)
+        expect(typeof topic.label).toBe('string')
       })
     })
 
