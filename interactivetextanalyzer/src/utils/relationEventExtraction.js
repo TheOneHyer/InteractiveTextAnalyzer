@@ -141,7 +141,7 @@ export const patternBasedRelations = async (textSamples) => {
         // Simple heuristic: first noun phrase is subject, last is object
         let inSubject = true
         words.forEach(word => {
-          if (['works', 'employed', 'CEO', 'president', 'owns', 'married', 'child', 'located', 'created', 'wrote', 'member', 'founded', 'invented'].some(r => word.toLowerCase().includes(r.toLowerCase()))) {
+          if (['works', 'employed', 'CEO', 'president', 'owns', 'acquired', 'purchased', 'bought', 'married', 'child', 'located', 'created', 'wrote', 'member', 'founded', 'invented'].some(r => word.toLowerCase().includes(r.toLowerCase()))) {
             inSubject = false
             relation = word
           } else if (inSubject) {
