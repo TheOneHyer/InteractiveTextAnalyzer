@@ -59,10 +59,12 @@ const COUNTER_INDICATORS = [
 
 /**
  * Calculate claim likelihood score for a sentence
+ * @param {Object} sentenceDoc - compromise doc object for the sentence
+ * @param {Object} doc - compromise doc object for full text (unused)
  */
-const calculateClaimScore = (sentence, doc) => {
+const calculateClaimScore = (sentenceDoc, doc) => {
   let score = 0
-  const text = sentence.text().toLowerCase()
+  const text = sentenceDoc.text().toLowerCase()
   
   // Check for claim indicators
   CLAIM_INDICATORS.forEach(indicator => {
@@ -72,13 +74,13 @@ const calculateClaimScore = (sentence, doc) => {
   })
   
   // Check for modal verbs (should, must, etc.)
-  if (sentence.has('#Modal')) {
+  if (sentenceDoc.has('#Modal')) {
     score += 0.2
   }
   
   // Check for evaluative adjectives
-  if (sentence.has('#Adjective')) {
-    const adjectives = sentence.match('#Adjective').out('array')
+  if (sentenceDoc.has('#Adjective')) {
+    const adjectives = sentenceDoc.match('#Adjective').out('array')
     const evaluative = ['good', 'bad', 'important', 'necessary', 'essential', 'crucial', 'vital', 'critical']
     adjectives.forEach(adj => {
       if (evaluative.some(e => adj.toLowerCase().includes(e))) {
@@ -93,7 +95,7 @@ const calculateClaimScore = (sentence, doc) => {
   }
   
   // Check for negation (often indicates stance)
-  if (sentence.has('#Negative')) {
+  if (sentenceDoc.has('#Negative')) {
     score += 0.1
   }
   
@@ -107,10 +109,12 @@ const calculateClaimScore = (sentence, doc) => {
 
 /**
  * Calculate premise likelihood score for a sentence
+ * @param {Object} sentenceDoc - compromise doc object for the sentence
+ * @param {Object} previousClaim - the last detected claim object (for proximity)
  */
-const calculatePremiseScore = (sentence, previousClaim) => {
+const calculatePremiseScore = (sentenceDoc, previousClaim) => {
   let score = 0
-  const text = sentence.text().toLowerCase()
+  const text = sentenceDoc.text().toLowerCase()
   
   // Check for premise indicators
   PREMISE_INDICATORS.forEach(indicator => {
@@ -125,7 +129,7 @@ const calculatePremiseScore = (sentence, previousClaim) => {
   }
   
   // Check for statistics/numbers (common in premises)
-  if (sentence.has('#Value') || sentence.has('#Percent')) {
+  if (sentenceDoc.has('#Value') || sentenceDoc.has('#Percent')) {
     score += 0.2
   }
   
