@@ -852,14 +852,10 @@ export default function App(){
           
           if (duplicateFound) {
             // Found duplicate - show rename dialog
-            // Parse sheets up to the duplicate
+            // Parse sheets up to (but not including) the duplicate
             const parsedSheets = {}
-            for (let i = 0; i < worksheets.length; i++) {
+            for (let i = 0; i < duplicateIndex; i++) {
               const ws = worksheets[i]
-              if (i === duplicateIndex) {
-                // Skip the duplicate for now
-                continue
-              }
               parsedSheets[ws.name] = parseWorksheet(ws)
             }
             
@@ -938,14 +934,25 @@ export default function App(){
     try {
       const { pendingData, pendingWorksheets, conflictingName } = renameDialogData
       
+      // Find the duplicate sheet (the second occurrence with the same name)
+      let duplicateIndex = -1
+      let foundFirst = false
+      for (let i = 0; i < pendingWorksheets.length; i++) {
+        if (pendingWorksheets[i].name === conflictingName) {
+          if (foundFirst) {
+            duplicateIndex = i
+            break
+          }
+          foundFirst = true
+        }
+      }
+      
       // Parse the duplicate sheet with the new name
-      const duplicateSheet = pendingWorksheets.find(ws => ws.name === conflictingName)
-      if (duplicateSheet) {
-        pendingData[newName] = parseWorksheet(duplicateSheet)
+      if (duplicateIndex !== -1) {
+        pendingData[newName] = parseWorksheet(pendingWorksheets[duplicateIndex])
       }
       
       // Parse any remaining sheets after the duplicate
-      const duplicateIndex = pendingWorksheets.findIndex(ws => ws.name === conflictingName)
       for (let i = duplicateIndex + 1; i < pendingWorksheets.length; i++) {
         const ws = pendingWorksheets[i]
         // Check for more duplicates
