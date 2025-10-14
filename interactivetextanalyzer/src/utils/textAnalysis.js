@@ -802,9 +802,16 @@ export const getTermPOS = (term) => {
     return 'adverb'
   }
   
-  // Adjective patterns (but exclude -ment nouns)
-  if (word.match(/(ful|less|ous|ive|able|ible|al|ic|ish|ent|ant)$/) && 
-      !word.endsWith('ment') && word.length > 4) {
+  // Adjective patterns (but exclude -ment nouns and common noun exceptions)
+  const adjectiveNounExceptions = new Set([
+    'hospital', 'student', 'restaurant', 'journal', 'capital', 'animal', 'signal', 'festival', 'portal', 'mineral', 'principal', 'accident', 'president', 'agent', 'client', 'continent', 'instrument', 'moment', 'parent', 'servant', 'tenant', 'assistant', 'accountant', 'applicant', 'participant', 'ant', 'elephant', 'giant', 'merchant', 'peasant', 'pleasant', 'relevant', 'distant', 'instant', 'important', 'brilliant', 'defendant', 'descendant', 'ignorant', 'inhabitant', 'occupant', 'pregnant', 'restaurant', 'servant', 'student'
+  ])
+  if (
+    word.match(/(ful|less|ous|ive|able|ible|al|ic|ish|ent|ant)$/) &&
+    !word.endsWith('ment') &&
+    word.length > 4 &&
+    !adjectiveNounExceptions.has(word)
+  ) {
     return 'adjective'
   }
   
