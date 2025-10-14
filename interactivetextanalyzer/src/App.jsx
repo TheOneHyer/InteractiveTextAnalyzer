@@ -184,6 +184,7 @@ export default function App(){
   
   // Dashboard layout state
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   const [chartLayout, setChartLayout] = useState('single') // 'single', 'side-by-side', 'grid'
   const [detailsExpanded, setDetailsExpanded] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
@@ -1794,7 +1795,12 @@ export default function App(){
           suggestedName={renameDialogData.suggestedName}
         />
       )}
-      <aside className={`sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
+      {/* Mobile sidebar backdrop */}
+      <div 
+        className={`sidebar-backdrop ${mobileSidebarOpen ? 'active' : ''}`}
+        onClick={() => setMobileSidebarOpen(false)}
+      />
+      <aside className={`sidebar ${sidebarCollapsed ? 'collapsed' : ''} ${mobileSidebarOpen ? 'mobile-open' : ''}`}>
         <div className='sidebar-header'>
           {!sidebarCollapsed && (
             <div style={{display:'flex',alignItems:'center',gap:8}}>
@@ -1812,16 +1818,44 @@ export default function App(){
           </button>
         </div>
         <div className='nav'>
-          <button className={activeView==='editor'?'active':''} onClick={()=>setActiveView('editor')} title='Editor'>
+          <button 
+            className={activeView==='editor'?'active':''} 
+            onClick={() => {
+              setActiveView('editor')
+              setMobileSidebarOpen(false)
+            }} 
+            title='Editor'
+          >
             {sidebarCollapsed ? '✏️' : 'Editor'}
           </button>
-          <button className={activeView==='dashboard'?'active':''} onClick={()=>setActiveView('dashboard')} title='Analyzer'>
+          <button 
+            className={activeView==='dashboard'?'active':''} 
+            onClick={() => {
+              setActiveView('dashboard')
+              setMobileSidebarOpen(false)
+            }} 
+            title='Analyzer'
+          >
             {sidebarCollapsed ? '📊' : 'Analyzer'}
           </button>
-          <button className={activeView==='report'?'active':''} onClick={()=>setActiveView('report')} title='Report'>
+          <button 
+            className={activeView==='report'?'active':''} 
+            onClick={() => {
+              setActiveView('report')
+              setMobileSidebarOpen(false)
+            }} 
+            title='Report'
+          >
             {sidebarCollapsed ? '📄' : 'Report'}
           </button>
-          <button className={activeView==='wiki'?'active':''} onClick={()=>setActiveView('wiki')} title='Wiki'>
+          <button 
+            className={activeView==='wiki'?'active':''} 
+            onClick={() => {
+              setActiveView('wiki')
+              setMobileSidebarOpen(false)
+            }} 
+            title='Wiki'
+          >
             {sidebarCollapsed ? '📖' : 'Wiki'}
           </button>
         </div>
@@ -1829,7 +1863,16 @@ export default function App(){
       </aside>
       <div className='main'>
         <div className='topbar'>
-          <h1>{activeView === 'dashboard' ? 'Analyzer' : activeView === 'editor' ? 'Editor' : activeView === 'report' ? 'Report' : 'Wiki'}</h1>
+          <div style={{display:'flex',alignItems:'center',gap:8}}>
+            <button 
+              className='mobile-menu-toggle' 
+              onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
+              title='Menu'
+            >
+              ☰
+            </button>
+            <h1>{activeView === 'dashboard' ? 'Analyzer' : activeView === 'editor' ? 'Editor' : activeView === 'report' ? 'Report' : 'Wiki'}</h1>
+          </div>
           <div style={{display:'flex',gap:8,alignItems:'center'}}>
             <button className='theme-toggle' onClick={()=>setTheme(t=>t==='light'?'dark':'light')}>{theme==='light'? '🌙 Dark':'☀️ Light'}</button>
             {activeView === 'editor' && (
