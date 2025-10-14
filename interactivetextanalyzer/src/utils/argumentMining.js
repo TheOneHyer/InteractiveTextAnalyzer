@@ -161,13 +161,14 @@ export const ruleBasedArgumentMining = async (textSamples) => {
   // Process each text sample
   for (const text of textSamples.slice(0, 100)) {
     const doc = nlp(text)
-    const sentences = doc.sentences()
+    const sentenceTexts = doc.sentences().out('array')
     
     let lastClaim = null
     const textComponents = []
     
-    sentences.forEach((sentence, idx) => {
-      const sentenceText = sentence.text()
+    sentenceTexts.forEach((sentenceText, idx) => {
+      // Create new doc for each sentence to analyze
+      const sentence = nlp(sentenceText)
       const claimScore = calculateClaimScore(sentence, doc)
       const premiseScore = calculatePremiseScore(sentence, lastClaim)
       
@@ -277,9 +278,10 @@ export const patternBasedArgumentMining = async (textSamples) => {
     
     patterns.forEach(({ pattern, type }) => {
       const matches = doc.match(pattern)
-      matches.forEach(match => {
-        const matchText = match.text()
-        
+      if (!matches || matches.length === 0) return
+      
+      const matchTexts = matches.out('array')
+      matchTexts.forEach(matchText => {
         if (type === 'claim') {
           claims.push({
             id: componentId++,
@@ -326,25 +328,25 @@ export const structuredArgumentMining = async (textSamples) => {
   // Process each text sample as a potential argument
   for (const text of textSamples.slice(0, 100)) {
     const doc = nlp(text)
-    const sentences = doc.sentences()
+    const sentenceTexts = doc.sentences().out('array')
     
-    if (sentences.length < 2) continue // Need at least 2 sentences for argument
+    if (sentenceTexts.length < 2) continue // Need at least 2 sentences for argument
     
     // Heuristic: First sentence is often claim, following are premises
-    const firstSentence = sentences.first()
+    const firstSentence = nlp(sentenceTexts[0])
     const claimScore = calculateClaimScore(firstSentence, doc)
     
     if (claimScore > 0.3) {
-      const claim = firstSentence.text()
+      const claim = sentenceTexts[0]
       const premises = []
       
       // Collect following sentences as premises
-      for (let i = 1; i < sentences.length; i++) {
-        const sentence = sentences.eq(i)
+      for (let i = 1; i < sentenceTexts.length; i++) {
+        const sentence = nlp(sentenceTexts[i])
         const premiseScore = calculatePremiseScore(sentence, true)
         
         if (premiseScore > 0.2) {
-          premises.push(sentence.text())
+          premises.push(sentenceTexts[i])
         }
       }
       
@@ -355,7 +357,7 @@ export const structuredArgumentMining = async (textSamples) => {
           premises,
           source: text,
           structure: 'linear',
-          strength: premises.length / sentences.length
+          strength: premises.length / sentenceTexts.length
         })
       }
     }
