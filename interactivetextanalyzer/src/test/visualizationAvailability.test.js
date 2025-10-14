@@ -14,6 +14,9 @@ import { describe, it, expect } from 'vitest'
  * - dependency: network
  * - lemmatization: bar, wordcloud, network
  * - sentiment: bar
+ * - coref: network
+ * - relation: network
+ * - argument: network
  */
 
 // Mock implementation of isVisualizationAvailable function for testing
@@ -24,7 +27,7 @@ const isVisualizationAvailable = (analysisType, vizType) => {
     case 'wordcloud':
       return analysisType === 'tfidf' || analysisType === 'ngram' || analysisType === 'ner' || analysisType === 'assoc' || analysisType === 'yake' || analysisType === 'lemmatization'
     case 'network':
-      return analysisType === 'assoc' || analysisType === 'dependency' || analysisType === 'lemmatization'
+      return analysisType === 'assoc' || analysisType === 'dependency' || analysisType === 'lemmatization' || analysisType === 'coref' || analysisType === 'relation' || analysisType === 'argument'
     case 'heatmap':
       return analysisType === 'tfidf'
     case 'scatter':
@@ -262,8 +265,80 @@ describe('Visualization Availability - Lemmatization Analysis', () => {
   })
 })
 
+describe('Visualization Availability - Coreference Resolution', () => {
+  const analysisType = 'coref'
+  
+  it('should allow Network Graph for Coreference Resolution', () => {
+    expect(isVisualizationAvailable(analysisType, 'network')).toBe(true)
+  })
+  
+  it('should not allow Bar Chart for Coreference Resolution', () => {
+    expect(isVisualizationAvailable(analysisType, 'bar')).toBe(false)
+  })
+  
+  it('should not allow Word Cloud for Coreference Resolution', () => {
+    expect(isVisualizationAvailable(analysisType, 'wordcloud')).toBe(false)
+  })
+  
+  it('should not allow Heatmap for Coreference Resolution', () => {
+    expect(isVisualizationAvailable(analysisType, 'heatmap')).toBe(false)
+  })
+  
+  it('should not allow Scatter Plot for Coreference Resolution', () => {
+    expect(isVisualizationAvailable(analysisType, 'scatter')).toBe(false)
+  })
+})
+
+describe('Visualization Availability - Relation & Event Extraction', () => {
+  const analysisType = 'relation'
+  
+  it('should allow Network Graph for Relation & Event Extraction', () => {
+    expect(isVisualizationAvailable(analysisType, 'network')).toBe(true)
+  })
+  
+  it('should not allow Bar Chart for Relation & Event Extraction', () => {
+    expect(isVisualizationAvailable(analysisType, 'bar')).toBe(false)
+  })
+  
+  it('should not allow Word Cloud for Relation & Event Extraction', () => {
+    expect(isVisualizationAvailable(analysisType, 'wordcloud')).toBe(false)
+  })
+  
+  it('should not allow Heatmap for Relation & Event Extraction', () => {
+    expect(isVisualizationAvailable(analysisType, 'heatmap')).toBe(false)
+  })
+  
+  it('should not allow Scatter Plot for Relation & Event Extraction', () => {
+    expect(isVisualizationAvailable(analysisType, 'scatter')).toBe(false)
+  })
+})
+
+describe('Visualization Availability - Argument Mining', () => {
+  const analysisType = 'argument'
+  
+  it('should allow Network Graph for Argument Mining', () => {
+    expect(isVisualizationAvailable(analysisType, 'network')).toBe(true)
+  })
+  
+  it('should not allow Bar Chart for Argument Mining', () => {
+    expect(isVisualizationAvailable(analysisType, 'bar')).toBe(false)
+  })
+  
+  it('should not allow Word Cloud for Argument Mining', () => {
+    expect(isVisualizationAvailable(analysisType, 'wordcloud')).toBe(false)
+  })
+  
+  it('should not allow Heatmap for Argument Mining', () => {
+    expect(isVisualizationAvailable(analysisType, 'heatmap')).toBe(false)
+  })
+  
+  it('should not allow Scatter Plot for Argument Mining', () => {
+    expect(isVisualizationAvailable(analysisType, 'scatter')).toBe(false)
+  })
+})
+
 describe('Visualization Availability - Comprehensive Matrix', () => {
-  const analyses = ['tfidf', 'ngram', 'assoc', 'ner', 'yake', 'embeddings', 'dependency', 'lemmatization', 'sentiment']
+  const analyses = ['tfidf', 'ngram', 'assoc', 'ner', 'yake', 'embeddings', 'dependency', 'lemmatization', 'sentiment', 'coref', 'relation', 'argument']
   const visualizations = ['bar', 'wordcloud', 'network', 'heatmap', 'scatter']
   
   // Expected mappings matrix
@@ -276,7 +351,10 @@ describe('Visualization Availability - Comprehensive Matrix', () => {
     'embeddings': ['scatter'],
     'dependency': ['network'],
     'lemmatization': ['bar', 'wordcloud', 'network'],
-    'sentiment': ['bar']
+    'sentiment': ['bar'],
+    'coref': ['network'],
+    'relation': ['network'],
+    'argument': ['network']
   }
   
   analyses.forEach(analysis => {
