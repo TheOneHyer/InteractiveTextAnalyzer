@@ -811,43 +811,53 @@ export default function App(){
     const reader=new FileReader()
     
     reader.onload=async(evt)=>{ 
-      let parsedData = {}
-      
-      // Parse based on file type
-      if(ext==='csv'){ 
-        const text=evt.target.result
-        const parsed=parseCsv(text)
-        parsedData = {'CSV': parsed}
-      } else { 
-        const data=evt.target.result
-        const workbook = new ExcelJS.Workbook()
-        await workbook.xlsx.load(data)
+      try {
+        let parsedData = {}
         
-        workbook.worksheets.forEach(ws => {
-          parsedData[ws.name] = parseWorksheet(ws)
-        })
+        // Parse based on file type
+        if(ext==='csv'){ 
+          const text=evt.target.result
+          const parsed=parseCsv(text)
+          parsedData = {'CSV': parsed}
+        } else { 
+          const data=evt.target.result
+          const workbook = new ExcelJS.Workbook()
+          await workbook.xlsx.load(data)
+          
+          workbook.worksheets.forEach(ws => {
+            parsedData[ws.name] = parseWorksheet(ws)
+          })
+        }
+        
+        // Initialize version manager with loaded data
+        versionManager.current.initialize(parsedData)
+        setHistoryInfo(versionManager.current.getHistoryInfo())
+        
+        setWorkbookData(parsedData)
+        setActiveSheet(Object.keys(parsedData)[0] || null)
+        setSelectedColumns([])
+        setHiddenColumns([])
+        setRenames({})
+        
+        // Auto-detect sheets suitable for analysis
+        const detectedInclusion = autoDetectSheetsForAnalysis(parsedData)
+        setIncludedSheets(detectedInclusion)
+        
+        // Auto-detect categorical columns (≤5 unique values)
+        const firstSheet = Object.keys(parsedData)[0]
+        if (firstSheet && parsedData[firstSheet]) {
+          const detected = detectCategoricalColumns(parsedData[firstSheet].rows, parsedData[firstSheet].columns)
+          setCategoricalColumns(detected)
+        }
+      } catch (error) {
+        console.error('Error processing file:', error)
+        alert('Error processing file: ' + error.message)
       }
-      
-      // Initialize version manager with loaded data
-      versionManager.current.initialize(parsedData)
-      setHistoryInfo(versionManager.current.getHistoryInfo())
-      
-      setWorkbookData(parsedData)
-      setActiveSheet(Object.keys(parsedData)[0] || null)
-      setSelectedColumns([])
-      setHiddenColumns([])
-      setRenames({})
-      
-      // Auto-detect sheets suitable for analysis
-      const detectedInclusion = autoDetectSheetsForAnalysis(parsedData)
-      setIncludedSheets(detectedInclusion)
-      
-      // Auto-detect categorical columns (≤5 unique values)
-      const firstSheet = Object.keys(parsedData)[0]
-      if (firstSheet && parsedData[firstSheet]) {
-        const detected = detectCategoricalColumns(parsedData[firstSheet].rows, parsedData[firstSheet].columns)
-        setCategoricalColumns(detected)
-      }
+    }
+    
+    reader.onerror = () => {
+      console.error('Error reading file:', reader.error)
+      alert('Error reading file: ' + reader.error)
     }
     
     // Read file based on type
@@ -856,6 +866,9 @@ export default function App(){
     } else {
       reader.readAsArrayBuffer(file)
     }
+    
+    // Reset input value to allow selecting the same file again
+    e.target.value = ''
   }
 
   // Get rows for active sheet (or all sheets if '__ALL__' selected)
