@@ -29,8 +29,8 @@ const loadCompromise = async () => {
 const RELATION_PATTERNS = [
   // Organizational relations
   { pattern: '#Noun+ (works for|employed by|works at) #Noun+', type: 'employment' },
-  { pattern: '#Noun+ (CEO|president|director) of #Noun+', type: 'leadership' },
-  { pattern: '#Noun+ (owns|acquired|purchased) #Noun+', type: 'ownership' },
+  { pattern: '#Noun+ (is|was) the? (CEO|president|director) of #Noun+', type: 'leadership' },
+  { pattern: '#Noun+ (owns|acquired|purchased|bought) #Noun+', type: 'ownership' },
   { pattern: '#Noun+ (subsidiary of|division of|part of) #Noun+', type: 'organizational' },
   
   // Personal relations
@@ -39,9 +39,9 @@ const RELATION_PATTERNS = [
   { pattern: '#Noun+ (friend of|colleague of|partner of) #Noun+', type: 'social' },
   
   // Location relations
-  { pattern: '#Noun+ (located in|based in|situated in) #Place+', type: 'location' },
-  { pattern: '#Noun+ (from|of) #Place+', type: 'origin' },
-  { pattern: '#Noun+ (in|at|near) #Place+', type: 'location' },
+  { pattern: '#Noun+ (is|was)? (located in|based in|situated in) #Noun+', type: 'location' },
+  { pattern: '#Noun+ (from|of) #Noun+', type: 'origin' },
+  { pattern: '#Noun+ (in|at|near) #Noun+', type: 'location' },
   
   // Creation/invention
   { pattern: '#Noun+ (created|invented|founded|established) #Noun+', type: 'creation' },
@@ -263,8 +263,9 @@ export const extractEvents = async (textSamples) => {
           if (sentenceDoc.has(trigger)) {
             // Extract event components
             const agent = sentenceDoc.match('#Noun+').first().text() || 'unknown'
-            const dates = sentenceDoc.dates().out('array')
-            const time = dates.length > 0 ? dates[0] : null
+            // Note: compromise doesn't have built-in date/place extractors that work reliably
+            // So we'll use simpler extraction
+            const time = null // Would need additional date parsing library
             const places = sentenceDoc.places().out('array')
             const location = places.length > 0 ? places[0] : null
             const participants = sentenceDoc.people().out('array')
