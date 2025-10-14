@@ -8,6 +8,7 @@ import InfoTooltip from './components/InfoTooltip'
 import ColumnManager from './components/ColumnManager'
 import SimpleColumnSelector from './components/SimpleColumnSelector'
 import HistoryModal from './components/HistoryModal'
+import SheetRenameDialog from './components/SheetRenameDialog'
 import { DataVersionManager, applyDataTransformation } from './utils/dataVersioning'
 import { initializeLazyLoading } from './utils/useLazyLoader'
 import { createLazyComponent } from './components/LazyComponent'
@@ -167,6 +168,15 @@ export default function App(){
   const versionManager = useRef(new DataVersionManager())
   const [historyInfo, setHistoryInfo] = useState({ canUndo: false, canRedo: false })
   const [showHistoryModal, setShowHistoryModal] = useState(false)
+  
+  // Sheet rename dialog state
+  const [showRenameDialog, setShowRenameDialog] = useState(false)
+  const [renameDialogData, setRenameDialogData] = useState({
+    conflictingName: '',
+    suggestedName: '',
+    pendingData: null,
+    pendingWorksheets: []
+  })
   
   // Editor view text search filter
   const [textSearchFilter, setTextSearchFilter] = useState('')
@@ -824,6 +834,51 @@ export default function App(){
           const workbook = new ExcelJS.Workbook()
           await workbook.xlsx.load(data)
           
+          // Check for duplicate sheet names
+          const worksheets = workbook.worksheets
+          const sheetNames = new Set()
+          let duplicateFound = null
+          let duplicateIndex = -1
+          
+          for (let i = 0; i < worksheets.length; i++) {
+            const ws = worksheets[i]
+            if (sheetNames.has(ws.name)) {
+              duplicateFound = ws.name
+              duplicateIndex = i
+              break
+            }
+            sheetNames.add(ws.name)
+          }
+          
+          if (duplicateFound) {
+            // Found duplicate - show rename dialog
+            // Parse sheets up to (but not including) the duplicate
+            const parsedSheets = {}
+            for (let i = 0; i < duplicateIndex; i++) {
+              const ws = worksheets[i]
+              parsedSheets[ws.name] = parseWorksheet(ws)
+            }
+            
+            // Generate suggested name with _1 suffix
+            let suffix = 1
+            let suggestedName = `${duplicateFound}_${suffix}`
+            while (sheetNames.has(suggestedName)) {
+              suffix++
+              suggestedName = `${duplicateFound}_${suffix}`
+            }
+            
+            // Store data for later processing
+            setRenameDialogData({
+              conflictingName: duplicateFound,
+              suggestedName: suggestedName,
+              pendingData: parsedSheets,
+              pendingWorksheets: worksheets
+            })
+            setShowRenameDialog(true)
+            return // Exit early, wait for user input
+          }
+          
+          // No duplicates - parse all sheets normally
           workbook.worksheets.forEach(ws => {
             parsedData[ws.name] = parseWorksheet(ws)
           })
@@ -869,6 +924,107 @@ export default function App(){
     
     // Reset input value to allow selecting the same file again
     e.target.value = ''
+  }
+
+  /**
+   * Handle sheet rename confirmation from dialog
+   * Completes the file import process with the renamed sheet
+   */
+  const handleSheetRename = (newName) => {
+    try {
+      const { pendingData, pendingWorksheets, conflictingName } = renameDialogData
+      
+      // Find the duplicate sheet (the second occurrence with the same name)
+      let duplicateIndex = -1
+      let foundFirst = false
+      for (let i = 0; i < pendingWorksheets.length; i++) {
+        if (pendingWorksheets[i].name === conflictingName) {
+          if (foundFirst) {
+            duplicateIndex = i
+            break
+          }
+          foundFirst = true
+        }
+      }
+      
+      // Parse the duplicate sheet with the new name
+      if (duplicateIndex !== -1) {
+        pendingData[newName] = parseWorksheet(pendingWorksheets[duplicateIndex])
+      }
+      
+      // Parse any remaining sheets after the duplicate
+      for (let i = duplicateIndex + 1; i < pendingWorksheets.length; i++) {
+        const ws = pendingWorksheets[i]
+        // Check for more duplicates
+        if (!pendingData[ws.name]) {
+          pendingData[ws.name] = parseWorksheet(ws)
+        } else {
+          // If there's another duplicate, we'll handle it recursively
+          let suffix = 1
+          let suggestedName = `${ws.name}_${suffix}`
+          while (pendingData[suggestedName]) {
+            suffix++
+            suggestedName = `${ws.name}_${suffix}`
+          }
+          
+          // Show dialog for the next duplicate
+          setRenameDialogData({
+            conflictingName: ws.name,
+            suggestedName: suggestedName,
+            pendingData: pendingData,
+            pendingWorksheets: pendingWorksheets
+          })
+          return // Exit and wait for next rename
+        }
+      }
+      
+      // All sheets processed - finalize import
+      versionManager.current.initialize(pendingData)
+      setHistoryInfo(versionManager.current.getHistoryInfo())
+      
+      setWorkbookData(pendingData)
+      setActiveSheet(Object.keys(pendingData)[0] || null)
+      setSelectedColumns([])
+      setHiddenColumns([])
+      setRenames({})
+      
+      // Auto-detect sheets suitable for analysis
+      const detectedInclusion = autoDetectSheetsForAnalysis(pendingData)
+      setIncludedSheets(detectedInclusion)
+      
+      // Auto-detect categorical columns (≤5 unique values)
+      const firstSheet = Object.keys(pendingData)[0]
+      if (firstSheet && pendingData[firstSheet]) {
+        const detected = detectCategoricalColumns(pendingData[firstSheet].rows, pendingData[firstSheet].columns)
+        setCategoricalColumns(detected)
+      }
+      
+      // Close the dialog
+      setShowRenameDialog(false)
+      setRenameDialogData({
+        conflictingName: '',
+        suggestedName: '',
+        pendingData: null,
+        pendingWorksheets: []
+      })
+    } catch (error) {
+      console.error('Error processing renamed sheet:', error)
+      alert('Error processing renamed sheet: ' + error.message)
+      setShowRenameDialog(false)
+    }
+  }
+
+  /**
+   * Handle sheet rename dialog cancellation
+   */
+  const handleRenameCancel = () => {
+    setShowRenameDialog(false)
+    setRenameDialogData({
+      conflictingName: '',
+      suggestedName: '',
+      pendingData: null,
+      pendingWorksheets: []
+    })
   }
 
   // Get rows for active sheet (or all sheets if '__ALL__' selected)
@@ -1627,6 +1783,15 @@ export default function App(){
           versionManager={versionManager.current}
           onJumpToVersion={jumpToHistoryVersion}
           currentIndex={historyInfo.currentIndex}
+        />
+      )}
+      {showRenameDialog && (
+        <SheetRenameDialog
+          isOpen={showRenameDialog}
+          onClose={handleRenameCancel}
+          onRename={handleSheetRename}
+          conflictingName={renameDialogData.conflictingName}
+          suggestedName={renameDialogData.suggestedName}
         />
       )}
       <aside className={`sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
