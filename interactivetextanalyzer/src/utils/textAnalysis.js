@@ -792,8 +792,8 @@ export const getTermPOS = (term) => {
     return 'verb'
   }
   
-  // Verb patterns (gerunds, past tense, past participle)
-  if (word.match(/(ing|ed|en)$/) && word.length > 4) {
+  // Verb patterns (gerunds, past tense)
+  if (word.match(/(ing|ed)$/) && word.length > 4) {
     return 'verb'
   }
   
