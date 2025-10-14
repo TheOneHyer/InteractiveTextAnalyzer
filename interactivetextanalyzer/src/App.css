@@ -377,3 +377,355 @@ footer { text-align:center; padding:18px 0 30px; font-size:11px; color:var(--c-s
   color: var(--c-subtle);
   font-size: 14px;
 }
+
+/* Mobile-first responsive design */
+
+/* Hide mobile menu toggle by default (desktop) */
+.mobile-menu-toggle {
+  display: none;
+}
+
+/* Tablet and smaller (iPad portrait and below) */
+@media (max-width: 1024px) {
+  .stats-grid {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+  }
+
+  .side-stack {
+    width: 250px;
+  }
+
+  .analysis-layout {
+    flex-direction: column;
+  }
+
+  .content {
+    padding: 16px;
+  }
+
+  .topbar {
+    padding: 0 16px;
+  }
+}
+
+/* Mobile landscape and small tablets */
+@media (max-width: 768px) {
+  /* Hide sidebar by default on mobile, show as overlay when active */
+  .sidebar {
+    position: fixed;
+    left: -100%;
+    top: 0;
+    bottom: 0;
+    width: 230px;
+    z-index: 9999;
+    transition: left 0.3s ease;
+    box-shadow: 4px 0 12px rgba(0, 0, 0, 0.3);
+  }
+
+  .sidebar.mobile-open {
+    left: 0;
+  }
+
+  /* Don't use collapsed class behavior on mobile */
+  .sidebar.collapsed {
+    width: 230px;
+  }
+
+  /* Adjust main to take full width */
+  .main {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  /* Add mobile menu toggle button */
+  .mobile-menu-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: var(--c-chip);
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 20px;
+    cursor: pointer;
+    margin-right: 12px;
+  }
+
+  .mobile-menu-toggle:hover {
+    filter: brightness(1.15);
+  }
+
+  /* Overlay backdrop when sidebar is open */
+  .sidebar-backdrop {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 9998;
+    backdrop-filter: blur(2px);
+  }
+
+  .sidebar-backdrop.active {
+    display: block;
+  }
+
+  /* Adjust topbar for mobile */
+  .topbar {
+    height: auto;
+    min-height: 60px;
+    padding: 12px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .topbar h1 {
+    font-size: 16px;
+    flex: 1;
+    min-width: 120px;
+  }
+
+  /* Make buttons smaller on mobile */
+  .btn {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+
+  .theme-toggle {
+    padding: 6px 10px;
+    font-size: 11px;
+  }
+
+  /* Stack stats grid in single column on small screens */
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Reduce content padding */
+  .content {
+    padding: 12px;
+    gap: 16px;
+  }
+
+  /* Make panels more compact */
+  .panel {
+    padding: 14px 16px;
+    gap: 12px;
+  }
+
+  .panel-header {
+    flex-wrap: wrap;
+  }
+
+  .panel-header h3 {
+    font-size: 14px;
+  }
+
+  /* Adjust side stack for mobile */
+  .side-stack {
+    width: 100%;
+  }
+
+  /* Make chart boxes shorter on mobile */
+  .chart-box {
+    height: 240px;
+    min-height: 200px;
+  }
+
+  /* Scrollable tables */
+  .table-scroll {
+    font-size: 11px;
+  }
+
+  .table-scroll th,
+  .table-scroll td {
+    padding: 6px 8px;
+  }
+
+  /* Make analysis layout single column */
+  .analysis-layout {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* Adjust modal for mobile */
+  .modal-content {
+    width: 95%;
+    max-height: 90vh;
+    border-radius: 12px;
+  }
+
+  .modal-header {
+    padding: 14px 16px;
+  }
+
+  .modal-header h2 {
+    font-size: 16px;
+  }
+
+  .modal-body {
+    padding: 14px 16px;
+  }
+
+  /* Column management on mobile */
+  .column-mgmt-table {
+    font-size: 11px;
+  }
+
+  .column-mgmt-table th,
+  .column-mgmt-table td {
+    padding: 8px 6px;
+  }
+
+  /* Adjust column editor */
+  .column-row {
+    flex-wrap: wrap;
+  }
+
+  .column-row input {
+    min-width: 100%;
+    margin-bottom: 4px;
+  }
+
+  /* Stack export menu items */
+  .flex-row {
+    flex-direction: column;
+  }
+
+  /* Adjust tooltips for mobile */
+  .tooltip {
+    max-width: 200px;
+    font-size: 11px;
+    padding: 6px 10px;
+  }
+
+  /* Make virtual container more compact */
+  .virtual-container {
+    max-height: 300px;
+  }
+
+  /* Reduce stat card size */
+  .stat-card {
+    padding: 12px 14px;
+  }
+
+  .stat-value {
+    font-size: 24px;
+  }
+
+  .stat-card h4 {
+    font-size: 11px;
+  }
+}
+
+/* Mobile portrait (phones) */
+@media (max-width: 480px) {
+  .topbar {
+    padding: 8px;
+  }
+
+  .topbar h1 {
+    font-size: 14px;
+  }
+
+  .content {
+    padding: 8px;
+    gap: 12px;
+  }
+
+  .panel {
+    padding: 12px;
+    border-radius: 12px;
+  }
+
+  .btn {
+    padding: 5px 8px;
+    font-size: 11px;
+  }
+
+  /* Further reduce stats */
+  .stat-value {
+    font-size: 20px;
+  }
+
+  .stat-card {
+    padding: 10px 12px;
+  }
+
+  /* Make chart boxes even shorter */
+  .chart-box {
+    height: 200px;
+    min-height: 180px;
+  }
+
+  /* Compact table even more */
+  .table-scroll {
+    font-size: 10px;
+  }
+
+  .table-scroll th,
+  .table-scroll td {
+    padding: 4px 6px;
+  }
+
+  /* Modal takes almost full screen on small phones */
+  .modal-content {
+    width: 98%;
+    max-height: 95vh;
+    border-radius: 8px;
+  }
+
+  .modal-header {
+    padding: 12px;
+  }
+
+  .modal-header h2 {
+    font-size: 14px;
+  }
+
+  .modal-body {
+    padding: 12px;
+  }
+
+  /* Smaller tooltips */
+  .tooltip {
+    max-width: 160px;
+    font-size: 10px;
+    padding: 5px 8px;
+  }
+
+  /* Even more compact column management */
+  .column-mgmt-table {
+    font-size: 10px;
+  }
+
+  .column-mgmt-table th,
+  .column-mgmt-table td {
+    padding: 6px 4px;
+  }
+
+  .column-mgmt-table button {
+    padding: 4px 8px;
+    font-size: 10px;
+  }
+}
+
+/* Large screens - optimize for desktop */
+@media (min-width: 1440px) {
+  .stats-grid {
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  }
+
+  .side-stack {
+    width: 320px;
+  }
+
+  .content {
+    padding: 32px;
+  }
+}

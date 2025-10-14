@@ -109,3 +109,79 @@
 .wiki-source em {
   font-style: italic;
 }
+
+/* Mobile responsive styles */
+@media (max-width: 768px) {
+  .wiki-container {
+    padding: 0 12px;
+  }
+
+  .wiki-container h2 {
+    font-size: 22px;
+  }
+
+  .wiki-intro {
+    font-size: 14px;
+    margin-bottom: 24px;
+  }
+
+  .wiki-section {
+    margin-bottom: 24px;
+    padding: 16px;
+    border-radius: 12px;
+  }
+
+  .wiki-section h3 {
+    font-size: 18px;
+    margin-bottom: 16px;
+  }
+
+  .wiki-item {
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+  }
+
+  .wiki-item h4 {
+    font-size: 16px;
+  }
+
+  .wiki-item p,
+  .wiki-item li {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .wiki-container {
+    padding: 0 8px;
+  }
+
+  .wiki-container h2 {
+    font-size: 20px;
+  }
+
+  .wiki-intro {
+    font-size: 13px;
+  }
+
+  .wiki-section {
+    padding: 12px;
+  }
+
+  .wiki-section h3 {
+    font-size: 16px;
+  }
+
+  .wiki-item h4 {
+    font-size: 15px;
+  }
+
+  .wiki-item p,
+  .wiki-item li {
+    font-size: 12px;
+  }
+
+  .wiki-source {
+    font-size: 12px;
+  }
+}
