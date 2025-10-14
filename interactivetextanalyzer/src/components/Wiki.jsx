@@ -615,17 +615,19 @@ export default function Wiki() {
             <strong>How it works:</strong> Uses document-level clustering with TF-IDF to dynamically identify themes 
             from the text itself. The algorithm groups documents by semantic similarity, then generates meaningful 
             theme labels using pattern matching. Each topic is represented by its most characteristic terms and 
-            assigned a relevance score.
+            assigned a relevance score. <strong>POS-based weighting emphasizes nouns and verbs (5x weight) over 
+            other parts of speech</strong>, as these carry the primary semantic content in natural language.
           </p>
           <p>
             <strong>Algorithm details:</strong> The implementation follows these steps:
             <br/>1. Compute TF-IDF scores for all terms across documents
-            <br/>2. Build document vectors from TF-IDF weights (200 vocabulary terms)
-            <br/>3. Apply k-means clustering with maximin initialization to group documents
-            <br/>4. Generate semantic theme labels using pattern matching
-            <br/>5. Aggregate representative terms from documents in each cluster
-            <br/>6. Compute document-topic distribution matrix
-            <br/>7. Identify topic co-occurrence for network visualization
+            <br/>2. Apply POS-based weighting to TF-IDF scores (nouns/verbs weighted 5x higher)
+            <br/>3. Build weighted document vectors (200 vocabulary terms)
+            <br/>4. Apply k-means clustering with maximin initialization to group documents
+            <br/>5. Generate semantic theme labels using pattern matching
+            <br/>6. Aggregate representative terms from documents in each cluster
+            <br/>7. Compute document-topic distribution matrix
+            <br/>8. Identify topic co-occurrence for network visualization
           </p>
           <p>
             <strong>Use cases:</strong> Document categorization, content discovery, exploratory data analysis, 

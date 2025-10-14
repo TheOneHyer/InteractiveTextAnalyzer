@@ -48,6 +48,40 @@ console.log(stemmer('running'))  // 'run'
 console.log(stemmer('happily'))  // 'happi'
 ```
 
+##### `getTermPOS(term)`
+Determines the part of speech for a term using rule-based patterns. Used internally by topic modeling for POS-based weighting.
+
+**Parameters:**
+- `term` (string): The term to analyze
+
+**Returns:** String - POS category: 'noun', 'verb', 'adjective', 'adverb', or 'other'
+
+```javascript
+import { getTermPOS } from './utils/textAnalysis'
+
+console.log(getTermPOS('safety'))    // 'noun'
+console.log(getTermPOS('running'))   // 'verb'
+console.log(getTermPOS('beautiful')) // 'adjective'
+console.log(getTermPOS('quickly'))   // 'adverb'
+```
+
+##### `getPOSWeight(term)`
+Returns the POS weight multiplier for a term. Nouns and verbs receive higher weights (5.0x) as they carry primary semantic content for topic modeling.
+
+**Parameters:**
+- `term` (string): The term to weight
+
+**Returns:** Number - Weight multiplier (5.0 for nouns/verbs, 1.0 for adjectives, 0.8 for adverbs, 0.5 for others)
+
+```javascript
+import { getPOSWeight } from './utils/textAnalysis'
+
+console.log(getPOSWeight('safety'))    // 5.0 (noun)
+console.log(getPOSWeight('running'))   // 5.0 (verb)
+console.log(getPOSWeight('beautiful')) // 1.0 (adjective)
+console.log(getPOSWeight('quickly'))   // 0.8 (adverb)
+```
+
 ##### `computeTfIdf(docs, options)`
 Computes TF-IDF (Term Frequency-Inverse Document Frequency) scores for documents.
 
@@ -250,7 +284,7 @@ Computes TF-IDF-based document embeddings (vector representations).
 **Returns:** Object with `vectors` (document vectors) and `vocab` (vocabulary)
 
 ##### `performTopicModeling(docs, options)`
-Performs document-level topic modeling to identify overarching themes in documents. Generates semantic theme labels instead of word lists.
+Performs document-level topic modeling to identify overarching themes in documents. Generates semantic theme labels instead of word lists. Uses POS-based weighting to emphasize nouns and verbs (5x weight) over other parts of speech during clustering.
 
 **Parameters:**
 - `docs` (string[]): Array of document texts
@@ -292,11 +326,19 @@ const result = performTopicModeling(docs, {
 
 **Algorithm:**
 1. Computes TF-IDF scores for all terms
-2. Builds document vectors from TF-IDF
+2. Builds document vectors from TF-IDF with POS-based weighting (nouns and verbs weighted 5x higher)
 3. Applies k-means clustering with maximin initialization
 4. Generates semantic theme labels using pattern matching
 5. Calculates document-topic distributions
 6. Identifies topic co-occurrence patterns
+
+**POS Weighting:**
+- Nouns and Verbs: 5.0x weight (primary semantic content)
+- Adjectives: 1.0x weight
+- Adverbs: 0.8x weight
+- Other: 0.5x weight
+
+This weighting ensures topics are centered around nouns and verbs, which carry the primary semantic meaning in natural language and are more useful for topic identification than adjectives or other parts of speech.
 
 ##### `analyzeReadability(texts, options)`
 Analyzes text readability using six established readability formulas to assess content complexity and accessibility.
