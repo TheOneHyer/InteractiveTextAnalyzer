@@ -1,28 +1,30 @@
 # Topic Modeling Feature - Implementation Summary
 
 ## Overview
-Implemented comprehensive topic modeling analysis using hierarchical TF-IDF clustering to dynamically identify granular sub-topics from document content.
+Implemented comprehensive topic modeling analysis using document-level clustering to dynamically identify overarching themes from document content. Topics are represented as abstract semantic themes rather than word lists.
 
 ## Implementation Details
 
-### Algorithm: Hierarchical TF-IDF Clustering
+### Algorithm: Document-Level TF-IDF Clustering
 
 The topic modeling implementation uses a sophisticated multi-step approach:
 
 1. **TF-IDF Computation**: Calculates term frequency-inverse document frequency scores for all terms across documents
-2. **Term-Document Matrix**: Builds a weighted matrix representing term importance in each document
-3. **Term Co-occurrence Analysis**: Identifies patterns of terms appearing together
-4. **Cosine Similarity Clustering**: Groups related terms using cosine similarity measures
-5. **Topic Label Generation**: Creates human-readable labels from top terms in each cluster
-6. **Document-Topic Distribution**: Calculates probability distributions showing topic presence in each document
-7. **Topic Co-occurrence**: Identifies relationships between topics for network visualization
+2. **Document Vector Construction**: Builds document vectors from TF-IDF scores (200 vocabulary terms for better theme representation)
+3. **Maximin Centroid Initialization**: Selects diverse document centroids to ensure distinct themes
+4. **K-Means Document Clustering**: Groups documents by semantic similarity using iterative refinement
+5. **Semantic Theme Label Generation**: Creates meaningful theme labels using pattern matching across 30+ domain patterns
+6. **Topic Representation**: Aggregates terms from documents in each cluster to represent the theme
+7. **Document-Topic Distribution**: Calculates probability distributions showing topic presence in each document
+8. **Topic Co-occurrence**: Identifies relationships between topics for network visualization
 
 ### Key Features
 
 #### Dynamic Topic Discovery
-- Automatically identifies topics based on document content
+- Automatically identifies abstract themes based on document content
 - No pre-defined categories needed
-- Adapts to domain-specific terminology (e.g., "ladder safety", "forklift operations" in safety documents)
+- Generates semantic labels like "Work at Heights", "Equipment Operation", "Safety & Protection"
+- Falls back to descriptive labels when patterns don't match
 
 #### Multiple Visualizations
 1. **Heatmap**: Document-topic distribution matrix showing topic prevalence across documents
@@ -31,7 +33,7 @@ The topic modeling implementation uses a sophisticated multi-step approach:
 4. **Word Cloud**: All terms from identified topics
 
 #### Configurable Parameters
-- **Number of Topics** (2-20): Controls granularity of topic extraction
+- **Number of Topics** (2-20): Controls number of themes to extract
 - **Terms per Topic** (5-30): Adjusts topic characterization detail
 - **Stemming**: Optional word normalization
 - **Stopwords**: Customizable filtering
@@ -68,9 +70,9 @@ export const performTopicModeling = (docs, {
    - Word Cloud: Aggregated topic terms
 
 3. **Results Display**:
-   - Detailed topic breakdown with labels
-   - Top terms per topic
-   - Topic scores
+   - Detailed topic breakdown with semantic theme labels
+   - Top terms per topic showing representative vocabulary
+   - Topic scores indicating theme importance
    - Expandable term lists
 
 ## Testing
@@ -83,7 +85,8 @@ Comprehensive test coverage including:
 - Parameter variations (different numTopics, termsPerTopic)
 - Edge cases (empty documents, single document, stopwords-only)
 - Data quality (probability distributions, term filtering)
-- Domain-specific scenarios (safety documents with distinct sub-topics)
+- Domain-specific scenarios (safety documents with distinct themes)
+- Theme-based labeling validation (ensures abstract themes vs word lists)
 
 Total: 25+ test cases covering all aspects of the implementation
 
@@ -199,14 +202,15 @@ Doc 3: [0.05, 0.05, 0.90]  # Strongly "Protective Equipment"
 ### Implementation Approach
 Our implementation combines:
 - TF-IDF weighting (Salton & Buckley) for term importance
-- K-means-like clustering for topic extraction
-- Cosine similarity for term grouping
+- K-means clustering with maximin initialization for document grouping
+- Cosine similarity for document clustering
+- Semantic pattern matching for theme label generation
 - Probabilistic distribution for document-topic assignments
 
 This hybrid approach provides:
 - Speed: No iterative optimization like LDA
-- Interpretability: Clear term-based topics
-- Flexibility: Dynamic topic discovery
+- Interpretability: Clear semantic theme labels
+- Flexibility: Dynamic theme discovery
 - Scalability: Efficient for real-time analysis
 
 ## Benefits
@@ -214,16 +218,16 @@ This hybrid approach provides:
 ### For Users
 1. **Automatic Discovery**: No need to pre-define categories
 2. **Domain Agnostic**: Works with any text domain
-3. **Granular Analysis**: Identifies fine-grained sub-topics
+3. **Abstract Themes**: Identifies overarching concepts, not just word lists
 4. **Visual Exploration**: Multiple visualization options
-5. **Interpretable Results**: Clear topic labels and term lists
+5. **Interpretable Results**: Semantic theme labels and term lists
 
 ### For Developers
 1. **Pure JavaScript**: No external ML libraries required
 2. **Fast Computation**: Runs in-browser without backend
 3. **Testable**: Comprehensive unit test coverage
 4. **Documented**: Full API and user documentation
-5. **Extensible**: Easy to add new clustering methods
+5. **Extensible**: Easy to add new theme patterns
 
 ## Future Enhancements
 
@@ -237,20 +241,22 @@ Potential improvements (not implemented in this PR):
 ## Validation
 
 All implementation requirements met:
-✅ Algorithm for granular sub-topics based on document text
-✅ Dynamic topic identification (no pre-defined categories)
+✅ Algorithm for identifying overarching themes based on document text
+✅ Dynamic theme identification (no pre-defined categories)
+✅ Semantic theme labeling (30+ domain patterns)
 ✅ Heat map visualization (document-topic matrix)
 ✅ Network graph visualization (topic relationships)
 ✅ Wiki documentation with sources
 ✅ Comprehensive unit tests (25+ test cases)
-✅ Example use case (safety document with ladder, forklift sub-topics)
+✅ Example use case (safety documents with abstract themes like "Work at Heights", "Equipment Operation")
 
 ## Files Changed
 
-1. `src/utils/textAnalysis.js`: Added `performTopicModeling()` function (157 lines)
-2. `src/App.jsx`: Integrated topic modeling analysis and visualizations
-3. `src/components/Wiki.jsx`: Added comprehensive documentation section
-4. `src/utils/README.md`: Added API documentation and examples
-5. `src/test/topicModeling.test.js`: Created full test suite (400+ lines)
+1. `src/utils/textAnalysis.js`: Refactored `performTopicModeling()` function (document-level clustering + semantic labeling)
+2. `src/App.jsx`: Updated description to reflect theme-based approach
+3. `src/components/Wiki.jsx`: Updated documentation for theme-based approach
+4. `src/utils/README.md`: Updated API documentation and examples
+5. `src/test/topicModeling.test.js`: Updated tests for theme-based validation
+6. `TOPIC_MODELING_IMPLEMENTATION.md`: Updated all references to reflect new approach
 
-Total additions: ~600 lines of production code + documentation + tests
+Total changes: ~160 lines modified for document-level clustering + ~140 lines added for semantic theme generation

@@ -653,8 +653,112 @@ export const analyzeTokenization = (texts, { level = 'word', top = 80 }) => {
 }
 
 /**
- * Perform hierarchical topic modeling to identify granular sub-topics in documents
- * Uses TF-IDF based clustering to dynamically identify topics from the text itself
+ * Generate a semantic theme label from topic terms
+ * Creates descriptive labels based on term patterns rather than just listing words
+ * @param {Array} topicTerms - Array of {term, score} objects
+ * @param {number} topicIdx - Topic index for fallback labeling
+ * @returns {string} Theme label
+ */
+const generateThemeLabel = (topicTerms, topicIdx) => {
+  if (topicTerms.length === 0) {
+    return `Theme ${topicIdx + 1}`
+  }
+  
+  // Extract top terms
+  const terms = topicTerms.slice(0, 5).map(t => t.term.toLowerCase())
+  
+  // Define common theme patterns based on term combinations
+  const themePatterns = [
+    // Safety and operations
+    { keywords: ['safety', 'protect', 'equipment', 'gear'], theme: 'Safety & Protection' },
+    { keywords: ['ladder', 'height', 'climb', 'fall'], theme: 'Work at Heights' },
+    { keywords: ['forklift', 'operator', 'vehicle', 'driving'], theme: 'Equipment Operation' },
+    { keywords: ['train', 'certif', 'skill', 'learn'], theme: 'Training & Certification' },
+    { keywords: ['inspect', 'check', 'maintain', 'repair'], theme: 'Maintenance & Inspection' },
+    
+    // Business and management
+    { keywords: ['manage', 'plan', 'strateg', 'organiz'], theme: 'Management & Planning' },
+    { keywords: ['budget', 'cost', 'financ', 'money'], theme: 'Financial Management' },
+    { keywords: ['customer', 'client', 'service', 'support'], theme: 'Customer Relations' },
+    { keywords: ['market', 'sales', 'advertis', 'promot'], theme: 'Marketing & Sales' },
+    { keywords: ['project', 'task', 'deadline', 'deliver'], theme: 'Project Management' },
+    
+    // Technology and data
+    { keywords: ['data', 'analyt', 'inform', 'statist'], theme: 'Data & Analytics' },
+    { keywords: ['software', 'system', 'application', 'program'], theme: 'Software & Systems' },
+    { keywords: ['network', 'connect', 'internet', 'online'], theme: 'Network & Connectivity' },
+    { keywords: ['secur', 'protect', 'privacy', 'encrypt'], theme: 'Security & Privacy' },
+    { keywords: ['develop', 'code', 'build', 'creat'], theme: 'Development & Engineering' },
+    
+    // Communication and collaboration
+    { keywords: ['team', 'collabor', 'group', 'together'], theme: 'Team Collaboration' },
+    { keywords: ['communicat', 'message', 'inform', 'share'], theme: 'Communication' },
+    { keywords: ['meet', 'discuss', 'conference', 'talk'], theme: 'Meetings & Discussions' },
+    { keywords: ['report', 'document', 'write', 'record'], theme: 'Documentation & Reporting' },
+    
+    // General business operations
+    { keywords: ['process', 'procedure', 'workflow', 'operation'], theme: 'Processes & Procedures' },
+    { keywords: ['policy', 'rule', 'regulat', 'complian'], theme: 'Policy & Compliance' },
+    { keywords: ['quality', 'standard', 'excellence', 'improve'], theme: 'Quality & Standards' },
+    { keywords: ['resource', 'asset', 'material', 'supply'], theme: 'Resources & Materials' },
+    
+    // Health and wellness
+    { keywords: ['health', 'medical', 'care', 'treat'], theme: 'Health & Medical Care' },
+    { keywords: ['environment', 'green', 'sustain', 'eco'], theme: 'Environmental Sustainability' },
+    { keywords: ['risk', 'hazard', 'danger', 'threat'], theme: 'Risk Management' },
+    
+    // Education and learning
+    { keywords: ['education', 'school', 'learn', 'teach'], theme: 'Education & Learning' },
+    { keywords: ['research', 'study', 'investigation', 'analysis'], theme: 'Research & Analysis' },
+    { keywords: ['knowledge', 'information', 'understand', 'know'], theme: 'Knowledge & Information' }
+  ]
+  
+  // Find matching theme patterns
+  for (const pattern of themePatterns) {
+    let matchCount = 0
+    for (const keyword of pattern.keywords) {
+      if (terms.some(term => term.includes(keyword) || keyword.includes(term))) {
+        matchCount++
+      }
+    }
+    // If at least 2 keywords match, use this theme
+    if (matchCount >= 2) {
+      return pattern.theme
+    }
+  }
+  
+  // If no pattern matches, try single keyword matches with high confidence
+  for (const pattern of themePatterns) {
+    for (const keyword of pattern.keywords) {
+      if (terms[0] && (terms[0].includes(keyword) || keyword.includes(terms[0]))) {
+        return pattern.theme
+      }
+    }
+  }
+  
+  // Fallback: Create a descriptive label from top 2-3 terms
+  if (terms.length >= 3) {
+    return `${capitalize(terms[0])} & ${capitalize(terms[1])} Related`
+  } else if (terms.length >= 2) {
+    return `${capitalize(terms[0])} & ${capitalize(terms[1])}`
+  } else if (terms.length >= 1) {
+    return `${capitalize(terms[0])} Related`
+  }
+  
+  return `Theme ${topicIdx + 1}`
+}
+
+/**
+ * Capitalize first letter of a string
+ */
+const capitalize = (str) => {
+  if (!str) return ''
+  return str.charAt(0).toUpperCase() + str.slice(1)
+}
+
+/**
+ * Perform hierarchical topic modeling to identify overarching themes in documents
+ * Uses document-level clustering with TF-IDF to identify abstract topics and themes
  * @param {string[]} docs - Array of document texts
  * @param {Object} options - Analysis options
  * @param {number} options.numTopics - Number of topics to extract (default: 5)
@@ -672,58 +776,83 @@ export const performTopicModeling = (docs, { numTopics = 5, termsPerTopic = 10, 
   // Step 1: Compute TF-IDF for all documents
   const tfidf = computeTfIdf(docs, { stopwords, stem, stemmer })
   
-  // Step 2: Build term-document matrix from TF-IDF
-  const vocabulary = tfidf.aggregate.slice(0, 150).map(t => t.term)
+  // Step 2: Build document-term matrix (documents x terms) for document-level clustering
+  // Use more vocabulary for better theme representation
+  const vocabulary = tfidf.aggregate.slice(0, 200).map(t => t.term)
   const vocabMap = {}
   vocabulary.forEach((term, idx) => { vocabMap[term] = idx })
   
-  // Create term-document matrix (terms x documents)
-  const termDocMatrix = vocabulary.map(term => {
-    return docs.map((_, docIdx) => {
-      const docTerms = tfidf.perDoc[docIdx] || []
-      const termObj = docTerms.find(t => t.term === term)
-      return termObj ? termObj.tfidf : 0
+  // Create document vectors from TF-IDF scores
+  const docVectors = docs.map((_, docIdx) => {
+    const vector = new Array(vocabulary.length).fill(0)
+    const docTerms = tfidf.perDoc[docIdx] || []
+    docTerms.forEach(({ term, tfidf }) => {
+      const termIdx = vocabMap[term]
+      if (termIdx !== undefined) {
+        vector[termIdx] = tfidf
+      }
     })
+    return vector
   })
   
-  // Step 3: Use hierarchical clustering based on term co-occurrence
-  // Calculate term co-occurrence scores
-  const termScores = vocabulary.map((term, idx) => {
-    const termVector = termDocMatrix[idx]
-    const score = termVector.reduce((sum, val) => sum + val, 0)
-    return { term, idx, score, vector: termVector }
-  })
+  // Step 3: Cluster documents using k-means to find overarching themes
+  const actualNumTopics = Math.min(numTopics, Math.max(1, docs.length))
+  const docCentroids = []
+  const docAssignments = new Array(docs.length).fill(-1)
   
-  // Sort by score and partition into topics
-  termScores.sort((a, b) => b.score - a.score)
-  
-  // Step 4: Create topics using k-means-like clustering
-  const topicCentroids = []
-  const topicAssignments = new Array(vocabulary.length).fill(-1)
-  
-  // Initialize centroids by selecting diverse high-scoring terms
-  // Ensure at least 1 topic if we have any vocabulary
-  const actualNumTopics = vocabulary.length > 0 
-    ? Math.min(numTopics, Math.max(1, Math.floor(vocabulary.length / termsPerTopic)))
-    : 0
-  for (let i = 0; i < actualNumTopics; i++) {
-    const seedIdx = Math.floor((i * termScores.length) / actualNumTopics)
-    topicCentroids.push(termScores[seedIdx].vector)
+  // Initialize centroids by selecting diverse documents
+  // Use maximin strategy to select well-separated initial centroids
+  if (actualNumTopics > 0) {
+    // Start with a random document
+    const firstIdx = Math.floor(Math.random() * docs.length)
+    docCentroids.push([...docVectors[firstIdx]])
+    
+    // Select remaining centroids to maximize minimum distance
+    for (let i = 1; i < actualNumTopics; i++) {
+      let bestDocIdx = 0
+      let bestMinDist = -Infinity
+      
+      for (let docIdx = 0; docIdx < docs.length; docIdx++) {
+        let minDist = Infinity
+        for (const centroid of docCentroids) {
+          // Calculate distance (1 - cosine similarity)
+          let dotProduct = 0
+          let normA = 0
+          let normB = 0
+          for (let j = 0; j < vocabulary.length; j++) {
+            dotProduct += docVectors[docIdx][j] * centroid[j]
+            normA += docVectors[docIdx][j] * docVectors[docIdx][j]
+            normB += centroid[j] * centroid[j]
+          }
+          const similarity = dotProduct / (Math.sqrt(normA) * Math.sqrt(normB) + 1e-10)
+          const distance = 1 - similarity
+          minDist = Math.min(minDist, distance)
+        }
+        
+        if (minDist > bestMinDist) {
+          bestMinDist = minDist
+          bestDocIdx = docIdx
+        }
+      }
+      
+      docCentroids.push([...docVectors[bestDocIdx]])
+    }
   }
   
-  // Assign terms to topics based on similarity to centroids
-  if (topicCentroids.length > 0) {
-    termScores.forEach(({ idx, vector }) => {
+  // Step 4: Assign documents to topics via k-means iterations
+  const maxIterations = 10
+  for (let iter = 0; iter < maxIterations; iter++) {
+    // Assign documents to nearest centroid
+    docVectors.forEach((vector, docIdx) => {
       let bestTopic = 0
       let bestSimilarity = -Infinity
       
-      topicCentroids.forEach((centroid, topicIdx) => {
-        // Calculate cosine similarity
+      docCentroids.forEach((centroid, topicIdx) => {
         let dotProduct = 0
         let normA = 0
         let normB = 0
         
-        for (let i = 0; i < vector.length; i++) {
+        for (let i = 0; i < vocabulary.length; i++) {
           dotProduct += vector[i] * centroid[i]
           normA += vector[i] * vector[i]
           normB += centroid[i] * centroid[i]
@@ -737,22 +866,53 @@ export const performTopicModeling = (docs, { numTopics = 5, termsPerTopic = 10, 
         }
       })
       
-      topicAssignments[idx] = bestTopic
+      docAssignments[docIdx] = bestTopic
     })
+    
+    // Update centroids as mean of assigned documents
+    for (let topicIdx = 0; topicIdx < actualNumTopics; topicIdx++) {
+      const assignedDocs = docVectors.filter((_, docIdx) => docAssignments[docIdx] === topicIdx)
+      
+      if (assignedDocs.length > 0) {
+        const newCentroid = new Array(vocabulary.length).fill(0)
+        assignedDocs.forEach(vec => {
+          vec.forEach((val, idx) => { newCentroid[idx] += val })
+        })
+        newCentroid.forEach((val, idx) => { 
+          newCentroid[idx] = val / assignedDocs.length 
+        })
+        docCentroids[topicIdx] = newCentroid
+      }
+    }
   }
   
-  // Step 5: Build topic representations
+  // Step 5: Build topic representations from document clusters
   const topics = []
   for (let topicIdx = 0; topicIdx < actualNumTopics; topicIdx++) {
-    const topicTerms = termScores
-      .filter((_, idx) => topicAssignments[idx] === topicIdx)
+    const assignedDocIndices = docAssignments
+      .map((assignment, idx) => assignment === topicIdx ? idx : -1)
+      .filter(idx => idx >= 0)
+    
+    if (assignedDocIndices.length === 0) continue
+    
+    // Aggregate terms from all documents in this topic
+    const topicTermScores = {}
+    assignedDocIndices.forEach(docIdx => {
+      const docTerms = tfidf.perDoc[docIdx] || []
+      docTerms.forEach(({ term, tfidf }) => {
+        topicTermScores[term] = (topicTermScores[term] || 0) + tfidf
+      })
+    })
+    
+    // Get top terms for this topic
+    const topicTerms = Object.entries(topicTermScores)
+      .map(([term, score]) => ({ term, score }))
+      .sort((a, b) => b.score - a.score)
       .slice(0, termsPerTopic)
-      .map(t => ({ term: t.term, score: t.score }))
     
     if (topicTerms.length > 0) {
-      // Generate topic label from top terms
-      const topTerms = topicTerms.slice(0, 3).map(t => t.term)
-      const label = `Topic ${topicIdx + 1}: ${topTerms.join(', ')}`
+      // Generate semantic theme label based on term patterns
+      const label = generateThemeLabel(topicTerms, topicIdx)
       
       topics.push({
         id: topicIdx,
