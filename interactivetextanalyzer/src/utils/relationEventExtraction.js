@@ -129,10 +129,9 @@ export const patternBasedRelations = async (textSamples) => {
     // Apply each pattern
     RELATION_PATTERNS.forEach(({ pattern, type }) => {
       const matches = doc.match(pattern)
-      matches.forEach(match => {
-        const matchText = match.text()
-        const terms = match.terms()
-        
+      const matchTexts = matches.out('array')
+      
+      matchTexts.forEach(matchText => {
         // Extract subject and object
         const words = matchText.split(' ')
         let subject = ''
@@ -142,7 +141,7 @@ export const patternBasedRelations = async (textSamples) => {
         // Simple heuristic: first noun phrase is subject, last is object
         let inSubject = true
         words.forEach(word => {
-          if (['works', 'employed', 'CEO', 'president', 'owns', 'married', 'child', 'located', 'created', 'wrote', 'member'].some(r => word.toLowerCase().includes(r.toLowerCase()))) {
+          if (['works', 'employed', 'CEO', 'president', 'owns', 'married', 'child', 'located', 'created', 'wrote', 'member', 'founded', 'invented'].some(r => word.toLowerCase().includes(r.toLowerCase()))) {
             inSubject = false
             relation = word
           } else if (inSubject) {
@@ -196,10 +195,13 @@ export const dependencyBasedRelations = async (textSamples) => {
     
     // Find sentences with subject-verb-object structure
     const sentences = doc.sentences()
-    sentences.forEach(sentence => {
-      const subjects = sentence.match('#Noun+').out('array')
-      const verbs = sentence.verbs().out('array')
-      const objects = sentence.match('#Noun+').out('array')
+    const sentenceTexts = sentences.out('array')
+    
+    sentenceTexts.forEach(sentenceText => {
+      const sentenceDoc = nlp(sentenceText)
+      const subjects = sentenceDoc.match('#Noun+').out('array')
+      const verbs = sentenceDoc.verbs().out('array')
+      const objects = sentenceDoc.match('#Noun+').out('array')
       
       // Extract SVO triples
       if (subjects.length > 0 && verbs.length > 0 && objects.length > 1) {
@@ -214,7 +216,7 @@ export const dependencyBasedRelations = async (textSamples) => {
             relation: verb,
             object,
             type: 'svo',
-            text: sentence.text(),
+            text: sentenceText,
             source: text
           })
         }
@@ -250,27 +252,32 @@ export const extractEvents = async (textSamples) => {
     allEntities.push(...entities)
     
     const sentences = doc.sentences()
+    const sentenceTexts = sentences.out('array')
     
-    sentences.forEach(sentence => {
+    sentenceTexts.forEach(sentenceText => {
+      const sentenceDoc = nlp(sentenceText)
+      
       // Look for event triggers
       Object.entries(EVENT_TRIGGERS).forEach(([eventType, triggers]) => {
         triggers.forEach(trigger => {
-          if (sentence.has(trigger)) {
+          if (sentenceDoc.has(trigger)) {
             // Extract event components
-            const agent = sentence.match('#Noun+').first().text()
-            const time = sentence.dates().first().text() || null
-            const location = sentence.places().first().text() || null
-            const participants = sentence.people().out('array')
+            const agent = sentenceDoc.match('#Noun+').first().text() || 'unknown'
+            const dates = sentenceDoc.dates().out('array')
+            const time = dates.length > 0 ? dates[0] : null
+            const places = sentenceDoc.places().out('array')
+            const location = places.length > 0 ? places[0] : null
+            const participants = sentenceDoc.people().out('array')
             
             events.push({
               id: eventId++,
               type: eventType,
               trigger,
-              agent: agent || 'unknown',
+              agent,
               participants,
               time,
               location,
-              text: sentence.text(),
+              text: sentenceText,
               source: text
             })
           }
