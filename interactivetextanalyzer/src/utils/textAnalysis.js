@@ -757,8 +757,87 @@ const capitalize = (str) => {
 }
 
 /**
+ * Determine the part of speech for a term using rule-based patterns
+ * @param {string} term - The term to analyze
+ * @returns {string} POS category: 'noun', 'verb', 'adjective', 'adverb', or 'other'
+ */
+export const getTermPOS = (term) => {
+  const word = term.toLowerCase()
+  
+  // Common verb patterns and word lists
+  const commonVerbs = new Set([
+    'is', 'are', 'was', 'were', 'be', 'been', 'being', 'am', 'has', 'have', 'had', 
+    'do', 'does', 'did', 'can', 'could', 'will', 'would', 'shall', 'should', 'may', 
+    'might', 'must', 'go', 'make', 'take', 'come', 'see', 'know', 'get', 'give', 
+    'find', 'think', 'tell', 'become', 'leave', 'feel', 'put', 'bring', 'begin', 
+    'keep', 'hold', 'write', 'stand', 'hear', 'let', 'mean', 'set', 'meet', 'run', 
+    'move', 'live', 'believe', 'happen', 'appear', 'continue', 'allow', 'lead', 
+    'understand', 'watch', 'follow', 'stop', 'create', 'speak', 'read', 'spend', 
+    'grow', 'open', 'walk', 'win', 'offer', 'remember', 'love', 'consider', 'buy', 
+    'wait', 'serve', 'die', 'send', 'expect', 'build', 'stay', 'fall', 'cut', 'reach', 
+    'kill', 'remain', 'suggest', 'raise', 'pass', 'sell', 'require', 'report', 'decide', 
+    'pull', 'fly', 'bark', 'play', 'work', 'use', 'try', 'ask', 'need', 'seem', 'help', 
+    'show', 'talk', 'turn', 'start', 'call', 'provide', 'lose', 'pay', 'sit', 'eat', 
+    'sleep', 'drive', 'jump', 'dance', 'sing', 'laugh', 'cry', 'smile', 'look', 'listen', 
+    'touch', 'taste', 'smell', 'like', 'want', 'wish', 'hope', 'care', 'enjoy'
+  ])
+  
+  // Check if it's a known verb
+  if (commonVerbs.has(word)) {
+    return 'verb'
+  }
+  
+  // Check if word without -s suffix is a verb (third person singular)
+  if (word.endsWith('s') && word.length > 2 && commonVerbs.has(word.slice(0, -1))) {
+    return 'verb'
+  }
+  
+  // Verb patterns (gerunds, past tense, past participle)
+  if (word.match(/(ing|ed|en)$/) && word.length > 4) {
+    return 'verb'
+  }
+  
+  // Adverb pattern
+  if (word.endsWith('ly') && word.length > 3) {
+    return 'adverb'
+  }
+  
+  // Adjective patterns
+  if (word.match(/(ful|less|ous|ive|able|ible|al|ic|ish|y|ent|ant)$/) && word.length > 4) {
+    return 'adjective'
+  }
+  
+  // Default to noun (most common for content words in topic modeling)
+  return 'noun'
+}
+
+/**
+ * Get POS weight multiplier for a term
+ * Nouns and verbs are weighted ~5x higher than other parts of speech
+ * Based on linguistic research showing nouns and verbs carry primary semantic content
+ * @param {string} term - The term to weight
+ * @returns {number} Weight multiplier
+ */
+export const getPOSWeight = (term) => {
+  const pos = getTermPOS(term)
+  
+  // Weight multipliers based on POS category
+  // Nouns and verbs are primary semantic carriers in topic modeling
+  if (pos === 'noun' || pos === 'verb') {
+    return 5.0
+  } else if (pos === 'adjective') {
+    return 1.0
+  } else if (pos === 'adverb') {
+    return 0.8
+  } else {
+    return 0.5
+  }
+}
+
+/**
  * Perform hierarchical topic modeling to identify overarching themes in documents
  * Uses document-level clustering with TF-IDF to identify abstract topics and themes
+ * Applies POS-based weighting to emphasize nouns and verbs in topic discovery
  * @param {string[]} docs - Array of document texts
  * @param {Object} options - Analysis options
  * @param {number} options.numTopics - Number of topics to extract (default: 5)
@@ -782,14 +861,19 @@ export const performTopicModeling = (docs, { numTopics = 5, termsPerTopic = 10, 
   const vocabMap = {}
   vocabulary.forEach((term, idx) => { vocabMap[term] = idx })
   
-  // Create document vectors from TF-IDF scores
+  // Step 2a: Compute POS weights for vocabulary terms
+  // Nouns and verbs are weighted higher as they carry primary semantic content
+  const posWeights = vocabulary.map(term => getPOSWeight(term))
+  
+  // Create document vectors from TF-IDF scores with POS weighting
   const docVectors = docs.map((_, docIdx) => {
     const vector = new Array(vocabulary.length).fill(0)
     const docTerms = tfidf.perDoc[docIdx] || []
     docTerms.forEach(({ term, tfidf }) => {
       const termIdx = vocabMap[term]
       if (termIdx !== undefined) {
-        vector[termIdx] = tfidf
+        // Apply POS-based weight to TF-IDF score
+        vector[termIdx] = tfidf * posWeights[termIdx]
       }
     })
     return vector
