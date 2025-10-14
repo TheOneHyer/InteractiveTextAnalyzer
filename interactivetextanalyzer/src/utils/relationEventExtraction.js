@@ -71,35 +71,35 @@ const extractEntitiesForRelations = (doc) => {
   const entities = []
   
   // Extract people
-  const people = doc.people()
-  people.forEach(person => {
+  const people = doc.people().out('array')
+  people.forEach((text, idx) => {
     entities.push({
-      text: person.text(),
+      text,
       type: 'person',
-      startIdx: person.termStart(),
-      endIdx: person.termEnd()
+      startIdx: idx,
+      endIdx: idx
     })
   })
   
   // Extract places
-  const places = doc.places()
-  places.forEach(place => {
+  const places = doc.places().out('array')
+  places.forEach((text, idx) => {
     entities.push({
-      text: place.text(),
+      text,
       type: 'place',
-      startIdx: place.termStart(),
-      endIdx: place.termEnd()
+      startIdx: idx,
+      endIdx: idx
     })
   })
   
   // Extract organizations
-  const orgs = doc.organizations()
-  orgs.forEach(org => {
+  const orgs = doc.organizations().out('array')
+  orgs.forEach((text, idx) => {
     entities.push({
-      text: org.text(),
+      text,
       type: 'organization',
-      startIdx: org.termStart(),
-      endIdx: org.termEnd()
+      startIdx: idx,
+      endIdx: idx
     })
   })
   

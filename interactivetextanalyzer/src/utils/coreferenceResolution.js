@@ -74,17 +74,14 @@ const extractMentions = (doc, nlp) => {
   
   // Extract noun phrases
   const nounPhrases = doc.match('#Determiner? #Adjective* #Noun+')
-  nounPhrases.forEach(np => {
-    const text = np.text()
-    const startIdx = np.termStart()
-    const endIdx = np.termEnd()
-    
+  const npArray = nounPhrases.out('array')
+  npArray.forEach((text, idx) => {
     mentions.push({
       text,
       type: 'noun_phrase',
-      startIdx,
-      endIdx,
-      number: np.has('#Plural') ? 'plural' : 'singular',
+      startIdx: idx,
+      endIdx: idx,
+      number: nounPhrases.has('#Plural') ? 'plural' : 'singular',
       gender: 'neutral'
     })
   })
