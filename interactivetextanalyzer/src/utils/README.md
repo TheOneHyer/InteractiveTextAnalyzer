@@ -250,7 +250,7 @@ Computes TF-IDF-based document embeddings (vector representations).
 **Returns:** Object with `vectors` (document vectors) and `vocab` (vocabulary)
 
 ##### `performTopicModeling(docs, options)`
-Performs hierarchical topic modeling to identify granular sub-topics in documents using TF-IDF based clustering.
+Performs document-level topic modeling to identify overarching themes in documents. Generates semantic theme labels instead of word lists.
 
 **Parameters:**
 - `docs` (string[]): Array of document texts
@@ -261,7 +261,7 @@ Performs hierarchical topic modeling to identify granular sub-topics in document
 - `options.stemmer` (Function): Stemmer function if stem is true
 
 **Returns:** Object with:
-- `topics`: Array of topic objects with id, label, terms, and size
+- `topics`: Array of topic objects with id, label (semantic theme), terms, and size
 - `docTopicMatrix`: 2D array of document-topic probability distributions
 - `topicCooccurrence`: Array of topic co-occurrence data for network visualization
 
@@ -284,16 +284,17 @@ const result = performTopicModeling(docs, {
 })
 
 // Result contains:
-// - topics: [{id, label, terms, size}, ...]
+// - topics: [{id: 0, label: "Work at Heights", terms: [...], size: 42.5}, ...]
+//   (labels are semantic themes like "Safety & Protection", "Equipment Operation")
 // - docTopicMatrix: [[0.8, 0.1, 0.1], ...] (each row sums to 1)
 // - topicCooccurrence: [{source, target, weight}, ...]
 ```
 
 **Algorithm:**
 1. Computes TF-IDF scores for all terms
-2. Builds term-document matrix
-3. Applies k-means-like clustering using cosine similarity
-4. Generates topic labels from top terms
+2. Builds document vectors from TF-IDF
+3. Applies k-means clustering with maximin initialization
+4. Generates semantic theme labels using pattern matching
 5. Calculates document-topic distributions
 6. Identifies topic co-occurrence patterns
 
