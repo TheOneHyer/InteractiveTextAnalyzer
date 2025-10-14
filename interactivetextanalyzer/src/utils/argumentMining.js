@@ -14,14 +14,13 @@
  *   ACM TOIT, 16(2), 1-25. https://doi.org/10.1145/2850417
  */
 
-import lazyLoader from './lazyLoader'
-
 /**
  * Load compromise NLP library for linguistic analysis
+ * Import directly to support testing environment
  */
 const loadCompromise = async () => {
-  const compromiseModule = await lazyLoader.get('compromise')
-  return compromiseModule
+  const compromiseModule = await import('compromise')
+  return compromiseModule.default || compromiseModule
 }
 
 /**

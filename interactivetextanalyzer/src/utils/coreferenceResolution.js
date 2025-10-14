@@ -15,14 +15,13 @@
  *   In EMNLP 2017. https://aclanthology.org/D17-1018/
  */
 
-import lazyLoader from './lazyLoader'
-
 /**
  * Load compromise NLP library for linguistic analysis
+ * Import directly to support testing environment
  */
 const loadCompromise = async () => {
-  const compromiseModule = await lazyLoader.get('compromise')
-  return compromiseModule
+  const compromiseModule = await import('compromise')
+  return compromiseModule.default || compromiseModule
 }
 
 /**
