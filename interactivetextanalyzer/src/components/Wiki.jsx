@@ -607,23 +607,23 @@ export default function Wiki() {
         <div className='wiki-item'>
           <h4>Topic Modeling</h4>
           <p>
-            <strong>What it does:</strong> Automatically discovers granular sub-topics within your documents 
-            by identifying clusters of related terms. For example, a safety document might reveal distinct 
-            topics for "ladder safety", "forklift operations", and "protective equipment".
+            <strong>What it does:</strong> Automatically discovers overarching themes within your documents 
+            by clustering related content. For example, a safety document might reveal distinct 
+            themes like "Work at Heights", "Equipment Operation", and "Safety & Protection".
           </p>
           <p>
-            <strong>How it works:</strong> Uses hierarchical TF-IDF clustering to dynamically identify topics 
-            from the text itself. The algorithm computes TF-IDF scores for all terms, creates a term-document 
-            matrix, and applies k-means-like clustering to group related terms into coherent topics. Each topic 
-            is represented by its most characteristic terms and assigned a relevance score.
+            <strong>How it works:</strong> Uses document-level clustering with TF-IDF to dynamically identify themes 
+            from the text itself. The algorithm groups documents by semantic similarity, then generates meaningful 
+            theme labels using pattern matching. Each topic is represented by its most characteristic terms and 
+            assigned a relevance score.
           </p>
           <p>
             <strong>Algorithm details:</strong> The implementation follows these steps:
             <br/>1. Compute TF-IDF scores for all terms across documents
-            <br/>2. Build term-document matrix with TF-IDF weights
-            <br/>3. Calculate term co-occurrence patterns across documents
-            <br/>4. Apply cosine similarity-based clustering to group terms
-            <br/>5. Generate topic labels from top terms in each cluster
+            <br/>2. Build document vectors from TF-IDF weights (200 vocabulary terms)
+            <br/>3. Apply k-means clustering with maximin initialization to group documents
+            <br/>4. Generate semantic theme labels using pattern matching
+            <br/>5. Aggregate representative terms from documents in each cluster
             <br/>6. Compute document-topic distribution matrix
             <br/>7. Identify topic co-occurrence for network visualization
           </p>
@@ -633,16 +633,16 @@ export default function Wiki() {
             and organizing large document collections.
           </p>
           <p>
-            <strong>Interpreting results:</strong> Each topic is labeled with its top terms (e.g., "Topic 1: ladder, 
-            safety, height"). The heatmap shows document-topic distributions where higher values indicate stronger 
-            topic presence in a document. The network graph displays topic relationships based on co-occurrence 
-            patterns. Topic size/score reflects the cumulative importance of terms in that topic.
+            <strong>Interpreting results:</strong> Each topic is labeled with a semantic theme (e.g., "Work at Heights", 
+            "Customer Relations", "Development & Engineering"). The heatmap shows document-topic distributions where 
+            higher values indicate stronger topic presence in a document. The network graph displays topic relationships 
+            based on co-occurrence patterns. Topic size/score reflects the cumulative importance of terms in that topic.
           </p>
           <p>
             <strong>Parameters:</strong>
-            <br/><strong>Number of Topics:</strong> Controls how many distinct topics to extract (2-20). Use fewer 
-            topics for high-level themes, more topics for granular sub-topics. Too few topics create overly broad 
-            categories; too many may split coherent topics.
+            <br/><strong>Number of Topics:</strong> Controls how many distinct themes to extract (2-20). Use fewer 
+            topics for broad overarching themes, more topics for more specific themes. Too few topics create overly broad 
+            categories; too many may split coherent themes.
             <br/><strong>Terms per Topic:</strong> Number of representative terms for each topic (5-30). More terms 
             provide better topic characterization but may include less relevant terms.
           </p>
@@ -898,7 +898,7 @@ export default function Wiki() {
             <li>Use <strong>Readability Statistics</strong> when assessing content complexity, optimizing for target audiences, or ensuring accessibility compliance</li>
             <li>Use <strong>Embeddings</strong> when visualizing document relationships and exploring corpus structure</li>
             <li>Use <strong>Dependency Parsing</strong> when analyzing sentence structure, grammar, or syntactic relationships</li>
-            <li>Use <strong>Topic Modeling</strong> when discovering hidden themes, categorizing documents, or identifying granular sub-topics in large collections</li>
+            <li>Use <strong>Topic Modeling</strong> when discovering overarching themes, categorizing documents, or understanding abstract topics in large collections</li>
           </ul>
           <p className='wiki-source'>
             <strong>Source:</strong> Feldman, R., & Sanger, J. (2007). <em>The Text Mining Handbook: Advanced Approaches in Analyzing Unstructured Data</em>. Cambridge University Press.
