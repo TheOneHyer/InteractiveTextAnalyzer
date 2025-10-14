@@ -1,7 +1,7 @@
 /**
  * Argument Mining
  * 
- * This module implements argument mining to identify arguments, claims, and premises:
+ * This module implements argument mining to identify argumentsList, claims, and premises:
  * 
  * 1. Claim Detection: Identifies arguable claims in text
  * 2. Premise Identification: Finds supporting/opposing premises
@@ -154,7 +154,7 @@ export const ruleBasedArgumentMining = async (textSamples) => {
   const nlp = await loadCompromise()
   const claims = []
   const premises = []
-  const arguments = []
+  const argumentsList = []
   let componentId = 0
   let argumentId = 0
   
@@ -221,7 +221,7 @@ export const ruleBasedArgumentMining = async (textSamples) => {
         const relatedCounters = textComponents.filter(c => c.challengesClaim === claim.id)
         
         if (relatedPremises.length > 0 || relatedCounters.length > 0) {
-          arguments.push({
+          argumentsList.push({
             id: argumentId++,
             claim: claim.text,
             premises: relatedPremises.map(p => p.text),
@@ -237,10 +237,10 @@ export const ruleBasedArgumentMining = async (textSamples) => {
   return {
     claims,
     premises,
-    arguments,
+    arguments: argumentsList,
     totalClaims: claims.length,
     totalPremises: premises.length,
-    totalArguments: arguments.length
+    totalArguments: argumentsList.length
   }
 }
 
@@ -256,7 +256,7 @@ export const patternBasedArgumentMining = async (textSamples) => {
   const nlp = await loadCompromise()
   const claims = []
   const premises = []
-  const arguments = []
+  const argumentsList = []
   let componentId = 0
   let argumentId = 0
   
@@ -304,7 +304,7 @@ export const patternBasedArgumentMining = async (textSamples) => {
   return {
     claims,
     premises,
-    arguments,
+    arguments: argumentsList,
     totalClaims: claims.length,
     totalPremises: premises.length
   }
@@ -320,7 +320,7 @@ export const structuredArgumentMining = async (textSamples) => {
   }
   
   const nlp = await loadCompromise()
-  const arguments = []
+  const argumentsList = []
   let argumentId = 0
   
   // Process each text sample as a potential argument
@@ -349,7 +349,7 @@ export const structuredArgumentMining = async (textSamples) => {
       }
       
       if (premises.length > 0) {
-        arguments.push({
+        argumentsList.push({
           id: argumentId++,
           claim,
           premises,
@@ -362,10 +362,10 @@ export const structuredArgumentMining = async (textSamples) => {
   }
   
   return {
-    claims: arguments.map(a => ({ text: a.claim, source: a.source })),
-    premises: arguments.flatMap(a => a.premises.map(p => ({ text: p, source: a.source }))),
-    arguments,
-    totalArguments: arguments.length
+    claims: argumentsList.map(a => ({ text: a.claim, source: a.source })),
+    premises: argumentsList.flatMap(a => a.premises.map(p => ({ text: p, source: a.source }))),
+    arguments: argumentsList,
+    totalArguments: argumentsList.length
   }
 }
 

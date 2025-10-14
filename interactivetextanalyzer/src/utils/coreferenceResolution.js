@@ -191,7 +191,7 @@ export const ruleBasedCoreference = async (textSamples) => {
     }
     
     clusters.push(cluster)
-  }
+  })
   
   // Build coreference chains for visualization
   const corefChains = clusters
