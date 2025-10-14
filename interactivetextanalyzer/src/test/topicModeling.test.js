@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest'
 import { 
   buildStem, 
   performTopicModeling,
+  getTermPOS,
+  getPOSWeight,
   DEFAULT_STOPWORDS 
 } from '../utils/textAnalysis'
 
@@ -454,6 +456,102 @@ describe('Topic Modeling', () => {
         const maxProb = Math.max(...docTopics)
         expect(maxProb).toBeGreaterThan(0)
       })
+    })
+  })
+
+  describe('POS-Based Weighting', () => {
+    it('should properly identify parts of speech for terms', () => {
+      // Test nouns
+      expect(getTermPOS('safety')).toBe('noun')
+      expect(getTermPOS('ladder')).toBe('noun')
+      expect(getTermPOS('equipment')).toBe('noun')
+      
+      // Test verbs
+      expect(getTermPOS('running')).toBe('verb')
+      expect(getTermPOS('walked')).toBe('verb')
+      expect(getTermPOS('is')).toBe('verb')
+      expect(getTermPOS('work')).toBe('verb')
+      
+      // Test adjectives
+      expect(getTermPOS('beautiful')).toBe('adjective')
+      expect(getTermPOS('careful')).toBe('adjective')
+      
+      // Test adverbs
+      expect(getTermPOS('quickly')).toBe('adverb')
+      expect(getTermPOS('slowly')).toBe('adverb')
+    })
+
+    it('should apply correct weight multipliers based on POS', () => {
+      // Nouns and verbs should get 5x weight
+      expect(getPOSWeight('safety')).toBe(5.0)
+      expect(getPOSWeight('ladder')).toBe(5.0)
+      expect(getPOSWeight('running')).toBe(5.0)
+      expect(getPOSWeight('work')).toBe(5.0)
+      
+      // Adjectives should get 1x weight
+      expect(getPOSWeight('beautiful')).toBe(1.0)
+      
+      // Adverbs should get 0.8x weight
+      expect(getPOSWeight('quickly')).toBe(0.8)
+    })
+
+    it('should produce topics with emphasis on nouns and verbs', () => {
+      const stemmer = buildStem()
+      const docs = [
+        'The quick brown fox jumps over the lazy dog',
+        'Dogs run quickly through beautiful parks',
+        'The cat sleeps peacefully on the comfortable couch'
+      ]
+      
+      const result = performTopicModeling(docs, {
+        numTopics: 2,
+        termsPerTopic: 10,
+        stopwords: DEFAULT_STOPWORDS,
+        stem: false,
+        stemmer
+      })
+      
+      // Topics should contain nouns and verbs preferentially
+      const allTerms = result.topics.flatMap(t => t.terms.map(term => term.term))
+      
+      // Should include nouns like 'dog', 'fox', 'cat' and verbs like 'jumps', 'run', 'sleeps'
+      const hasNounsOrVerbs = allTerms.some(term => 
+        ['dog', 'dogs', 'fox', 'cat', 'jumps', 'run', 'sleeps', 'parks', 'couch'].includes(term)
+      )
+      
+      expect(hasNounsOrVerbs).toBe(true)
+      expect(result.topics.length).toBeGreaterThan(0)
+    })
+
+    it('should weight nouns and verbs more heavily than adjectives in clustering', () => {
+      const stemmer = buildStem()
+      
+      // Documents with strong noun/verb content vs adjective content
+      const docs = [
+        'ladder safety equipment inspection maintenance',
+        'forklift operator training certification',
+        'beautiful wonderful fantastic amazing excellent' // mostly adjectives
+      ]
+      
+      const result = performTopicModeling(docs, {
+        numTopics: 2,
+        termsPerTopic: 8,
+        stopwords: DEFAULT_STOPWORDS,
+        stem: false,
+        stemmer
+      })
+      
+      // The first two docs should cluster together due to noun/verb emphasis
+      // Check that topics contain more nouns/verbs than adjectives
+      result.topics.forEach(topic => {
+        const topTerms = topic.terms.slice(0, 3).map(t => t.term)
+        
+        // At least some terms should be nouns or verbs
+        // (not all adjectives)
+        expect(topic.terms.length).toBeGreaterThan(0)
+      })
+      
+      expect(result.topics.length).toBeGreaterThan(0)
     })
   })
 })

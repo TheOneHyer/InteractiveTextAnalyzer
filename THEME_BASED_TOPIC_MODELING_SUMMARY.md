@@ -22,9 +22,10 @@ Completely refactored the topic modeling algorithm from term-level clustering to
 ### 2. Core Implementation Changes
 
 #### A. Document Vector Construction (Lines 675-687)
-- Build document vectors from TF-IDF scores
+- Build document vectors from TF-IDF scores with POS-based weighting
+- Apply 5x weight multiplier to nouns and verbs (primary semantic carriers)
 - Use 200 vocabulary terms (increased from 150)
-- Each document represented as vector in term space
+- Each document represented as weighted vector in term space
 
 #### B. Maximin Centroid Initialization (Lines 693-720)
 - Select diverse initial centroids using maximin strategy
@@ -102,6 +103,14 @@ Completely refactored the topic modeling algorithm from term-level clustering to
 - Space: O(n * v) for document vectors
 - Typical runtime: < 100ms for 10-20 documents
 
+### POS-Based Weighting
+- **Nouns and Verbs**: 5.0x weight (primary semantic content carriers)
+- **Adjectives**: 1.0x weight
+- **Adverbs**: 0.8x weight
+- **Other**: 0.5x weight
+- Based on linguistic research showing nouns and verbs are most informative for topic modeling
+- Automatically detected using rule-based patterns (verb lists, morphological patterns)
+
 ### Pattern Matching
 - 30+ predefined theme patterns
 - 5-6 keywords per pattern
@@ -114,6 +123,7 @@ Completely refactored the topic modeling algorithm from term-level clustering to
 3. **Domain coverage**: 30+ patterns across multiple domains
 4. **Graceful degradation**: Falls back to descriptive labels when needed
 5. **Semantic consistency**: Same theme can be recognized across documents
+6. **POS-based weighting**: Topics centered on nouns/verbs (more meaningful than adjectives)
 
 ## Code Statistics
 - **Modified files**: 6
