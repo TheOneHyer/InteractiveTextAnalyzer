@@ -172,8 +172,11 @@ export const ruleBasedArgumentMining = async (textSamples) => {
       const claimScore = calculateClaimScore(sentence, doc)
       const premiseScore = calculatePremiseScore(sentence, lastClaim)
       
-      // Classify as claim if score is high enough
-      if (claimScore > 0.4) {
+      // Check if sentence contains premise indicators strongly
+      const hasPremiseIndicator = PREMISE_INDICATORS.some(ind => sentenceText.toLowerCase().includes(ind))
+      
+      // Classify as claim if score is high enough and not dominated by premise indicators
+      if (claimScore > 0.4 && !hasPremiseIndicator) {
         const claim = {
           id: componentId++,
           type: 'claim',
@@ -186,19 +189,21 @@ export const ruleBasedArgumentMining = async (textSamples) => {
         textComponents.push(claim)
         lastClaim = claim
       }
-      // Classify as premise if it follows a claim
-      else if (premiseScore > 0.3 && lastClaim) {
+      // Classify as premise if score is high OR has strong indicators
+      else if (premiseScore > 0.3 || (hasPremiseIndicator && premiseScore > 0.15)) {
         const premise = {
           id: componentId++,
           type: 'premise',
           text: sentenceText,
           score: premiseScore,
           source: text,
-          supportsClaim: lastClaim.id
+          supportsClaim: lastClaim?.id
         }
         premises.push(premise)
         textComponents.push(premise)
-        lastClaim.premises.push(premise.id)
+        if (lastClaim) {
+          lastClaim.premises.push(premise.id)
+        }
       }
       // Check for counter-argument
       else if (COUNTER_INDICATORS.some(ind => sentenceText.toLowerCase().includes(ind))) {
