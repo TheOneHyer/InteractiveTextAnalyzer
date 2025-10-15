@@ -172,8 +172,9 @@ export const ruleBasedArgumentMining = async (textSamples) => {
       const claimScore = calculateClaimScore(sentence, doc)
       const premiseScore = calculatePremiseScore(sentence, lastClaim)
       
-      // Check if sentence contains premise indicators strongly
+      // Check if sentence contains indicators
       const hasPremiseIndicator = PREMISE_INDICATORS.some(ind => sentenceText.toLowerCase().includes(ind))
+      const hasCounterIndicator = COUNTER_INDICATORS.some(ind => sentenceText.toLowerCase().includes(ind))
       
       // Classify as claim if score is high enough and not dominated by premise indicators
       if (claimScore > 0.4 && !hasPremiseIndicator) {
@@ -188,6 +189,18 @@ export const ruleBasedArgumentMining = async (textSamples) => {
         claims.push(claim)
         textComponents.push(claim)
         lastClaim = claim
+        
+        // Also mark as counter if has counter indicator
+        if (hasCounterIndicator && lastClaim) {
+          textComponents.push({
+            id: componentId++,
+            type: 'counter',
+            text: sentenceText,
+            score: 0.8,
+            source: text,
+            challengesClaim: lastClaim.id
+          })
+        }
       }
       // Classify as premise if score is high OR has strong indicators
       else if (premiseScore > 0.3 || (hasPremiseIndicator && premiseScore > 0.15)) {
@@ -204,18 +217,45 @@ export const ruleBasedArgumentMining = async (textSamples) => {
         if (lastClaim) {
           lastClaim.premises.push(premise.id)
         }
-      }
-      // Check for counter-argument
-      else if (COUNTER_INDICATORS.some(ind => sentenceText.toLowerCase().includes(ind))) {
-        const counter = {
-          id: componentId++,
-          type: 'counter',
-          text: sentenceText,
-          score: 0.7,
-          source: text,
-          challengesClaim: lastClaim?.id
+        
+        // Also mark as counter if has counter indicator
+        if (hasCounterIndicator && lastClaim) {
+          textComponents.push({
+            id: componentId++,
+            type: 'counter',
+            text: sentenceText,
+            score: 0.8,
+            source: text,
+            challengesClaim: lastClaim.id
+          })
         }
-        textComponents.push(counter)
+      }
+      // Treat counter indicators as potential claims even if scores are lower
+      else if (hasCounterIndicator) {
+        const claim = {
+          id: componentId++,
+          type: 'claim',
+          text: sentenceText,
+          score: 0.6,
+          source: text,
+          premises: []
+        }
+        claims.push(claim)
+        textComponents.push(claim)
+        
+        // Also add as counter to previous claim
+        if (lastClaim) {
+          textComponents.push({
+            id: componentId++,
+            type: 'counter',
+            text: sentenceText,
+            score: 0.8,
+            source: text,
+            challengesClaim: lastClaim.id
+          })
+        }
+        
+        lastClaim = claim
       }
     })
     
@@ -226,7 +266,8 @@ export const ruleBasedArgumentMining = async (textSamples) => {
         const relatedPremises = textComponents.filter(c => c.supportsClaim === claim.id)
         const relatedCounters = textComponents.filter(c => c.challengesClaim === claim.id)
         
-        if (relatedPremises.length > 0 || relatedCounters.length > 0) {
+        // Create argument if there are premises, counters, OR just a strong claim
+        if (relatedPremises.length > 0 || relatedCounters.length > 0 || claim.score > 0.6) {
           argumentsList.push({
             id: argumentId++,
             claim: claim.text,
