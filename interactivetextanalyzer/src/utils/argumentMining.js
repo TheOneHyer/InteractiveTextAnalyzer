@@ -60,9 +60,9 @@ const COUNTER_INDICATORS = [
 /**
  * Calculate claim likelihood score for a sentence
  */
-const calculateClaimScore = (sentence, doc) => {
+const calculateClaimScore = (sentenceDoc, doc) => {
   let score = 0
-  const text = sentence.text().toLowerCase()
+  const text = sentenceDoc.text().toLowerCase()
   
   // Check for claim indicators
   CLAIM_INDICATORS.forEach(indicator => {
@@ -72,19 +72,15 @@ const calculateClaimScore = (sentence, doc) => {
   })
   
   // Check for modal verbs (should, must, etc.)
-  if (sentence.has('#Modal')) {
+  const modalWords = ['should', 'must', 'ought', 'need to', 'have to', 'shall', 'will', 'would', 'could', 'might', 'may']
+  if (modalWords.some(modal => text.includes(modal))) {
     score += 0.2
   }
   
   // Check for evaluative adjectives
-  if (sentence.has('#Adjective')) {
-    const adjectives = sentence.match('#Adjective').out('array')
-    const evaluative = ['good', 'bad', 'important', 'necessary', 'essential', 'crucial', 'vital', 'critical']
-    adjectives.forEach(adj => {
-      if (evaluative.some(e => adj.toLowerCase().includes(e))) {
-        score += 0.15
-      }
-    })
+  const evaluative = ['good', 'bad', 'important', 'necessary', 'essential', 'crucial', 'vital', 'critical', 'better', 'worse', 'best', 'worst']
+  if (evaluative.some(e => text.includes(e))) {
+    score += 0.15
   }
   
   // Check for comparison structures
@@ -93,7 +89,7 @@ const calculateClaimScore = (sentence, doc) => {
   }
   
   // Check for negation (often indicates stance)
-  if (sentence.has('#Negative')) {
+  if (text.includes('not') || text.includes("n't") || text.includes('no') || text.includes('never')) {
     score += 0.1
   }
   
@@ -108,9 +104,9 @@ const calculateClaimScore = (sentence, doc) => {
 /**
  * Calculate premise likelihood score for a sentence
  */
-const calculatePremiseScore = (sentence, previousClaim) => {
+const calculatePremiseScore = (sentenceDoc, previousClaim) => {
   let score = 0
-  const text = sentence.text().toLowerCase()
+  const text = sentenceDoc.text().toLowerCase()
   
   // Check for premise indicators
   PREMISE_INDICATORS.forEach(indicator => {
@@ -120,12 +116,13 @@ const calculatePremiseScore = (sentence, previousClaim) => {
   })
   
   // Check for evidence phrases
-  if (text.includes('evidence') || text.includes('research') || text.includes('study') || text.includes('data')) {
+  if (text.includes('evidence') || text.includes('research') || text.includes('study') || text.includes('data') || text.includes('studies') || text.includes('shows') || text.includes('indicates')) {
     score += 0.25
   }
   
   // Check for statistics/numbers (common in premises)
-  if (sentence.has('#Value') || sentence.has('#Percent')) {
+  const hasNumber = /\d+/.test(text)
+  if (hasNumber || text.includes('percent') || text.includes('%')) {
     score += 0.2
   }
   
