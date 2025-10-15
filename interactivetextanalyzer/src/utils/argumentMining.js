@@ -61,7 +61,7 @@ const COUNTER_INDICATORS = [
  * Calculate claim likelihood score for a sentence
  */
 const calculateClaimScore = (sentenceDoc, doc) => {
-  let score = 0
+  let score = 0.3  // Baseline score for declarative sentences
   const text = sentenceDoc.text().toLowerCase()
   
   // Check for claim indicators
@@ -78,7 +78,7 @@ const calculateClaimScore = (sentenceDoc, doc) => {
   }
   
   // Check for evaluative adjectives
-  const evaluative = ['good', 'bad', 'important', 'necessary', 'essential', 'crucial', 'vital', 'critical', 'better', 'worse', 'best', 'worst']
+  const evaluative = ['good', 'bad', 'important', 'necessary', 'essential', 'crucial', 'vital', 'critical', 'better', 'worse', 'best', 'worst', 'high', 'low']
   if (evaluative.some(e => text.includes(e))) {
     score += 0.15
   }
@@ -95,7 +95,7 @@ const calculateClaimScore = (sentenceDoc, doc) => {
   
   // Penalize questions (typically not claims)
   if (text.endsWith('?')) {
-    score -= 0.3
+    score -= 0.5
   }
   
   return Math.min(score, 1.0)
