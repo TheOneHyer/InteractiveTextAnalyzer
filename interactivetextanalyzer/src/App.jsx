@@ -9,6 +9,7 @@ import ColumnManager from './components/ColumnManager'
 import SimpleColumnSelector from './components/SimpleColumnSelector'
 import HistoryModal from './components/HistoryModal'
 import SheetRenameDialog from './components/SheetRenameDialog'
+import MetadataParserConfig from './components/MetadataParserConfig'
 import { DataVersionManager, applyDataTransformation } from './utils/dataVersioning'
 import { initializeLazyLoading } from './utils/useLazyLoader'
 import { createLazyComponent } from './components/LazyComponent'
@@ -33,6 +34,7 @@ import { normalizeValue, getCategoricalValues } from './utils/categoricalUtils'
 import { loadDimReductionLibs, applyDimensionalityReduction } from './utils/dimensionalityReduction'
 import { autoDetectSheetsForAnalysis } from './utils/sheetUtils'
 import { parseCsv, parseWorksheet } from './utils/fileHandlers'
+import { parseWorkbookMetadata } from './utils/sheetMetadataParser'
 import { 
   detectCategoricalColumns, 
   getActiveSheetRows, 
@@ -214,6 +216,15 @@ export default function App(){
   // Editor view text search filter
   const [textSearchFilter, setTextSearchFilter] = useState('')
   const [showExportMenu, setShowExportMenu] = useState(false)
+  
+  // Sheet metadata parser configuration
+  const [sheetMetadata, setSheetMetadata] = useState({})
+  const [metadataParserConfig, setMetadataParserConfig] = useState({
+    delimiters: ['_', '-', ' '],
+    caseSensitive: false,
+    parseDates: true,
+    extractTags: true
+  })
   
   // Dashboard layout state
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
@@ -819,6 +830,10 @@ export default function App(){
     const detectedInclusion = autoDetectSheetsForAnalysis(obj)
     setIncludedSheets(detectedInclusion)
     
+    // Parse sheet metadata
+    const metadata = parseWorkbookMetadata(obj, metadataParserConfig)
+    setSheetMetadata(metadata)
+    
     // Auto-detect categorical columns
     const firstSheet = parsed.worksheets[0]?.name
     if (firstSheet && obj[firstSheet]) {
@@ -834,11 +849,17 @@ export default function App(){
     
     versionManager.current.initialize(p)
     setHistoryInfo(versionManager.current.getHistoryInfo())
-    setWorkbookData({'Sample CSV': p})
+    
+    const sampleData = {'Sample CSV': p}
+    setWorkbookData(sampleData)
     setActiveSheet('Sample CSV')
     setSelectedColumns([])
     setHiddenColumns([])
     setRenames({})
+    
+    // Parse sheet metadata
+    const metadata = parseWorkbookMetadata(sampleData, metadataParserConfig)
+    setSheetMetadata(metadata)
   }
 
   /**
@@ -931,6 +952,10 @@ export default function App(){
         // Auto-detect sheets suitable for analysis
         const detectedInclusion = autoDetectSheetsForAnalysis(parsedData)
         setIncludedSheets(detectedInclusion)
+        
+        // Parse sheet metadata
+        const metadata = parseWorkbookMetadata(parsedData, metadataParserConfig)
+        setSheetMetadata(metadata)
         
         // Auto-detect categorical columns (≤5 unique values)
         const firstSheet = Object.keys(parsedData)[0]
@@ -1026,6 +1051,10 @@ export default function App(){
       const detectedInclusion = autoDetectSheetsForAnalysis(pendingData)
       setIncludedSheets(detectedInclusion)
       
+      // Parse sheet metadata
+      const metadata = parseWorkbookMetadata(pendingData, metadataParserConfig)
+      setSheetMetadata(metadata)
+      
       // Auto-detect categorical columns (≤5 unique values)
       const firstSheet = Object.keys(pendingData)[0]
       if (firstSheet && pendingData[firstSheet]) {
@@ -1059,6 +1088,16 @@ export default function App(){
       pendingData: null,
       pendingWorksheets: []
     })
+  }
+
+  /**
+   * Reparse sheet metadata with current configuration
+   */
+  const reparseSheetMetadata = () => {
+    if (Object.keys(workbookData).length > 0) {
+      const metadata = parseWorkbookMetadata(workbookData, metadataParserConfig)
+      setSheetMetadata(metadata)
+    }
   }
 
   // Get rows for active sheet (or all sheets if '__ALL__' selected)
@@ -2866,6 +2905,15 @@ export default function App(){
                 <div style={{marginBottom:16}}>
                   {Object.keys(workbookData).length>0 && <SheetSelector sheets={Object.keys(workbookData)} activeSheet={activeSheet} setActiveSheet={setActiveSheet} />}
                 </div>
+                {/* Metadata Parser Config */}
+                {Object.keys(workbookData).length > 0 && (
+                  <MetadataParserConfig
+                    config={metadataParserConfig}
+                    onChange={setMetadataParserConfig}
+                    metadata={sheetMetadata}
+                    onReparse={reparseSheetMetadata}
+                  />
+                )}
                 {/* Sheet Management - Collapsible */}
                 {Object.keys(workbookData).length > 1 && (
                   <div style={{marginBottom:20}}>
