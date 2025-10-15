@@ -85,6 +85,24 @@ const loadSpacyDependencyParsing = async () => {
   return module.performSpacyDependencyParsing
 }
 
+// Lazy load coreference resolution module
+const loadCoreferenceResolution = async () => {
+  const module = await import('./utils/coreferenceResolution')
+  return module.performCoreferenceResolution
+}
+
+// Lazy load relation and event extraction module
+const loadRelationEventExtraction = async () => {
+  const module = await import('./utils/relationEventExtraction')
+  return module.performRelationEventExtraction
+}
+
+// Lazy load argument mining module
+const loadArgumentMining = async () => {
+  const module = await import('./utils/argumentMining')
+  return module.performArgumentMining
+}
+
 
 /**
  * Interactive Text Analyzer - Main Application Component
@@ -153,6 +171,21 @@ export default function App(){
   // Topic modeling configuration
   const [numTopics,setNumTopics]=useState(5) // Number of topics for topic modeling
   const [termsPerTopic,setTermsPerTopic]=useState(10) // Terms per topic
+  
+  // Coreference resolution state
+  const [coreferenceAlgorithm,setCoreferenceAlgorithm]=useState('rule-based') // 'rule-based', 'mention-pair', or 'cluster-based'
+  const [coreferenceResult,setCoreferenceResult]=useState(null)
+  const [coreferenceProgress,setCoreferenceProgress]=useState(0)
+  
+  // Relation and event extraction state
+  const [relationAlgorithm,setRelationAlgorithm]=useState('pattern') // 'pattern', 'dependency', or 'events'
+  const [relationResult,setRelationResult]=useState(null)
+  const [relationProgress,setRelationProgress]=useState(0)
+  
+  // Argument mining state
+  const [argumentAlgorithm,setArgumentAlgorithm]=useState('rule-based') // 'rule-based', 'pattern', or 'structured'
+  const [argumentResult,setArgumentResult]=useState(null)
+  const [argumentProgress,setArgumentProgress]=useState(0)
   
   // Column types and categorical filters
   const [columnTypes, setColumnTypes] = useState({})
@@ -1190,6 +1223,150 @@ export default function App(){
     }
   }, [analysisType, textSamples, dependencyAlgorithm, dependencySamplePercent])
   
+  // Load and compute coreference resolution
+  useEffect(() => {
+    if (analysisType !== 'coref' || textSamples.length === 0) {
+      setCoreferenceResult(null)
+      setCoreferenceProgress(0)
+      return
+    }
+    
+    let cancelled = false
+    
+    const compute = async () => {
+      try {
+        setCoreferenceProgress(0)
+        const maxSamples = Math.ceil(textSamples.length * (dependencySamplePercent / 100))
+        
+        const performCoreferenceResolution = await loadCoreferenceResolution()
+        if (cancelled) return
+        
+        const result = await performCoreferenceResolution(textSamples, { 
+          algorithm: coreferenceAlgorithm,
+          maxSamples: maxSamples,
+          onProgress: (progress) => {
+            if (!cancelled) {
+              setCoreferenceProgress(progress)
+            }
+          }
+        })
+        
+        if (!cancelled) {
+          setCoreferenceResult(result)
+          setCoreferenceProgress(100)
+        }
+      } catch (error) {
+        console.error('Coreference resolution error:', error)
+        if (!cancelled) {
+          setCoreferenceResult({ clusters: [], mentions: [], corefChains: [], error: true })
+          setCoreferenceProgress(0)
+        }
+      }
+    }
+    
+    compute()
+    
+    return () => {
+      cancelled = true
+    }
+  }, [analysisType, textSamples, coreferenceAlgorithm, dependencySamplePercent])
+  
+  // Load and compute relation and event extraction
+  useEffect(() => {
+    if (analysisType !== 'relation' || textSamples.length === 0) {
+      setRelationResult(null)
+      setRelationProgress(0)
+      return
+    }
+    
+    let cancelled = false
+    
+    const compute = async () => {
+      try {
+        setRelationProgress(0)
+        const maxSamples = Math.ceil(textSamples.length * (dependencySamplePercent / 100))
+        
+        const performRelationEventExtraction = await loadRelationEventExtraction()
+        if (cancelled) return
+        
+        const result = await performRelationEventExtraction(textSamples, { 
+          algorithm: relationAlgorithm,
+          maxSamples: maxSamples,
+          onProgress: (progress) => {
+            if (!cancelled) {
+              setRelationProgress(progress)
+            }
+          }
+        })
+        
+        if (!cancelled) {
+          setRelationResult(result)
+          setRelationProgress(100)
+        }
+      } catch (error) {
+        console.error('Relation extraction error:', error)
+        if (!cancelled) {
+          setRelationResult({ relations: [], events: [], entities: [], error: true })
+          setRelationProgress(0)
+        }
+      }
+    }
+    
+    compute()
+    
+    return () => {
+      cancelled = true
+    }
+  }, [analysisType, textSamples, relationAlgorithm, dependencySamplePercent])
+  
+  // Load and compute argument mining
+  useEffect(() => {
+    if (analysisType !== 'argument' || textSamples.length === 0) {
+      setArgumentResult(null)
+      setArgumentProgress(0)
+      return
+    }
+    
+    let cancelled = false
+    
+    const compute = async () => {
+      try {
+        setArgumentProgress(0)
+        const maxSamples = Math.ceil(textSamples.length * (dependencySamplePercent / 100))
+        
+        const performArgumentMining = await loadArgumentMining()
+        if (cancelled) return
+        
+        const result = await performArgumentMining(textSamples, { 
+          algorithm: argumentAlgorithm,
+          maxSamples: maxSamples,
+          onProgress: (progress) => {
+            if (!cancelled) {
+              setArgumentProgress(progress)
+            }
+          }
+        })
+        
+        if (!cancelled) {
+          setArgumentResult(result)
+          setArgumentProgress(100)
+        }
+      } catch (error) {
+        console.error('Argument mining error:', error)
+        if (!cancelled) {
+          setArgumentResult({ claims: [], premises: [], arguments: [], error: true })
+          setArgumentProgress(0)
+        }
+      }
+    }
+    
+    compute()
+    
+    return () => {
+      cancelled = true
+    }
+  }, [analysisType, textSamples, argumentAlgorithm, dependencySamplePercent])
+  
   // Apply dimensionality reduction (async)
   const [embeddingPoints,setEmbeddingPoints]=useState([])
   useEffect(()=>{
@@ -1229,8 +1406,8 @@ export default function App(){
   )
   
   const networkData=useMemo(()=> 
-    getNetworkData({analysisType, associations, dependencyResult, lemmatization, topicModel}),
-    [analysisType,associations,dependencyResult,lemmatization,topicModel]
+    getNetworkData({analysisType, associations, dependencyResult, lemmatization, topicModel, coreferenceResult, relationResult, argumentResult}),
+    [analysisType,associations,dependencyResult,lemmatization,topicModel,coreferenceResult,relationResult,argumentResult]
   )
   
   const heatmapData=useMemo(()=> 
@@ -1449,6 +1626,21 @@ export default function App(){
         ...dependencyResult,
         algorithm: dependencyAlgorithm
       }
+    } else if (analysisType === 'coref') {
+      payload.coreference = {
+        ...coreferenceResult,
+        algorithm: coreferenceAlgorithm
+      }
+    } else if (analysisType === 'relation') {
+      payload.relationEvent = {
+        ...relationResult,
+        algorithm: relationAlgorithm
+      }
+    } else if (analysisType === 'argument') {
+      payload.argumentMining = {
+        ...argumentResult,
+        algorithm: argumentAlgorithm
+      }
     } else if (analysisType === 'lemmatization') {
       payload.lemmatization = {
         method: lemmatizationMethod,
@@ -1479,6 +1671,9 @@ export default function App(){
   // - dependency: network
   // - lemmatization: bar, wordcloud, network
   // - sentiment: bar
+  // - coref: network
+  // - relation: network
+  // - argument: network
   const isVisualizationAvailable = (vizTypeOrAnalysis, vizTypeIfTwo) => {
     // Support both (vizType) and (analysisType, vizType) signatures
     const vizType = vizTypeIfTwo !== undefined ? vizTypeIfTwo : vizTypeOrAnalysis
@@ -1490,7 +1685,7 @@ export default function App(){
       case 'wordcloud':
         return type === 'tfidf' || type === 'ngram' || type === 'ner' || type === 'assoc' || type === 'yake' || type === 'lemmatization'
       case 'network':
-        return type === 'assoc' || type === 'dependency' || type === 'lemmatization'
+        return type === 'assoc' || type === 'dependency' || type === 'lemmatization' || type === 'coref' || type === 'relation' || type === 'argument'
       case 'heatmap':
         return type === 'tfidf'
       case 'scatter':
@@ -2071,6 +2266,9 @@ export default function App(){
                     <option value='embeddings'>Embeddings</option>
                     <option value='dependency'>Dependency Parsing</option>
                     <option value='topic'>Topic Modeling</option>
+                    <option value='coref'>Coreference Resolution</option>
+                    <option value='relation'>Relation & Event Extraction</option>
+                    <option value='argument'>Argument Mining</option>
                   </select>
                 </label>
                 {analysisType==='tokenization' && (
@@ -2224,6 +2422,66 @@ export default function App(){
                     </label>
                   </>
                 )}
+                {analysisType==='coref' && (
+                  <>
+                    <div className='notice' style={{marginTop:8}}>
+                      <strong>Coreference Resolution:</strong> Identifies which words/phrases refer to the same entities in text.
+                    </div>
+                    <label style={{fontSize:12}}>
+                      Algorithm
+                      <select value={coreferenceAlgorithm} onChange={e=>setCoreferenceAlgorithm(e.target.value)} style={{width:'100%',marginTop:4}}>
+                        <option value='rule-based'>Rule-Based</option>
+                        <option value='mention-pair'>Mention-Pair Model</option>
+                        <option value='cluster-based'>Cluster-Based</option>
+                      </select>
+                    </label>
+                    {coreferenceProgress > 0 && coreferenceProgress < 100 && (
+                      <div className='notice' style={{marginTop:8, background: '#e3f2fd', border: '1px solid #2196f3'}}>
+                        Processing: {coreferenceProgress}%
+                      </div>
+                    )}
+                  </>
+                )}
+                {analysisType==='relation' && (
+                  <>
+                    <div className='notice' style={{marginTop:8}}>
+                      <strong>Relation & Event Extraction:</strong> Extracts relationships between entities and identifies events in text.
+                    </div>
+                    <label style={{fontSize:12}}>
+                      Algorithm
+                      <select value={relationAlgorithm} onChange={e=>setRelationAlgorithm(e.target.value)} style={{width:'100%',marginTop:4}}>
+                        <option value='pattern'>Pattern-Based Relations</option>
+                        <option value='dependency'>Dependency-Based Relations</option>
+                        <option value='events'>Event Extraction</option>
+                      </select>
+                    </label>
+                    {relationProgress > 0 && relationProgress < 100 && (
+                      <div className='notice' style={{marginTop:8, background: '#e3f2fd', border: '1px solid #2196f3'}}>
+                        Processing: {relationProgress}%
+                      </div>
+                    )}
+                  </>
+                )}
+                {analysisType==='argument' && (
+                  <>
+                    <div className='notice' style={{marginTop:8}}>
+                      <strong>Argument Mining:</strong> Identifies claims, premises, and argumentation structures in persuasive text.
+                    </div>
+                    <label style={{fontSize:12}}>
+                      Algorithm
+                      <select value={argumentAlgorithm} onChange={e=>setArgumentAlgorithm(e.target.value)} style={{width:'100%',marginTop:4}}>
+                        <option value='rule-based'>Rule-Based</option>
+                        <option value='pattern'>Pattern-Based</option>
+                        <option value='structured'>Structured Analysis</option>
+                      </select>
+                    </label>
+                    {argumentProgress > 0 && argumentProgress < 100 && (
+                      <div className='notice' style={{marginTop:8, background: '#e3f2fd', border: '1px solid #2196f3'}}>
+                        Processing: {argumentProgress}%
+                      </div>
+                    )}
+                  </>
+                )}
                 {analysisType==='topic' && (
                   <>
                     <label style={{fontSize:12}}>
@@ -2248,6 +2506,9 @@ export default function App(){
               {analysisType==='embeddings' && !dimReductionLoading && !dimReductionLibs.loaded && <div className='alert'>Initializing embeddings analysis...</div>}
               {analysisType==='embeddings' && textSamples.length<3 && <div className='alert'>Need at least 3 documents for embeddings analysis</div>}
               {analysisType==='dependency' && textSamples.length>0 && !dependencyResult && <div className='alert'>Analyzing dependencies...</div>}
+              {analysisType==='coref' && textSamples.length>0 && !coreferenceResult && <div className='alert'>Analyzing coreferences...</div>}
+              {analysisType==='relation' && textSamples.length>0 && !relationResult && <div className='alert'>Extracting relations and events...</div>}
+              {analysisType==='argument' && textSamples.length>0 && !argumentResult && <div className='alert'>Mining arguments...</div>}
               <div className='panel'>
                 <div className='panel-header'>
                   <h3>Live Summary Charts</h3>

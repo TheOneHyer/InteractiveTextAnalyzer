@@ -168,7 +168,7 @@ export function getBarData({
  * @param {Object} params - Parameters object
  * @returns {Object} Object with nodes and edges arrays
  */
-export function getNetworkData({ analysisType, associations, dependencyResult, lemmatization, topicModel }) {
+export function getNetworkData({ analysisType, associations, dependencyResult, lemmatization, topicModel, coreferenceResult, relationResult, argumentResult }) {
   if (analysisType === 'assoc' && associations) {
     return {
       nodes: associations.items.slice(0, 50).map(i => ({ id: i.item, value: i.support })),
@@ -213,6 +213,159 @@ export function getNetworkData({ analysisType, associations, dependencyResult, l
       }
     }
     return { nodes: lemmaNodes, edges: edges.slice(0, 40) }
+  }
+  
+  if (analysisType === 'coref' && coreferenceResult) {
+    // Create network graph from coreference chains
+    const nodes = []
+    const edges = []
+    const nodeSet = new Set()
+    
+    coreferenceResult.corefChains.slice(0, 20).forEach(chain => {
+      // Add representative as main node
+      if (!nodeSet.has(chain.representative)) {
+        nodes.push({ 
+          id: chain.representative, 
+          value: chain.count, 
+          label: chain.representative 
+        })
+        nodeSet.add(chain.representative)
+      }
+      
+      // Add mentions as nodes and link to representative
+      chain.mentions.slice(0, 5).forEach(mention => {
+        if (mention !== chain.representative && !nodeSet.has(mention)) {
+          nodes.push({ id: mention, value: 1, label: mention })
+          nodeSet.add(mention)
+        }
+        if (mention !== chain.representative) {
+          edges.push({ 
+            source: chain.representative, 
+            target: mention, 
+            value: 0.8 
+          })
+        }
+      })
+    })
+    
+    return { nodes: nodes.slice(0, 50), edges: edges.slice(0, 50) }
+  }
+  
+  if (analysisType === 'relation' && relationResult) {
+    // Create network graph from relations or events
+    const nodes = []
+    const edges = []
+    const nodeSet = new Set()
+    
+    if (relationResult.relations) {
+      relationResult.relations.slice(0, 30).forEach(rel => {
+        // Add subject and object as nodes
+        if (!nodeSet.has(rel.subject)) {
+          nodes.push({ id: rel.subject, value: 1, label: rel.subject })
+          nodeSet.add(rel.subject)
+        }
+        if (!nodeSet.has(rel.object)) {
+          nodes.push({ id: rel.object, value: 1, label: rel.object })
+          nodeSet.add(rel.object)
+        }
+        
+        // Add edge with relation type as label
+        edges.push({ 
+          source: rel.subject, 
+          target: rel.object, 
+          value: 1,
+          label: rel.relation
+        })
+      })
+    } else if (relationResult.events) {
+      relationResult.events.slice(0, 30).forEach(event => {
+        // Add agent as main node
+        if (!nodeSet.has(event.agent)) {
+          nodes.push({ id: event.agent, value: 2, label: event.agent })
+          nodeSet.add(event.agent)
+        }
+        
+        // Add participants as nodes and link to agent
+        event.participants.forEach(participant => {
+          if (participant && !nodeSet.has(participant)) {
+            nodes.push({ id: participant, value: 1, label: participant })
+            nodeSet.add(participant)
+          }
+          if (participant) {
+            edges.push({ 
+              source: event.agent, 
+              target: participant, 
+              value: 0.7,
+              label: event.trigger
+            })
+          }
+        })
+      })
+    }
+    
+    return { nodes: nodes.slice(0, 50), edges: edges.slice(0, 50) }
+  }
+  
+  if (analysisType === 'argument' && argumentResult) {
+    // Create network graph from argument structures
+    const nodes = []
+    const edges = []
+    const nodeSet = new Set()
+    
+    argumentResult.arguments.slice(0, 20).forEach(arg => {
+      // Add claim as main node
+      const claimId = `claim_${arg.id}`
+      if (!nodeSet.has(claimId)) {
+        nodes.push({ 
+          id: claimId, 
+          value: 3, 
+          label: arg.claim.slice(0, 40) + '...'
+        })
+        nodeSet.add(claimId)
+      }
+      
+      // Add premises as nodes and link to claim
+      arg.premises.forEach((premise, idx) => {
+        const premiseId = `premise_${arg.id}_${idx}`
+        if (!nodeSet.has(premiseId)) {
+          nodes.push({ 
+            id: premiseId, 
+            value: 1, 
+            label: premise.slice(0, 30) + '...'
+          })
+          nodeSet.add(premiseId)
+        }
+        edges.push({ 
+          source: premiseId, 
+          target: claimId, 
+          value: 0.8,
+          label: 'supports'
+        })
+      })
+      
+      // Add counter-arguments if present
+      if (arg.counterArguments) {
+        arg.counterArguments.forEach((counter, idx) => {
+          const counterId = `counter_${arg.id}_${idx}`
+          if (!nodeSet.has(counterId)) {
+            nodes.push({ 
+              id: counterId, 
+              value: 1, 
+              label: counter.slice(0, 30) + '...'
+            })
+            nodeSet.add(counterId)
+          }
+          edges.push({ 
+            source: counterId, 
+            target: claimId, 
+            value: 0.6,
+            label: 'challenges'
+          })
+        })
+      }
+    })
+    
+    return { nodes: nodes.slice(0, 50), edges: edges.slice(0, 50) }
   }
   
   return { nodes: [], edges: [] }

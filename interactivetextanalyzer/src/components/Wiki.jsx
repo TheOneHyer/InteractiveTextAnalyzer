@@ -605,6 +605,197 @@ export default function Wiki() {
         </div>
 
         <div className='wiki-item'>
+          <h4>Coreference Resolution</h4>
+          <p>
+            <strong>What it does:</strong> Identifies which words and phrases in text refer to the same real-world 
+            entities. For example, in "John went to the store. He bought milk.", the system recognizes that "He" 
+            refers to "John".
+          </p>
+          <p>
+            <strong>How it works:</strong> The analyzer extracts mentions (noun phrases, pronouns, named entities) 
+            from text and uses linguistic features like number agreement, gender agreement, and semantic similarity 
+            to group coreferent mentions into clusters. Three algorithms are available:
+          </p>
+          <ul>
+            <li>
+              <strong>Rule-Based:</strong> Uses linguistic rules and heuristics based on syntactic and semantic 
+              features. Handles pronoun resolution by matching pronouns to nearby nouns with compatible features 
+              (gender, number). Fast and interpretable.
+            </li>
+            <li>
+              <strong>Mention-Pair Model:</strong> Evaluates all pairs of mentions for coreference likelihood 
+              using a similarity function. Groups mentions based on pairwise similarity scores exceeding a threshold. 
+              Good balance between speed and accuracy.
+            </li>
+            <li>
+              <strong>Cluster-Based:</strong> Builds entity clusters incrementally, comparing each new mention to 
+              existing clusters and adding it to the best-matching cluster or creating a new one. More robust for 
+              longer documents with many entities.
+            </li>
+          </ul>
+          <p>
+            <strong>Key concepts:</strong>
+          </p>
+          <ul>
+            <li><strong>Mention:</strong> A span of text referring to an entity (pronoun, noun phrase, or named entity)</li>
+            <li><strong>Coreference Chain:</strong> A set of mentions that all refer to the same entity</li>
+            <li><strong>Representative:</strong> The canonical or most descriptive mention in a chain</li>
+            <li><strong>Features:</strong> Properties like number (singular/plural), gender, and type used for matching</li>
+          </ul>
+          <p>
+            <strong>Use cases:</strong> Text summarization, information extraction, question answering, narrative 
+            analysis, document understanding, and improving coherence in generated text.
+          </p>
+          <p>
+            <strong>Interpreting results:</strong> The network visualization shows entities as nodes with their 
+            coreferent mentions connected. Larger nodes represent entities with more mentions (more important to 
+            the text). Chains with multiple mentions indicate recurring entities or themes.
+          </p>
+          <p>
+            <strong>Visualization options:</strong> Network Graph
+          </p>
+          <p className='wiki-source'>
+            <strong>Sources:</strong>
+            <br/>Coreference Resolution Overview: Ng, V., & Cardie, C. (2002). Improving machine learning approaches 
+            to coreference resolution. <em>In Proceedings of ACL 2002</em>, 104-111. 
+            <a href="https://aclanthology.org/P02-1014/" target="_blank" rel="noopener noreferrer">https://aclanthology.org/P02-1014/</a>
+            <br/>Neural Coreference: Lee, K., He, L., Lewis, M., & Zettlemoyer, L. (2017). End-to-end neural 
+            coreference resolution. <em>In Proceedings of EMNLP 2017</em>, 188-197. 
+            <a href="https://aclanthology.org/D17-1018/" target="_blank" rel="noopener noreferrer">https://aclanthology.org/D17-1018/</a>
+          </p>
+        </div>
+
+        <div className='wiki-item'>
+          <h4>Relation & Event Extraction</h4>
+          <p>
+            <strong>What it does:</strong> Extracts structured information about relationships between entities 
+            and events described in text. For example, identifying that "John works for Google" expresses an 
+            employment relationship, or detecting that "Amazon bought Whole Foods" describes an acquisition event.
+          </p>
+          <p>
+            <strong>How it works:</strong> The system uses natural language processing to identify entities 
+            (people, organizations, locations) and then applies one of three approaches to extract structured 
+            information:
+          </p>
+          <ul>
+            <li>
+              <strong>Pattern-Based Relations:</strong> Uses predefined linguistic patterns to identify common 
+              relationship types including employment ("works for"), leadership ("CEO of"), ownership ("acquired"), 
+              location ("located in"), family relations, and more. Fast and precise for known patterns.
+            </li>
+            <li>
+              <strong>Dependency-Based Relations:</strong> Analyzes sentence structure to extract subject-verb-object 
+              (SVO) triples. Identifies the grammatical relationships between entities to discover relations not 
+              covered by predefined patterns. More flexible but may require post-processing.
+            </li>
+            <li>
+              <strong>Event Extraction:</strong> Identifies specific event types (movement, transaction, communication, 
+              conflict, creation, etc.) along with their participants, time, and location. Focuses on actions and 
+              state changes rather than static relationships.
+            </li>
+          </ul>
+          <p>
+            <strong>Key concepts:</strong>
+          </p>
+          <ul>
+            <li><strong>Relation:</strong> A typed connection between two entities (e.g., employment, ownership)</li>
+            <li><strong>Event:</strong> An action or occurrence with participants, time, and location</li>
+            <li><strong>Agent:</strong> The entity performing an action in an event</li>
+            <li><strong>Trigger:</strong> The word or phrase indicating an event (e.g., "bought", "announced")</li>
+          </ul>
+          <p>
+            <strong>Use cases:</strong> Knowledge base construction, information retrieval, question answering, 
+            timeline creation, social network analysis, competitive intelligence, and automated fact extraction.
+          </p>
+          <p>
+            <strong>Interpreting results:</strong> The network visualization shows entities as nodes with relations 
+            or events as labeled edges connecting them. Edge labels indicate the type of relationship or action. 
+            For event extraction, the network centers around agents with their actions connecting to participants.
+          </p>
+          <p>
+            <strong>Visualization options:</strong> Network Graph
+          </p>
+          <p className='wiki-source'>
+            <strong>Sources:</strong>
+            <br/>Relation Extraction: Zelenko, D., Aone, C., & Richardella, A. (2003). Kernel methods for relation 
+            extraction. <em>Journal of Machine Learning Research</em>, 3, 1083-1106. 
+            <a href="https://www.jmlr.org/papers/v3/zelenko03a.html" target="_blank" rel="noopener noreferrer">https://www.jmlr.org/papers/v3/zelenko03a.html</a>
+            <br/>Event Extraction: Ahn, D. (2006). The stages of event extraction. <em>In ACL Workshop on Annotating 
+            and Reasoning about Time and Events</em>. 
+            <a href="https://aclanthology.org/W06-0901/" target="_blank" rel="noopener noreferrer">https://aclanthology.org/W06-0901/</a>
+          </p>
+        </div>
+
+        <div className='wiki-item'>
+          <h4>Argument Mining</h4>
+          <p>
+            <strong>What it does:</strong> Analyzes persuasive text to identify argumentative structures including 
+            claims (statements to be proven), premises (supporting evidence), and counter-arguments. For example, 
+            in "We should reduce emissions. Climate change is a serious threat.", it identifies "We should reduce 
+            emissions" as a claim and "Climate change is a serious threat" as a supporting premise.
+          </p>
+          <p>
+            <strong>How it works:</strong> The system uses linguistic indicators and discourse analysis to identify 
+            argumentative components and their relationships. Three algorithms are available:
+          </p>
+          <ul>
+            <li>
+              <strong>Rule-Based:</strong> Uses comprehensive linguistic rules to identify claims (modal verbs, 
+              evaluative adjectives, belief verbs) and premises (causal connectors, evidence phrases, statistics). 
+              Builds complete argument structures by linking premises to claims. Most comprehensive approach.
+            </li>
+            <li>
+              <strong>Pattern-Based:</strong> Applies specific linguistic patterns like "I believe that...", 
+              "because...", "therefore..." to extract argumentative components. Faster but may miss implicit 
+              argumentation. Good for formal argumentative text.
+            </li>
+            <li>
+              <strong>Structured Analysis:</strong> Assumes linear argument structure where the first sentence 
+              is often the main claim followed by supporting premises. Analyzes complete paragraphs as argument 
+              units. Works well for essay-style content.
+            </li>
+          </ul>
+          <p>
+            <strong>Key concepts:</strong>
+          </p>
+          <ul>
+            <li><strong>Claim:</strong> The main thesis or position being argued (often with modal verbs or evaluative language)</li>
+            <li><strong>Premise:</strong> Evidence, reasons, or facts supporting a claim</li>
+            <li><strong>Counter-Argument:</strong> Arguments opposing or challenging a claim</li>
+            <li><strong>Argument Strength:</strong> Ratio of supporting premises to opposing arguments</li>
+            <li><strong>Indicators:</strong> Linguistic markers signaling argument components (e.g., "because", "however")</li>
+          </ul>
+          <p>
+            <strong>Use cases:</strong> Essay analysis, debate preparation, persuasive writing evaluation, 
+            critical thinking assessment, opinion mining, fact-checking support, and educational applications 
+            for teaching argumentation.
+          </p>
+          <p>
+            <strong>Interpreting results:</strong> The network visualization shows claims as central nodes with 
+            premises and counter-arguments as connected nodes. Supporting premises are typically shown flowing 
+            into claims, while counter-arguments challenge them. Larger claim nodes indicate arguments with more 
+            supporting evidence. Argument strength is visualized through edge weights and node sizes.
+          </p>
+          <p>
+            <strong>Note:</strong> Argument mining works best on explicitly argumentative text like essays, 
+            opinion pieces, debates, and persuasive writing. Descriptive or narrative text may produce limited 
+            results. For best accuracy, ensure text contains clear argumentative markers and structure.
+          </p>
+          <p>
+            <strong>Visualization options:</strong> Network Graph
+          </p>
+          <p className='wiki-source'>
+            <strong>Sources:</strong>
+            <br/>Argument Mining Overview: Stab, C., & Gurevych, I. (2017). Parsing argumentation structures in 
+            persuasive essays. <em>Computational Linguistics</em>, 43(3), 619-659. 
+            <a href="https://doi.org/10.1162/COLI_a_00295" target="_blank" rel="noopener noreferrer">https://doi.org/10.1162/COLI_a_00295</a>
+            <br/>Argumentation Theory: Lippi, M., & Torroni, P. (2016). Argumentation mining: State of the art and 
+            emerging trends. <em>ACM Transactions on Internet Technology</em>, 16(2), 1-25. 
+            <a href="https://doi.org/10.1145/2850417" target="_blank" rel="noopener noreferrer">https://doi.org/10.1145/2850417</a>
+          </p>
+        </div>
+
+        <div className='wiki-item'>
           <h4>Topic Modeling</h4>
           <p>
             <strong>What it does:</strong> Automatically discovers overarching themes within your documents 
