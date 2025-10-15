@@ -59,12 +59,10 @@ const COUNTER_INDICATORS = [
 
 /**
  * Calculate claim likelihood score for a sentence
- * @param {Object} sentenceDoc - compromise doc object for the sentence
- * @param {Object} doc - compromise doc object for full text (unused)
  */
-const calculateClaimScore = (sentenceDoc, doc) => {
+const calculateClaimScore = (sentence, doc) => {
   let score = 0
-  const text = sentenceDoc.text().toLowerCase()
+  const text = sentence.text().toLowerCase()
   
   // Check for claim indicators
   CLAIM_INDICATORS.forEach(indicator => {
@@ -74,13 +72,13 @@ const calculateClaimScore = (sentenceDoc, doc) => {
   })
   
   // Check for modal verbs (should, must, etc.)
-  if (sentenceDoc.has('#Modal')) {
+  if (sentence.has('#Modal')) {
     score += 0.2
   }
   
   // Check for evaluative adjectives
-  if (sentenceDoc.has('#Adjective')) {
-    const adjectives = sentenceDoc.match('#Adjective').out('array')
+  if (sentence.has('#Adjective')) {
+    const adjectives = sentence.match('#Adjective').out('array')
     const evaluative = ['good', 'bad', 'important', 'necessary', 'essential', 'crucial', 'vital', 'critical']
     adjectives.forEach(adj => {
       if (evaluative.some(e => adj.toLowerCase().includes(e))) {
@@ -95,7 +93,7 @@ const calculateClaimScore = (sentenceDoc, doc) => {
   }
   
   // Check for negation (often indicates stance)
-  if (sentenceDoc.has('#Negative')) {
+  if (sentence.has('#Negative')) {
     score += 0.1
   }
   
@@ -109,12 +107,10 @@ const calculateClaimScore = (sentenceDoc, doc) => {
 
 /**
  * Calculate premise likelihood score for a sentence
- * @param {Object} sentenceDoc - compromise doc object for the sentence
- * @param {Object} previousClaim - the last detected claim object (for proximity)
  */
-const calculatePremiseScore = (sentenceDoc, previousClaim) => {
+const calculatePremiseScore = (sentence, previousClaim) => {
   let score = 0
-  const text = sentenceDoc.text().toLowerCase()
+  const text = sentence.text().toLowerCase()
   
   // Check for premise indicators
   PREMISE_INDICATORS.forEach(indicator => {
@@ -129,7 +125,7 @@ const calculatePremiseScore = (sentenceDoc, previousClaim) => {
   }
   
   // Check for statistics/numbers (common in premises)
-  if (sentenceDoc.has('#Value') || sentenceDoc.has('#Percent')) {
+  if (sentence.has('#Value') || sentence.has('#Percent')) {
     score += 0.2
   }
   
@@ -165,14 +161,17 @@ export const ruleBasedArgumentMining = async (textSamples) => {
   // Process each text sample
   for (const text of textSamples.slice(0, 100)) {
     const doc = nlp(text)
-    const sentenceTexts = doc.sentences().out('array')
+    const sentences = doc.sentences()
     
     let lastClaim = null
     const textComponents = []
     
-    sentenceTexts.forEach((sentenceText, idx) => {
-      // Create new doc for each sentence to analyze
-      const sentence = nlp(sentenceText)
+    // Get array to iterate, but keep sentence objects for analysis
+    const sentenceArray = []
+    sentences.forEach(s => sentenceArray.push(s))
+    
+    sentenceArray.forEach((sentence, idx) => {
+      const sentenceText = sentence.text()
       const claimScore = calculateClaimScore(sentence, doc)
       const premiseScore = calculatePremiseScore(sentence, lastClaim)
       
@@ -332,25 +331,29 @@ export const structuredArgumentMining = async (textSamples) => {
   // Process each text sample as a potential argument
   for (const text of textSamples.slice(0, 100)) {
     const doc = nlp(text)
-    const sentenceTexts = doc.sentences().out('array')
+    const sentences = doc.sentences()
     
-    if (sentenceTexts.length < 2) continue // Need at least 2 sentences for argument
+    // Get array to iterate
+    const sentenceArray = []
+    sentences.forEach(s => sentenceArray.push(s))
+    
+    if (sentenceArray.length < 2) continue // Need at least 2 sentences for argument
     
     // Heuristic: First sentence is often claim, following are premises
-    const firstSentence = nlp(sentenceTexts[0])
+    const firstSentence = sentenceArray[0]
     const claimScore = calculateClaimScore(firstSentence, doc)
     
     if (claimScore > 0.3) {
-      const claim = sentenceTexts[0]
+      const claim = firstSentence.text()
       const premises = []
       
       // Collect following sentences as premises
-      for (let i = 1; i < sentenceTexts.length; i++) {
-        const sentence = nlp(sentenceTexts[i])
+      for (let i = 1; i < sentenceArray.length; i++) {
+        const sentence = sentenceArray[i]
         const premiseScore = calculatePremiseScore(sentence, true)
         
         if (premiseScore > 0.2) {
-          premises.push(sentenceTexts[i])
+          premises.push(sentence.text())
         }
       }
       
@@ -361,7 +364,7 @@ export const structuredArgumentMining = async (textSamples) => {
           premises,
           source: text,
           structure: 'linear',
-          strength: premises.length / sentenceTexts.length
+          strength: premises.length / sentenceArray.length
         })
       }
     }
