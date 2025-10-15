@@ -131,9 +131,10 @@ const calculatePremiseScore = (sentenceDoc, previousClaim) => {
     score += 0.15
   }
   
-  // Proximity to claim boosts premise likelihood
+  // Proximity to claim boosts premise likelihood significantly
+  // Sentences following claims are likely premises supporting the claim
   if (previousClaim) {
-    score += 0.1
+    score += 0.25
   }
   
   return Math.min(score, 1.0)
