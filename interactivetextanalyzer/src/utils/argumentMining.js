@@ -176,6 +176,9 @@ export const ruleBasedArgumentMining = async (textSamples) => {
       const hasPremiseIndicator = PREMISE_INDICATORS.some(ind => sentenceText.toLowerCase().includes(ind))
       const hasCounterIndicator = COUNTER_INDICATORS.some(ind => sentenceText.toLowerCase().includes(ind))
       
+      // Store previous claim for counter-argument detection
+      const previousClaim = lastClaim
+      
       // Classify as claim if score is high enough and not dominated by premise indicators
       if (claimScore > 0.4 && !hasPremiseIndicator) {
         const claim = {
@@ -190,15 +193,15 @@ export const ruleBasedArgumentMining = async (textSamples) => {
         textComponents.push(claim)
         lastClaim = claim
         
-        // Also mark as counter if has counter indicator
-        if (hasCounterIndicator && lastClaim) {
+        // Also mark as counter if has counter indicator and there was a previous claim
+        if (hasCounterIndicator && previousClaim) {
           textComponents.push({
             id: componentId++,
             type: 'counter',
             text: sentenceText,
             score: 0.8,
             source: text,
-            challengesClaim: lastClaim.id
+            challengesClaim: previousClaim.id
           })
         }
       }
