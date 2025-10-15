@@ -207,7 +207,7 @@ export const ruleBasedArgumentMining = async (textSamples) => {
         }
       }
       // Classify as premise if score is high OR has strong indicators
-      else if (premiseScore > 0.25 || (hasPremiseIndicator && premiseScore > 0.15)) {
+      else if (premiseScore >= 0.25 || (hasPremiseIndicator && premiseScore > 0.15)) {
         const premise = {
           id: componentId++,
           type: 'premise',
