@@ -231,8 +231,8 @@ export default function NetworkGraph({ nodes=[], edges=[], width=600, height=400
         svg.call(zoom.transform, d3.zoomIdentity.translate(newX, newY).scale(scale))
       })
       .on('end', function() {
-        // Keep isDragging true briefly to prevent click event
-        setTimeout(() => { isDragging = false }, 100)
+        // Clear isDragging on next event loop to prevent click event reliably
+        setTimeout(() => { isDragging = false }, 0)
       })
     
     viewportRect.call(viewportDrag)
