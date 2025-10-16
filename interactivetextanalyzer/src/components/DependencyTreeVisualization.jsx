@@ -316,7 +316,7 @@ export default function DependencyTreeVisualization({ sentences = [], width = 80
       })
     }
 
-  }, [selectedSentence, width, height, selectedSentenceIdx])
+  }, [selectedSentence, width, height])
 
   // Handle sentence selection
   const handleSentenceChange = (event) => {
