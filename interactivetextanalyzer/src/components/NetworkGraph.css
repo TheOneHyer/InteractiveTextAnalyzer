@@ -74,7 +74,6 @@
   border-radius: 6px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.15);
   z-index: 10;
-  cursor: move;
 }
 
 .minimap-label {
@@ -83,6 +82,9 @@
   color: #666;
   margin-bottom: 4px;
   text-align: center;
+  cursor: move;
+  user-select: none;
+  padding: 2px 0;
 }
 
 .network-graph-minimap svg {

@@ -306,6 +306,12 @@ export default function NetworkGraph({ nodes=[], edges=[], width=600, height=400
   
   // Handle minimap container dragging
   const handleMinimapMouseDown = (e) => {
+    // Only allow dragging from the label or container, not the SVG
+    if (e.target.tagName === 'svg' || e.target.tagName === 'rect' || 
+        e.target.tagName === 'line' || e.target.tagName === 'circle') {
+      return
+    }
+    
     e.preventDefault()
     const startX = e.clientX
     const startY = e.clientY
