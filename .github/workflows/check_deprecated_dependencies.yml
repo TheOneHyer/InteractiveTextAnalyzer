@@ -1,0 +1,10 @@
+name: Check Deprecated Dependencies
+on: [push, pull_request]
+
+jobs:
+  check-deprecated-deps:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check Deprecated Dependencies
+        uses: tinovyatkin/action-check-deprecated-js-deps@release
