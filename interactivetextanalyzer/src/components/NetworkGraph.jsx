@@ -213,14 +213,6 @@ export default function NetworkGraph({ nodes=[], edges=[], width=600, height=400
       })
     })
     
-    // Also store initial positions after a delay to ensure they're captured
-    setTimeout(() => {
-      nodes.forEach(d => {
-        if (!initialPositions.has(d.id)) {
-          initialPositions.set(d.id, { x: d.x, y: d.y })
-        }
-      })
-    }, 1000)
     
     // Create minimap
     const minimapWidth = 150
