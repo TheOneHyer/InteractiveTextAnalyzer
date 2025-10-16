@@ -335,11 +335,10 @@ export default function NetworkGraph({ nodes=[], edges=[], width=600, height=400
     const startBottom = minimapPosition.bottom
     const startRight = minimapPosition.right
     
-    // Get the bounds of the network-graph-svg container
-    const svgContainer = containerRef.current
-    const minimap = minimapRef.current?.parentElement
-    
+    // Mouse move handler: get refs inside handler to ensure they're up-to-date and non-null
     const handleMouseMove = (moveEvent) => {
+      const svgContainer = containerRef.current
+      const minimap = minimapRef.current?.parentElement
       const deltaX = startX - moveEvent.clientX
       const deltaY = startY - moveEvent.clientY
       
