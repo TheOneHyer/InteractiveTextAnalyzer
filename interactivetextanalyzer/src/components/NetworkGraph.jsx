@@ -113,6 +113,8 @@ export default function NetworkGraph({ nodes=[], edges=[], width=600, height=400
         .on('drag', (event, d) => { 
           d.fx = event.x
           d.fy = event.y
+          // Update minimap during drag
+          updateMinimap(d3.zoomTransform(svg.node()))
         })
         .on('end', (event, d) => { 
           if(!event.active) simulation.alphaTarget(0)
@@ -208,8 +210,17 @@ export default function NetworkGraph({ nodes=[], edges=[], width=600, height=400
       }
       const [mx, my] = d3.pointer(event)
       const scale = d3.zoomTransform(svg.node()).k
-      const newX = -(mx / minimapScale - width / 2) * scale
-      const newY = -(my / minimapScale - height / 2) * scale
+      
+      // Calculate viewport dimensions in minimap space
+      const viewportWidthInMinimap = (width / scale) * minimapScale
+      const viewportHeightInMinimap = (height / scale) * minimapScale
+      
+      // Constrain minimap coordinates to valid bounds
+      const constrainedMx = Math.max(viewportWidthInMinimap / 2, Math.min(mx, minimapWidth - viewportWidthInMinimap / 2))
+      const constrainedMy = Math.max(viewportHeightInMinimap / 2, Math.min(my, minimapHeight - viewportHeightInMinimap / 2))
+      
+      const newX = -(constrainedMx / minimapScale - width / 2) * scale
+      const newY = -(constrainedMy / minimapScale - height / 2) * scale
       
       svg.transition()
         .duration(300)
@@ -226,8 +237,17 @@ export default function NetworkGraph({ nodes=[], edges=[], width=600, height=400
         isDragging = true
         const [mx, my] = d3.pointer(event.sourceEvent, minimapSvg.node())
         const scale = d3.zoomTransform(svg.node()).k
-        const newX = -(mx / minimapScale - width / 2) * scale
-        const newY = -(my / minimapScale - height / 2) * scale
+        
+        // Calculate viewport dimensions in minimap space
+        const viewportWidthInMinimap = (width / scale) * minimapScale
+        const viewportHeightInMinimap = (height / scale) * minimapScale
+        
+        // Constrain minimap coordinates to valid bounds
+        const constrainedMx = Math.max(viewportWidthInMinimap / 2, Math.min(mx, minimapWidth - viewportWidthInMinimap / 2))
+        const constrainedMy = Math.max(viewportHeightInMinimap / 2, Math.min(my, minimapHeight - viewportHeightInMinimap / 2))
+        
+        const newX = -(constrainedMx / minimapScale - width / 2) * scale
+        const newY = -(constrainedMy / minimapScale - height / 2) * scale
         
         const newTransform = d3.zoomIdentity.translate(newX, newY).scale(scale)
         svg.call(zoom.transform, newTransform)
