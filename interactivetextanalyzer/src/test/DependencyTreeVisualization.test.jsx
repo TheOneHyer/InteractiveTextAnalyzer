@@ -326,5 +326,29 @@ describe('DependencyTreeVisualization Component', () => {
       expect(sentenceDisplay).toBeTruthy()
       expect(legend).toBeTruthy()
     })
+    
+    it('should render zoom control buttons', () => {
+      const { container } = render(
+        <DependencyTreeVisualization sentences={mockSentences} />
+      )
+      
+      // Check for zoom controls
+      const zoomControls = container.querySelector('.dependency-tree-zoom-controls')
+      expect(zoomControls).toBeTruthy()
+      
+      // Check for control buttons
+      const buttons = container.querySelectorAll('.control-btn')
+      expect(buttons.length).toBeGreaterThan(0)
+    })
+    
+    it('should render minimap', () => {
+      const { container } = render(
+        <DependencyTreeVisualization sentences={mockSentences} />
+      )
+      
+      // Check for minimap
+      const minimap = container.querySelector('.dependency-tree-minimap')
+      expect(minimap).toBeTruthy()
+    })
   })
 })
