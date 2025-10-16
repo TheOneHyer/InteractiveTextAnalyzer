@@ -111,8 +111,10 @@ describe('DependencyTreeVisualization Component', () => {
       
       const svg = container.querySelector('svg')
       if (svg) {
-        expect(svg.getAttribute('width')).toBe('1000')
-        expect(svg.getAttribute('height')).toBe('600')
+        // SVG should be responsive with viewBox
+        expect(svg.getAttribute('width')).toBe('100%')
+        expect(svg.getAttribute('height')).toBe('100%')
+        expect(svg.getAttribute('viewBox')).toBe('0 0 1000 600')
       }
     })
 
@@ -123,8 +125,11 @@ describe('DependencyTreeVisualization Component', () => {
       
       const svg = container.querySelector('svg')
       if (svg) {
-        expect(svg.getAttribute('width')).toBeDefined()
-        expect(svg.getAttribute('height')).toBeDefined()
+        // SVG should be responsive with viewBox containing default dimensions
+        expect(svg.getAttribute('width')).toBe('100%')
+        expect(svg.getAttribute('height')).toBe('100%')
+        expect(svg.getAttribute('viewBox')).toBeDefined()
+        expect(svg.getAttribute('viewBox')).toContain('0 0')
       }
     })
   })
