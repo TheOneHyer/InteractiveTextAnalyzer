@@ -202,7 +202,7 @@ export default function NetworkGraph({ nodes=[], edges=[], width=600, height=400
     // Track if we're dragging to prevent click after drag
     let isDragging = false
     
-    // Minimap click to navigate
+    // Minimap click to navigate - centers viewport around click location
     minimapSvg.on('click', function(event) {
       if (isDragging) {
         isDragging = false
@@ -211,16 +211,13 @@ export default function NetworkGraph({ nodes=[], edges=[], width=600, height=400
       const [mx, my] = d3.pointer(event)
       const scale = d3.zoomTransform(svg.node()).k
       
-      // Calculate viewport dimensions in minimap space
-      const viewportWidthInMinimap = (width / scale) * minimapScale
-      const viewportHeightInMinimap = (height / scale) * minimapScale
+      // Convert minimap coordinates to main graph coordinates
+      const graphX = mx / minimapScale
+      const graphY = my / minimapScale
       
-      // Constrain minimap coordinates to valid bounds
-      const constrainedMx = Math.max(viewportWidthInMinimap / 2, Math.min(mx, minimapWidth - viewportWidthInMinimap / 2))
-      const constrainedMy = Math.max(viewportHeightInMinimap / 2, Math.min(my, minimapHeight - viewportHeightInMinimap / 2))
-      
-      const newX = -(constrainedMx / minimapScale - width / 2) * scale
-      const newY = -(constrainedMy / minimapScale - height / 2) * scale
+      // Center the viewport on the clicked point
+      const newX = -(graphX - width / 2) * scale
+      const newY = -(graphY - height / 2) * scale
       
       svg.transition()
         .duration(300)
@@ -238,16 +235,13 @@ export default function NetworkGraph({ nodes=[], edges=[], width=600, height=400
         const [mx, my] = d3.pointer(event.sourceEvent, minimapSvg.node())
         const scale = d3.zoomTransform(svg.node()).k
         
-        // Calculate viewport dimensions in minimap space
-        const viewportWidthInMinimap = (width / scale) * minimapScale
-        const viewportHeightInMinimap = (height / scale) * minimapScale
+        // Convert minimap coordinates to main graph coordinates
+        const graphX = mx / minimapScale
+        const graphY = my / minimapScale
         
-        // Constrain minimap coordinates to valid bounds
-        const constrainedMx = Math.max(viewportWidthInMinimap / 2, Math.min(mx, minimapWidth - viewportWidthInMinimap / 2))
-        const constrainedMy = Math.max(viewportHeightInMinimap / 2, Math.min(my, minimapHeight - viewportHeightInMinimap / 2))
-        
-        const newX = -(constrainedMx / minimapScale - width / 2) * scale
-        const newY = -(constrainedMy / minimapScale - height / 2) * scale
+        // Center the viewport on the dragged position
+        const newX = -(graphX - width / 2) * scale
+        const newY = -(graphY - height / 2) * scale
         
         const newTransform = d3.zoomIdentity.translate(newX, newY).scale(scale)
         svg.call(zoom.transform, newTransform)
@@ -341,13 +335,33 @@ export default function NetworkGraph({ nodes=[], edges=[], width=600, height=400
     const startBottom = minimapPosition.bottom
     const startRight = minimapPosition.right
     
+    // Get the bounds of the network-graph-svg container
+    const svgContainer = containerRef.current
+    const minimap = minimapRef.current?.parentElement
+    
     const handleMouseMove = (moveEvent) => {
       const deltaX = startX - moveEvent.clientX
       const deltaY = startY - moveEvent.clientY
       
+      let newBottom = startBottom + deltaY
+      let newRight = startRight + deltaX
+      
+      // Apply constraints: keep minimap within network-graph-svg with 10px buffer
+      if (svgContainer && minimap) {
+        const svgRect = svgContainer.getBoundingClientRect()
+        const minimapRect = minimap.getBoundingClientRect()
+        
+        const buffer = 10
+        const maxBottom = svgRect.height - minimapRect.height - buffer
+        const maxRight = svgRect.width - minimapRect.width - buffer
+        
+        newBottom = Math.max(buffer, Math.min(newBottom, maxBottom))
+        newRight = Math.max(buffer, Math.min(newRight, maxRight))
+      }
+      
       setMinimapPosition({
-        bottom: Math.max(10, startBottom + deltaY),
-        right: Math.max(10, startRight + deltaX)
+        bottom: newBottom,
+        right: newRight
       })
     }
     
