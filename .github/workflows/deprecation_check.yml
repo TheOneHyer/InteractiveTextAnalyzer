@@ -1,0 +1,2 @@
+- name: Check Deprecated Dependencies
+  uses: tinovyatkin/action-check-deprecated-js-deps@release
