@@ -324,7 +324,7 @@ export default function DependencyTreeVisualization({ sentences = [], width = 80
           event.sourceEvent.stopPropagation()
         })
         .on('drag', function(event) {
-          const [mx, my] = d3.pointer(event, minimapSvg.node())
+          const [mx, my] = d3.pointer(event.sourceEvent, minimapSvg.node())
           const transform = d3.zoomTransform(svg.node())
           const scale = transform.k
           const newX = -(mx / minimapScale - width / 2) * scale
