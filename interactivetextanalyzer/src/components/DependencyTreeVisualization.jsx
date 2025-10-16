@@ -47,8 +47,10 @@ export default function DependencyTreeVisualization({ sentences = [], width = 80
     // Create SVG with zoom capability
     const svg = d3.select(el)
       .append('svg')
-      .attr('width', width)
-      .attr('height', height)
+      .attr('width', '100%')
+      .attr('height', '100%')
+      .attr('viewBox', `0 0 ${width} ${height}`)
+      .attr('preserveAspectRatio', 'xMidYMid meet')
       .style('border', '1px solid #e0e0e0')
       .style('background', '#fafafa')
     
@@ -267,6 +269,7 @@ export default function DependencyTreeVisualization({ sentences = [], width = 80
         .attr('stroke', '#2196F3')
         .attr('stroke-width', 2)
         .attr('rx', 2)
+        .style('cursor', 'move')
       
       // Update minimap on zoom
       zoom.on('zoom.minimap', (event) => {
@@ -314,6 +317,23 @@ export default function DependencyTreeVisualization({ sentences = [], width = 80
           .duration(300)
           .call(zoom.transform, d3.zoomIdentity.translate(newX, newY).scale(scale))
       })
+      
+      // Add drag behavior to viewport rectangle for click-and-drag navigation
+      const viewportDrag = d3.drag()
+        .on('start', function(event) {
+          event.sourceEvent.stopPropagation()
+        })
+        .on('drag', function(event) {
+          const [mx, my] = d3.pointer(event.sourceEvent, minimapSvg.node())
+          const transform = d3.zoomTransform(svg.node())
+          const scale = transform.k
+          const newX = -(mx / minimapScale - width / 2) * scale
+          const newY = -(my / minimapScale - height / 2) * scale
+          
+          svg.call(zoom.transform, d3.zoomIdentity.translate(newX, newY).scale(scale))
+        })
+      
+      viewportRect.call(viewportDrag)
     }
 
   }, [selectedSentence, width, height])
@@ -327,24 +347,27 @@ export default function DependencyTreeVisualization({ sentences = [], width = 80
   const handleZoomIn = () => {
     if (!svgRef.current) return
     const svg = d3.select(svgRef.current)
-    if (svg.node().zoomBehavior) {
-      svg.transition().duration(300).call(svg.node().zoomBehavior.scaleBy, 1.3)
+    const zoom = svg.node()?.zoomBehavior
+    if (zoom) {
+      svg.transition().duration(300).call(zoom.scaleBy, 1.3)
     }
   }
   
   const handleZoomOut = () => {
     if (!svgRef.current) return
     const svg = d3.select(svgRef.current)
-    if (svg.node().zoomBehavior) {
-      svg.transition().duration(300).call(svg.node().zoomBehavior.scaleBy, 0.7)
+    const zoom = svg.node()?.zoomBehavior
+    if (zoom) {
+      svg.transition().duration(300).call(zoom.scaleBy, 0.7)
     }
   }
   
   const handleReset = () => {
     if (!svgRef.current) return
     const svg = d3.select(svgRef.current)
-    if (svg.node().zoomBehavior) {
-      svg.transition().duration(300).call(svg.node().zoomBehavior.transform, d3.zoomIdentity)
+    const zoom = svg.node()?.zoomBehavior
+    if (zoom) {
+      svg.transition().duration(300).call(zoom.transform, d3.zoomIdentity)
     }
   }
   
@@ -378,10 +401,11 @@ export default function DependencyTreeVisualization({ sentences = [], width = 80
     const translateY = height / 2 - centerY * scale
     
     const svg = d3.select(svgRef.current)
-    if (svg.node().zoomBehavior) {
+    const zoom = svg.node()?.zoomBehavior
+    if (zoom) {
       svg.transition()
         .duration(500)
-        .call(svg.node().zoomBehavior.transform, d3.zoomIdentity.translate(translateX, translateY).scale(scale))
+        .call(zoom.transform, d3.zoomIdentity.translate(translateX, translateY).scale(scale))
     }
   }
 

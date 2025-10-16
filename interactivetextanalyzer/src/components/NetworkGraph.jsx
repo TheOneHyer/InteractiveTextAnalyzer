@@ -22,8 +22,10 @@ export default function NetworkGraph({ nodes=[], edges=[], width=600, height=400
     // Create main SVG with zoom capability
     const svg = d3.select(container)
       .append('svg')
-      .attr('width', width)
-      .attr('height', height)
+      .attr('width', '100%')
+      .attr('height', '100%')
+      .attr('viewBox', `0 0 ${width} ${height}`)
+      .attr('preserveAspectRatio', 'xMidYMid meet')
       .style('border', '1px solid #e0e0e0')
       .style('background', '#fafafa')
     
@@ -189,6 +191,7 @@ export default function NetworkGraph({ nodes=[], edges=[], width=600, height=400
       .attr('stroke', '#2196F3')
       .attr('stroke-width', 2)
       .attr('rx', 2)
+      .style('cursor', 'move')
     
     // Initialize minimap
     updateMinimap(d3.zoomIdentity)
@@ -205,22 +208,47 @@ export default function NetworkGraph({ nodes=[], edges=[], width=600, height=400
         .call(zoom.transform, d3.zoomIdentity.translate(newX, newY).scale(scale))
     })
     
+    // Add drag behavior to viewport rectangle for click-and-drag navigation
+    const viewportDrag = d3.drag()
+      .on('start', function(event) {
+        event.sourceEvent.stopPropagation()
+      })
+      .on('drag', function(event) {
+        const [mx, my] = d3.pointer(event.sourceEvent, minimapSvg.node())
+        const scale = d3.zoomTransform(svg.node()).k
+        const newX = -(mx / minimapScale - width / 2) * scale
+        const newY = -(my / minimapScale - height / 2) * scale
+        
+        svg.call(zoom.transform, d3.zoomIdentity.translate(newX, newY).scale(scale))
+      })
+    
+    viewportRect.call(viewportDrag)
+    
   }, [nodes, edges, width, height, weightedLines])
   
   // Control button handlers
   const handleZoomIn = () => {
     const svg = d3.select(svgRef.current)
-    svg.transition().duration(300).call(svg.zoomBehavior.scaleBy, 1.3)
+    const zoom = svg.node()?.zoomBehavior
+    if (zoom) {
+      svg.transition().duration(300).call(zoom.scaleBy, 1.3)
+    }
   }
   
   const handleZoomOut = () => {
     const svg = d3.select(svgRef.current)
-    svg.transition().duration(300).call(svg.zoomBehavior.scaleBy, 0.7)
+    const zoom = svg.node()?.zoomBehavior
+    if (zoom) {
+      svg.transition().duration(300).call(zoom.scaleBy, 0.7)
+    }
   }
   
   const handleReset = () => {
     const svg = d3.select(svgRef.current)
-    svg.transition().duration(300).call(svg.zoomBehavior.transform, d3.zoomIdentity)
+    const zoom = svg.node()?.zoomBehavior
+    if (zoom) {
+      svg.transition().duration(300).call(zoom.transform, d3.zoomIdentity)
+    }
   }
   
   const handleFitView = () => {
@@ -246,9 +274,12 @@ export default function NetworkGraph({ nodes=[], edges=[], width=600, height=400
     const translateY = height / 2 - centerY * scale
     
     const svg = d3.select(svgRef.current)
-    svg.transition()
-      .duration(500)
-      .call(svg.zoomBehavior.transform, d3.zoomIdentity.translate(translateX, translateY).scale(scale))
+    const zoom = svg.node()?.zoomBehavior
+    if (zoom) {
+      svg.transition()
+        .duration(500)
+        .call(zoom.transform, d3.zoomIdentity.translate(translateX, translateY).scale(scale))
+    }
   }
   
   if(!nodes.length) {
