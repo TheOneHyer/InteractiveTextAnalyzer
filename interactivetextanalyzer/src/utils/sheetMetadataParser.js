@@ -22,10 +22,10 @@
 export function parseFlexibleDate(dateStr, currentYear = new Date().getFullYear()) {
   if (!dateStr) return null
   
-  // Clean the string - replace common separators with a standard separator
+  // Clean the string - remove spaces and replace common separators with a standard separator
   const cleaned = String(dateStr).trim()
-    .replace(/[\/\-_\.]/g, '-')
-    .replace(/\s+/g, '-')
+    .replace(/\s+/g, '') // Remove all whitespace first
+    .replace(/[\/\-_\.]/g, '-') // Then normalize separators
   
   // Try to parse as ISO format first (YYYY-MM-DD)
   const isoMatch = cleaned.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/)
@@ -130,13 +130,10 @@ export function parseSheetMetadata(sheetName, options = {}) {
     }
   }
   
-  const workingName = caseSensitive ? sheetName : sheetName.toLowerCase()
-  
   // Create a regex pattern from delimiters
   const delimiterPattern = delimiters.map(d => 
     d.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   ).join('|')
-  const splitRegex = new RegExp(`(${delimiterPattern})`)
   
   // Split the name while preserving delimiters for reconstruction
   const parts = sheetName.split(new RegExp(delimiterPattern))
@@ -152,27 +149,70 @@ export function parseSheetMetadata(sheetName, options = {}) {
   
   // Try to find and parse dates
   if (parseDates) {
-    for (const part of parts) {
+    let i = 0
+    while (i < parts.length) {
+      const part = parts[i]
+      
+      // Try to parse current part as a date
       const parsedDate = parseFlexibleDate(part)
       if (parsedDate) {
-        result.date = parsedDate
+        // Only set date if not already set (capture first date only)
+        if (!result.date) {
+          result.date = parsedDate
+        }
         result.components.push({ type: 'date', value: parsedDate, original: part })
+        i++
         continue
       }
       
-      // Check if this looks like a date component (only digits and separators)
-      if (/^[\d\/\-_\.]+$/.test(part)) {
+      // Check if this part looks like it could be part of a date (only digits)
+      if (/^\d+$/.test(part)) {
+        // Try combining with next 1-2 parts to form a date
+        if (i + 1 < parts.length) {
+          const combined2 = `${part}_${parts[i + 1]}`
+          const date2 = parseFlexibleDate(combined2)
+          if (date2) {
+            // Only set date if not already set (capture first date only)
+            if (!result.date) {
+              result.date = date2
+            }
+            result.components.push({ type: 'date', value: date2, original: `${part}_${parts[i + 1]}` })
+            i += 2
+            continue
+          }
+          
+          if (i + 2 < parts.length) {
+            const combined3 = `${part}_${parts[i + 1]}_${parts[i + 2]}`
+            const date3 = parseFlexibleDate(combined3)
+            if (date3) {
+              // Only set date if not already set (capture first date only)
+              if (!result.date) {
+                result.date = date3
+              }
+              result.components.push({ type: 'date', value: date3, original: `${part}_${parts[i + 1]}_${parts[i + 2]}` })
+              i += 3
+              continue
+            }
+          }
+        }
+        
+        // Couldn't form a date, treat as date-like component
         result.components.push({ type: 'date-like', value: part, original: part })
       } else if (extractTags) {
-        result.tags.push(part)
-        result.components.push({ type: 'tag', value: part, original: part })
+        // Not a number, treat as a tag
+        const tag = caseSensitive ? part : part.toLowerCase()
+        result.tags.push(tag)
+        result.components.push({ type: 'tag', value: tag, original: part })
       }
+      
+      i++
     }
   } else if (extractTags) {
     // Just extract all parts as tags
     for (const part of parts) {
-      result.tags.push(part)
-      result.components.push({ type: 'tag', value: part, original: part })
+      const tag = caseSensitive ? part : part.toLowerCase()
+      result.tags.push(tag)
+      result.components.push({ type: 'tag', value: tag, original: part })
     }
   }
   

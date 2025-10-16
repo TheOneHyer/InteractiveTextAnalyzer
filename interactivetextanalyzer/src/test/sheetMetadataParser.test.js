@@ -71,7 +71,7 @@ describe('parseFlexibleDate', () => {
 
 describe('parseSheetMetadata', () => {
   it('should parse sheet name with date and tags using default delimiters', () => {
-    const result = parseSheetMetadata('Data_10_6_Analysis')
+    const result = parseSheetMetadata('Data_10_6_Analysis', { caseSensitive: true })
     expect(result.originalName).toBe('Data_10_6_Analysis')
     expect(result.date).toBe('2025-10-06')
     expect(result.tags).toContain('Data')
@@ -79,7 +79,7 @@ describe('parseSheetMetadata', () => {
   })
   
   it('should parse sheet name with only tags', () => {
-    const result = parseSheetMetadata('Sales_Report_Q1')
+    const result = parseSheetMetadata('Sales_Report_Q1', { caseSensitive: true })
     expect(result.tags).toContain('Sales')
     expect(result.tags).toContain('Report')
     expect(result.tags).toContain('Q1')
@@ -96,14 +96,14 @@ describe('parseSheetMetadata', () => {
   })
   
   it('should use custom delimiters', () => {
-    const result = parseSheetMetadata('Data|10/6|Analysis', { delimiters: ['|'] })
+    const result = parseSheetMetadata('Data|10/6|Analysis', { delimiters: ['|'], caseSensitive: true })
     expect(result.tags).toContain('Data')
     expect(result.tags).toContain('Analysis')
     expect(result.date).toBe('2025-10-06')
   })
   
   it('should disable date parsing when parseDates is false', () => {
-    const result = parseSheetMetadata('Data_10_6_Analysis', { parseDates: false })
+    const result = parseSheetMetadata('Data_10_6_Analysis', { parseDates: false, caseSensitive: true })
     expect(result.date).toBeNull()
     expect(result.tags).toContain('Data')
     expect(result.tags).toContain('10')
@@ -124,20 +124,20 @@ describe('parseSheetMetadata', () => {
   })
   
   it('should parse complex sheet names with multiple dates', () => {
-    const result = parseSheetMetadata('Report_2024-10-06_vs_2024-11-15')
+    const result = parseSheetMetadata('Report_2024-10-06_vs_2024-11-15', { caseSensitive: true })
     expect(result.date).toBe('2024-10-06') // Should capture first valid date
     expect(result.tags).toContain('Report')
   })
   
   it('should handle sheet names with hyphens as delimiters', () => {
-    const result = parseSheetMetadata('Sales-2024-Q4-Final')
+    const result = parseSheetMetadata('Sales-2024-Q4-Final', { caseSensitive: true })
     expect(result.tags).toContain('Sales')
     expect(result.tags).toContain('Q4')
     expect(result.tags).toContain('Final')
   })
   
   it('should handle sheet names with spaces', () => {
-    const result = parseSheetMetadata('Sales Report 10 6', { delimiters: [' '] })
+    const result = parseSheetMetadata('Sales Report 10 6', { delimiters: [' '], caseSensitive: true })
     expect(result.tags).toContain('Sales')
     expect(result.tags).toContain('Report')
     expect(result.date).toBe('2025-10-06')
@@ -152,7 +152,7 @@ describe('parseWorkbookMetadata', () => {
       'Summary': { rows: [], columns: [] }
     }
     
-    const metadata = parseWorkbookMetadata(workbookData)
+    const metadata = parseWorkbookMetadata(workbookData, { caseSensitive: true })
     
     expect(metadata['Data_10_6'].date).toBe('2025-10-06')
     expect(metadata['Report_11_15'].date).toBe('2025-11-15')
