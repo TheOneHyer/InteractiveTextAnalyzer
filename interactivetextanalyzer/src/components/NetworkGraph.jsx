@@ -75,8 +75,8 @@ export default function NetworkGraph({ nodes=[], edges=[], width=600, height=400
     
     svg.call(zoom)
     
-    // Store zoom behavior for control buttons
-    svg.zoomBehavior = zoom
+    // Store zoom behavior for control buttons (store on DOM node, not D3 selection)
+    svg.node().zoomBehavior = zoom
     
     // Create force simulation
     const simulation = d3.forceSimulation(nodes)
