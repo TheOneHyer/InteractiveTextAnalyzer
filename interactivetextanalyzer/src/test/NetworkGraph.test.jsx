@@ -110,7 +110,7 @@ describe('NetworkGraph Component', () => {
     expect(edges[0]).toHaveProperty('value')
   })
 
-  it('should constrain nodes within boundaries', () => {
+  it('should render zoom control buttons', () => {
     const nodes = [
       { id: 'node1', value: 10 },
       { id: 'node2', value: 5 }
@@ -118,19 +118,53 @@ describe('NetworkGraph Component', () => {
     const edges = [
       { source: 'node1', target: 'node2', value: 1 }
     ]
-    const width = 600
-    const height = 400
     
     const { container } = render(
-      <NetworkGraph nodes={nodes} edges={edges} width={width} height={height} />
+      <NetworkGraph nodes={nodes} edges={edges} width={600} height={400} />
     )
     
-    // The NetworkGraph component should constrain node positions during simulation
-    // This test verifies the component accepts the boundary parameters
-    const div = container.querySelector('div')
-    expect(div).toBeInTheDocument()
+    // The NetworkGraph component should render zoom control buttons
+    const controls = container.querySelector('.network-graph-controls')
+    expect(controls).toBeInTheDocument()
     
-    // After simulation ticks, nodes should stay within bounds (20 to width-20, 20 to height-20)
-    // This is enforced by the tick handler in the component
+    // Check for control buttons
+    const buttons = container.querySelectorAll('.control-btn')
+    expect(buttons.length).toBeGreaterThan(0)
+  })
+  
+  it('should render minimap when nodes are provided', () => {
+    const nodes = [
+      { id: 'node1', value: 10 },
+      { id: 'node2', value: 5 }
+    ]
+    const edges = [
+      { source: 'node1', target: 'node2', value: 1 }
+    ]
+    
+    const { container } = render(
+      <NetworkGraph nodes={nodes} edges={edges} width={600} height={400} />
+    )
+    
+    // The NetworkGraph component should render a minimap
+    const minimap = container.querySelector('.network-graph-minimap')
+    expect(minimap).toBeInTheDocument()
+  })
+  
+  it('should have proper container structure for zoom functionality', () => {
+    const nodes = [
+      { id: 'node1', value: 10 }
+    ]
+    
+    const { container } = render(
+      <NetworkGraph nodes={nodes} edges={[]} width={600} height={400} />
+    )
+    
+    // Check for the main container structure
+    const graphContainer = container.querySelector('.network-graph-container')
+    expect(graphContainer).toBeInTheDocument()
+    
+    // Check for the SVG container
+    const svgContainer = container.querySelector('.network-graph-svg')
+    expect(svgContainer).toBeInTheDocument()
   })
 })
