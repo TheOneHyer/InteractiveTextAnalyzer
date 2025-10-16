@@ -1,5 +1,7 @@
 name: Check Deprecated Dependencies
 on: [push, pull_request]
+permissions:
+  contents: read
 
 jobs:
   check-deprecated-deps:
