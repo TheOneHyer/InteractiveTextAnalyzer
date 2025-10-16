@@ -132,9 +132,13 @@
 .dependency-tree-viz {
   width: 100%;
   min-height: 500px;
+  height: 100%;
+  display: flex;
 }
 
 .dependency-tree-viz svg {
+  width: 100%;
+  height: 100%;
   display: block;
 }
 
