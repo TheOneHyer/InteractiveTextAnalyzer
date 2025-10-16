@@ -230,8 +230,7 @@ export default function NetworkGraph({ nodes=[], edges=[], width=600, height=400
         const newY = -(my / minimapScale - height / 2) * scale
         
         const newTransform = d3.zoomIdentity.translate(newX, newY).scale(scale)
-        g.attr('transform', newTransform)
-        updateMinimap(newTransform)
+        svg.call(zoom.transform, newTransform)
       })
       .on('end', function() {
         // Clear isDragging on next event loop to prevent click event reliably
@@ -324,7 +323,7 @@ export default function NetworkGraph({ nodes=[], edges=[], width=600, height=400
     
     const handleMouseMove = (moveEvent) => {
       const deltaX = startX - moveEvent.clientX
-      const deltaY = moveEvent.clientY - startY
+      const deltaY = startY - moveEvent.clientY
       
       setMinimapPosition({
         bottom: Math.max(10, startBottom + deltaY),
