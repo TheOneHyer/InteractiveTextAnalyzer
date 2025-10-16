@@ -54,10 +54,10 @@
   position: relative;
   border-radius: 6px;
   overflow: hidden;
-  min-height: 500px;
+  min-height: 200px;
   flex: 1;
   display: flex;
-  max-height: 600px;
+  max-height: 300px;
 }
 
 .network-graph-svg svg {
