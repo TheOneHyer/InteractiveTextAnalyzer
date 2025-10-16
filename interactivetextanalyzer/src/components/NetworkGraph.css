@@ -57,7 +57,7 @@
   min-height: 200px;
   flex: 1;
   display: flex;
-  max-height: 300px;
+  max-height: calc(100% - 20px);
 }
 
 .network-graph-svg svg {
