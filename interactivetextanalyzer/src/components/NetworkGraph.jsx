@@ -214,7 +214,7 @@ export default function NetworkGraph({ nodes=[], edges=[], width=600, height=400
         event.sourceEvent.stopPropagation()
       })
       .on('drag', function(event) {
-        const [mx, my] = d3.pointer(event, minimapSvg.node())
+        const [mx, my] = d3.pointer(event.sourceEvent, minimapSvg.node())
         const scale = d3.zoomTransform(svg.node()).k
         const newX = -(mx / minimapScale - width / 2) * scale
         const newY = -(my / minimapScale - height / 2) * scale
