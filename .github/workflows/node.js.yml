@@ -28,8 +28,9 @@ jobs:
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
-        working-directory: ./interactivetextanalyzer
-    - run: cd interactivetextanalyzer
     - run: npm ci
+      working-directory: ./interactivetextanalyzer
     - run: npm run build --if-present
+      working-directory: ./interactivetextanalyzer
     - run: npm test
+      working-directory: ./interactivetextanalyzer
