@@ -196,8 +196,15 @@ export default function NetworkGraph({ nodes=[], edges=[], width=600, height=400
     // Initialize minimap
     updateMinimap(d3.zoomIdentity)
     
+    // Track if we're dragging to prevent click after drag
+    let isDragging = false
+    
     // Minimap click to navigate
     minimapSvg.on('click', function(event) {
+      if (isDragging) {
+        isDragging = false
+        return
+      }
       const [mx, my] = d3.pointer(event)
       const scale = d3.zoomTransform(svg.node()).k
       const newX = -(mx / minimapScale - width / 2) * scale
@@ -212,14 +219,20 @@ export default function NetworkGraph({ nodes=[], edges=[], width=600, height=400
     const viewportDrag = d3.drag()
       .on('start', function(event) {
         event.sourceEvent.stopPropagation()
+        isDragging = false
       })
       .on('drag', function(event) {
+        isDragging = true
         const [mx, my] = d3.pointer(event.sourceEvent, minimapSvg.node())
         const scale = d3.zoomTransform(svg.node()).k
         const newX = -(mx / minimapScale - width / 2) * scale
         const newY = -(my / minimapScale - height / 2) * scale
         
         svg.call(zoom.transform, d3.zoomIdentity.translate(newX, newY).scale(scale))
+      })
+      .on('end', function() {
+        // Keep isDragging true briefly to prevent click event
+        setTimeout(() => { isDragging = false }, 100)
       })
     
     viewportRect.call(viewportDrag)
