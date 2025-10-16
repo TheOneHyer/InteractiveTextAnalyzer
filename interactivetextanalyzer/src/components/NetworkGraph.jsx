@@ -260,16 +260,18 @@ export default function NetworkGraph({ nodes=[], edges=[], width=600, height=400
     // Initialize minimap - will be updated as simulation runs
     updateMinimap(d3.zoomIdentity)
     
-    // Update minimap periodically during initial simulation
-    const minimapUpdateInterval = setInterval(() => {
-      updateMinimap(d3.zoomTransform(svg.node()))
-    }, 100)
-    
-    // Stop interval after simulation stabilizes
-    setTimeout(() => {
-      clearInterval(minimapUpdateInterval)
-      updateMinimap(d3.zoomTransform(svg.node()))
-    }, 2000)
+    // Update minimap smoothly during initial simulation using requestAnimationFrame
+    let minimapStartTime = performance.now();
+    function minimapUpdateLoop() {
+      updateMinimap(d3.zoomTransform(svg.node()));
+      if (performance.now() - minimapStartTime < 2000) {
+        requestAnimationFrame(minimapUpdateLoop);
+      } else {
+        // Final update after simulation stabilizes
+        updateMinimap(d3.zoomTransform(svg.node()));
+      }
+    }
+    minimapUpdateLoop();
     
     // Track if we're dragging to prevent click after drag
     let isDragging = false
