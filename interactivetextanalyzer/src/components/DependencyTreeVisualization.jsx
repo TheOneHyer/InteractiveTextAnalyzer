@@ -19,6 +19,8 @@ import './DependencyTreeVisualization.css'
  */
 export default function DependencyTreeVisualization({ sentences = [], width = 800, height = 500 }) {
   const ref = useRef(null)
+  const svgRef = useRef(null)
+  const minimapRef = useRef(null)
   const [selectedSentenceIdx, setSelectedSentenceIdx] = useState(0)
   const [hoveredLabel, setHoveredLabel] = useState(null)
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 })
@@ -42,17 +44,34 @@ export default function DependencyTreeVisualization({ sentences = [], width = 80
       return
     }
 
-    // Create SVG
+    // Create SVG with zoom capability
     const svg = d3.select(el)
       .append('svg')
       .attr('width', width)
       .attr('height', height)
+      .style('border', '1px solid #e0e0e0')
+      .style('background', '#fafafa')
+    
+    // Create a group for all graph elements (this will be zoomed/panned)
+    const mainG = svg.append('g')
+    
+    // Setup zoom behavior
+    const zoom = d3.zoom()
+      .scaleExtent([0.1, 4])
+      .on('zoom', (event) => {
+        mainG.attr('transform', event.transform)
+      })
+    
+    svg.call(zoom)
+    
+    // Store zoom behavior for control buttons
+    svg.node().zoomBehavior = zoom
 
     // Create arrow marker for directed edges
     svg.append('defs').selectAll('marker')
       .data(['end'])
       .enter().append('marker')
-      .attr('id', 'arrowhead')
+      .attr('id', `arrowhead-${selectedSentenceIdx}`)
       .attr('viewBox', '0 -5 10 10')
       .attr('refX', 20)
       .attr('refY', 0)
@@ -73,7 +92,7 @@ export default function DependencyTreeVisualization({ sentences = [], width = 80
       .force('y', d3.forceY(height / 2).strength(0.1))
 
     // Create links (edges)
-    const link = svg.append('g')
+    const link = mainG.append('g')
       .attr('class', 'links')
       .selectAll('line')
       .data(edges)
@@ -81,10 +100,10 @@ export default function DependencyTreeVisualization({ sentences = [], width = 80
       .attr('stroke', d => d.color || '#999')
       .attr('stroke-width', 2)
       .attr('stroke-opacity', 0.7)
-      .attr('marker-end', 'url(#arrowhead)')
+      .attr('marker-end', `url(#arrowhead-${selectedSentenceIdx})`)
 
     // Create edge labels
-    const edgeLabels = svg.append('g')
+    const edgeLabels = mainG.append('g')
       .attr('class', 'edge-labels')
       .selectAll('text')
       .data(edges)
@@ -110,7 +129,7 @@ export default function DependencyTreeVisualization({ sentences = [], width = 80
       })
 
     // Create nodes
-    const node = svg.append('g')
+    const node = mainG.append('g')
       .attr('class', 'nodes')
       .selectAll('g')
       .data(nodes)
@@ -200,12 +219,170 @@ export default function DependencyTreeVisualization({ sentences = [], width = 80
     setTimeout(() => {
       simulation.stop()
     }, 5000)
+    
+    // Store SVG ref for control buttons
+    svgRef.current = svg.node()
+    
+    // Create minimap
+    const minimapContainer = minimapRef.current
+    if (minimapContainer) {
+      minimapContainer.innerHTML = ''
+      
+      const minimapWidth = 150
+      const minimapHeight = 100
+      const minimapScale = Math.min(minimapWidth / width, minimapHeight / height)
+      
+      const minimapSvg = d3.select(minimapContainer)
+        .append('svg')
+        .attr('width', minimapWidth)
+        .attr('height', minimapHeight)
+        .style('border', '1px solid #999')
+        .style('background', '#f0f0f0')
+      
+      const minimapG = minimapSvg.append('g')
+        .attr('transform', `scale(${minimapScale})`)
+      
+      // Minimap links
+      const minimapLinks = minimapG.append('g')
+        .selectAll('line')
+        .data(edges)
+        .enter()
+        .append('line')
+        .attr('stroke', '#999')
+        .attr('stroke-width', 1)
+        .attr('stroke-opacity', 0.3)
+      
+      // Minimap nodes
+      const minimapNodes = minimapG.append('g')
+        .selectAll('circle')
+        .data(nodes)
+        .enter()
+        .append('circle')
+        .attr('r', 3)
+        .attr('fill', '#74B9FF')
+      
+      // Viewport indicator on minimap
+      const viewportRect = minimapSvg.append('rect')
+        .attr('fill', 'none')
+        .attr('stroke', '#2196F3')
+        .attr('stroke-width', 2)
+        .attr('rx', 2)
+      
+      // Update minimap on zoom
+      zoom.on('zoom.minimap', (event) => {
+        const transform = event.transform
+        const scale = transform.k
+        const x = -transform.x / scale
+        const y = -transform.y / scale
+        
+        viewportRect
+          .attr('x', x * minimapScale)
+          .attr('y', y * minimapScale)
+          .attr('width', (width / scale) * minimapScale)
+          .attr('height', (height / scale) * minimapScale)
+      })
+      
+      // Update minimap positions on simulation tick
+      simulation.on('tick.minimap', () => {
+        minimapLinks
+          .attr('x1', d => d.source.x)
+          .attr('y1', d => d.source.y)
+          .attr('x2', d => d.target.x)
+          .attr('y2', d => d.target.y)
+        
+        minimapNodes
+          .attr('cx', d => d.x)
+          .attr('cy', d => d.y)
+      })
+      
+      // Initialize minimap viewport
+      viewportRect
+        .attr('x', 0)
+        .attr('y', 0)
+        .attr('width', width * minimapScale)
+        .attr('height', height * minimapScale)
+      
+      // Minimap click to navigate
+      minimapSvg.on('click', function(event) {
+        const [mx, my] = d3.pointer(event)
+        const transform = d3.zoomTransform(svg.node())
+        const scale = transform.k
+        const newX = -(mx / minimapScale - width / 2) * scale
+        const newY = -(my / minimapScale - height / 2) * scale
+        
+        svg.transition()
+          .duration(300)
+          .call(zoom.transform, d3.zoomIdentity.translate(newX, newY).scale(scale))
+      })
+    }
 
-  }, [selectedSentence, width, height])
+  }, [selectedSentence, width, height, selectedSentenceIdx])
 
   // Handle sentence selection
   const handleSentenceChange = (event) => {
     setSelectedSentenceIdx(parseInt(event.target.value, 10))
+  }
+  
+  // Control button handlers
+  const handleZoomIn = () => {
+    if (!svgRef.current) return
+    const svg = d3.select(svgRef.current)
+    if (svg.node().zoomBehavior) {
+      svg.transition().duration(300).call(svg.node().zoomBehavior.scaleBy, 1.3)
+    }
+  }
+  
+  const handleZoomOut = () => {
+    if (!svgRef.current) return
+    const svg = d3.select(svgRef.current)
+    if (svg.node().zoomBehavior) {
+      svg.transition().duration(300).call(svg.node().zoomBehavior.scaleBy, 0.7)
+    }
+  }
+  
+  const handleReset = () => {
+    if (!svgRef.current) return
+    const svg = d3.select(svgRef.current)
+    if (svg.node().zoomBehavior) {
+      svg.transition().duration(300).call(svg.node().zoomBehavior.transform, d3.zoomIdentity)
+    }
+  }
+  
+  const handleFitView = () => {
+    if (!svgRef.current || !selectedSentence) return
+    
+    const nodes = selectedSentence.nodes || []
+    if (nodes.length === 0) return
+    
+    // Calculate bounding box of all nodes
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+    nodes.forEach(d => {
+      if (d.x && d.y) {
+        if (d.x < minX) minX = d.x
+        if (d.x > maxX) maxX = d.x
+        if (d.y < minY) minY = d.y
+        if (d.y > maxY) maxY = d.y
+      }
+    })
+    
+    if (minX === Infinity) return
+    
+    const padding = 50
+    const contentWidth = maxX - minX + padding * 2
+    const contentHeight = maxY - minY + padding * 2
+    const centerX = (minX + maxX) / 2
+    const centerY = (minY + maxY) / 2
+    
+    const scale = Math.min(width / contentWidth, height / contentHeight, 1)
+    const translateX = width / 2 - centerX * scale
+    const translateY = height / 2 - centerY * scale
+    
+    const svg = d3.select(svgRef.current)
+    if (svg.node().zoomBehavior) {
+      svg.transition()
+        .duration(500)
+        .call(svg.node().zoomBehavior.transform, d3.zoomIdentity.translate(translateX, translateY).scale(scale))
+    }
   }
 
   // Get dependency info for tooltip
@@ -252,9 +429,28 @@ export default function DependencyTreeVisualization({ sentences = [], width = 80
           Showing sentence {selectedSentenceIdx + 1} of {sentences.length}
         </div>
       </div>
+      
+      <div className="dependency-tree-zoom-controls">
+        <button onClick={handleZoomIn} className="control-btn" title="Zoom In">
+          <span>+</span>
+        </button>
+        <button onClick={handleZoomOut} className="control-btn" title="Zoom Out">
+          <span>−</span>
+        </button>
+        <button onClick={handleReset} className="control-btn" title="Reset View">
+          <span>⟲</span>
+        </button>
+        <button onClick={handleFitView} className="control-btn" title="Fit to View">
+          <span>⛶</span>
+        </button>
+      </div>
 
       <div className="dependency-tree-viz-wrapper">
         <div ref={ref} className="dependency-tree-viz" />
+        <div className="dependency-tree-minimap">
+          <div className="minimap-label">Minimap</div>
+          <div ref={minimapRef} />
+        </div>
 
         {hoveredLabel && tooltipInfo && (
           <div

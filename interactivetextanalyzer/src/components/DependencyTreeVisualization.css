@@ -61,6 +61,74 @@
   overflow: hidden;
 }
 
+.dependency-tree-zoom-controls {
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+  margin-bottom: 10px;
+}
+
+.control-btn {
+  width: 36px;
+  height: 36px;
+  border: 1px solid #ddd;
+  background: white;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 18px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  color: #2c3e50;
+}
+
+.control-btn:hover {
+  background: #e3f2fd;
+  border-color: #2196F3;
+  color: #1976D2;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.control-btn:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.control-btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.2);
+}
+
+.dependency-tree-minimap {
+  position: absolute;
+  bottom: 15px;
+  right: 15px;
+  background: white;
+  padding: 8px;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  z-index: 10;
+}
+
+.minimap-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #666;
+  margin-bottom: 4px;
+  text-align: center;
+}
+
+.dependency-tree-minimap svg {
+  display: block;
+  cursor: pointer;
+}
+
 .dependency-tree-viz {
   width: 100%;
   min-height: 500px;
@@ -212,5 +280,17 @@
 
   .sentence-selector {
     max-width: 100%;
+  }
+  
+  .control-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 16px;
+  }
+  
+  .dependency-tree-minimap {
+    bottom: 10px;
+    right: 10px;
+    padding: 6px;
   }
 }
