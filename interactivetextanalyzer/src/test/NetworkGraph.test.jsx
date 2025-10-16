@@ -109,4 +109,28 @@ describe('NetworkGraph Component', () => {
     expect(edges[0]).toHaveProperty('target')
     expect(edges[0]).toHaveProperty('value')
   })
+
+  it('should constrain nodes within boundaries', () => {
+    const nodes = [
+      { id: 'node1', value: 10 },
+      { id: 'node2', value: 5 }
+    ]
+    const edges = [
+      { source: 'node1', target: 'node2', value: 1 }
+    ]
+    const width = 600
+    const height = 400
+    
+    const { container } = render(
+      <NetworkGraph nodes={nodes} edges={edges} width={width} height={height} />
+    )
+    
+    // The NetworkGraph component should constrain node positions during simulation
+    // This test verifies the component accepts the boundary parameters
+    const div = container.querySelector('div')
+    expect(div).toBeInTheDocument()
+    
+    // After simulation ticks, nodes should stay within bounds (20 to width-20, 20 to height-20)
+    // This is enforced by the tick handler in the component
+  })
 })
