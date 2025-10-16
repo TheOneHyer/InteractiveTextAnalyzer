@@ -48,12 +48,22 @@ export default function NetworkGraph({ nodes=[], edges=[], width=600, height=400
       if (nodes.length === 0) return { minX: 0, minY: 0, maxX: width, maxY: height }
       
       let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+      let hasValidPositions = false
+      
       nodes.forEach(d => {
-        if (d.x < minX) minX = d.x
-        if (d.x > maxX) maxX = d.x
-        if (d.y < minY) minY = d.y
-        if (d.y > maxY) maxY = d.y
+        if (d.x !== undefined && d.y !== undefined) {
+          hasValidPositions = true
+          if (d.x < minX) minX = d.x
+          if (d.x > maxX) maxX = d.x
+          if (d.y < minY) minY = d.y
+          if (d.y > maxY) maxY = d.y
+        }
       })
+      
+      // If no valid positions yet, use default bounds
+      if (!hasValidPositions) {
+        return { minX: 0, minY: 0, maxX: width, maxY: height }
+      }
       
       // Add padding around bounds
       const padding = 50
