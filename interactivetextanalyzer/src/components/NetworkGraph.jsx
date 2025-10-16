@@ -20,6 +20,9 @@ export default function NetworkGraph({ nodes=[], edges=[], width=600, height=400
     
     const color = d3.scaleOrdinal(d3.schemeCategory10)
     
+    // Store initial positions for reset functionality
+    const initialPositions = new Map()
+    
     // Create main SVG with zoom capability
     const svg = d3.select(container)
       .append('svg')
@@ -38,19 +41,54 @@ export default function NetworkGraph({ nodes=[], edges=[], width=600, height=400
     // Variables to hold minimap elements (will be initialized later)
     let viewportRect = null
     let minimapG = null
+    let minimapSvgElement = null
     
-    // Update minimap viewport indicator
-    function updateMinimap(transform) {
-      if (!viewportRect || !minimapG) return
+    // Calculate minimap bounds dynamically based on all node positions
+    function getMinimapBounds() {
+      if (nodes.length === 0) return { minX: 0, minY: 0, maxX: width, maxY: height }
       
-      const minimapScale = Math.min(150 / width, 100 / height)
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+      nodes.forEach(d => {
+        if (d.x < minX) minX = d.x
+        if (d.x > maxX) maxX = d.x
+        if (d.y < minY) minY = d.y
+        if (d.y > maxY) maxY = d.y
+      })
+      
+      // Add padding around bounds
+      const padding = 50
+      return {
+        minX: minX - padding,
+        minY: minY - padding,
+        maxX: maxX + padding,
+        maxY: maxY + padding
+      }
+    }
+    
+    // Update minimap viewport indicator and scale
+    function updateMinimap(transform) {
+      if (!viewportRect || !minimapG || !minimapSvgElement) return
+      
+      // Calculate bounds to fit all nodes
+      const bounds = getMinimapBounds()
+      const boundsWidth = bounds.maxX - bounds.minX
+      const boundsHeight = bounds.maxY - bounds.minY
+      
+      // Calculate minimap scale to fit all nodes
+      const minimapWidth = 150
+      const minimapHeight = 100
+      const minimapScale = Math.min(minimapWidth / boundsWidth, minimapHeight / boundsHeight)
+      
+      // Update minimap group transform with dynamic scale and translation
+      minimapG.attr('transform', `translate(${-bounds.minX * minimapScale}, ${-bounds.minY * minimapScale}) scale(${minimapScale})`)
+      
       const scale = transform.k
       const x = -transform.x / scale
       const y = -transform.y / scale
       
       viewportRect
-        .attr('x', x * minimapScale)
-        .attr('y', y * minimapScale)
+        .attr('x', (x - bounds.minX) * minimapScale)
+        .attr('y', (y - bounds.minY) * minimapScale)
         .attr('width', (width / scale) * minimapScale)
         .attr('height', (height / scale) * minimapScale)
       
@@ -151,12 +189,32 @@ export default function NetworkGraph({ nodes=[], edges=[], width=600, height=400
       labels
         .attr('x', d=>d.x)
         .attr('y', d=>d.y - 10)
+      
+      // Update minimap when nodes move
+      updateMinimap(d3.zoomTransform(svg.node()))
     })
+    
+    // Store initial positions after simulation stabilizes (after ~500ms)
+    simulation.on('end', () => {
+      nodes.forEach(d => {
+        if (!initialPositions.has(d.id)) {
+          initialPositions.set(d.id, { x: d.x, y: d.y })
+        }
+      })
+    })
+    
+    // Also store initial positions after a delay to ensure they're captured
+    setTimeout(() => {
+      nodes.forEach(d => {
+        if (!initialPositions.has(d.id)) {
+          initialPositions.set(d.id, { x: d.x, y: d.y })
+        }
+      })
+    }, 1000)
     
     // Create minimap
     const minimapWidth = 150
     const minimapHeight = 100
-    const minimapScale = Math.min(minimapWidth / width, minimapHeight / height)
     
     const minimapSvg = d3.select(minimapContainer)
       .append('svg')
@@ -165,9 +223,10 @@ export default function NetworkGraph({ nodes=[], edges=[], width=600, height=400
       .style('border', '1px solid #999')
       .style('background', '#f0f0f0')
     
+    minimapSvgElement = minimapSvg
+    
     // Add minimap content
     minimapG = minimapSvg.append('g')
-      .attr('transform', `scale(${minimapScale})`)
     
     // Minimap links
     minimapG.append('g')
@@ -196,8 +255,19 @@ export default function NetworkGraph({ nodes=[], edges=[], width=600, height=400
       .attr('rx', 2)
       .style('cursor', 'move')
     
-    // Initialize minimap
+    // Initialize minimap - will be updated as simulation runs
     updateMinimap(d3.zoomIdentity)
+    
+    // Update minimap periodically during initial simulation
+    const minimapUpdateInterval = setInterval(() => {
+      updateMinimap(d3.zoomTransform(svg.node()))
+    }, 100)
+    
+    // Stop interval after simulation stabilizes
+    setTimeout(() => {
+      clearInterval(minimapUpdateInterval)
+      updateMinimap(d3.zoomTransform(svg.node()))
+    }, 2000)
     
     // Track if we're dragging to prevent click after drag
     let isDragging = false
@@ -211,9 +281,15 @@ export default function NetworkGraph({ nodes=[], edges=[], width=600, height=400
       const [mx, my] = d3.pointer(event)
       const scale = d3.zoomTransform(svg.node()).k
       
+      // Get current minimap bounds
+      const bounds = getMinimapBounds()
+      const boundsWidth = bounds.maxX - bounds.minX
+      const boundsHeight = bounds.maxY - bounds.minY
+      const minimapScale = Math.min(150 / boundsWidth, 100 / boundsHeight)
+      
       // Convert minimap coordinates to main graph coordinates
-      const graphX = mx / minimapScale
-      const graphY = my / minimapScale
+      const graphX = mx / minimapScale + bounds.minX
+      const graphY = my / minimapScale + bounds.minY
       
       // Center the viewport on the clicked point
       const newX = -(graphX - width / 2) * scale
@@ -235,9 +311,15 @@ export default function NetworkGraph({ nodes=[], edges=[], width=600, height=400
         const [mx, my] = d3.pointer(event.sourceEvent, minimapSvg.node())
         const scale = d3.zoomTransform(svg.node()).k
         
+        // Get current minimap bounds
+        const bounds = getMinimapBounds()
+        const boundsWidth = bounds.maxX - bounds.minX
+        const boundsHeight = bounds.maxY - bounds.minY
+        const minimapScale = Math.min(150 / boundsWidth, 100 / boundsHeight)
+        
         // Convert minimap coordinates to main graph coordinates
-        const graphX = mx / minimapScale
-        const graphY = my / minimapScale
+        const graphX = mx / minimapScale + bounds.minX
+        const graphY = my / minimapScale + bounds.minY
         
         // Center the viewport on the dragged position
         const newX = -(graphX - width / 2) * scale
@@ -252,6 +334,11 @@ export default function NetworkGraph({ nodes=[], edges=[], width=600, height=400
       })
     
     viewportRect.call(viewportDrag)
+    
+    // Store simulation and other needed references on svg.node() for reset functionality
+    svg.node().simulationRef = simulation
+    svg.node().initialPositions = initialPositions
+    svg.node().nodesData = nodes
     
   }, [nodes, edges, width, height, weightedLines])
   
@@ -275,9 +362,33 @@ export default function NetworkGraph({ nodes=[], edges=[], width=600, height=400
   const handleReset = () => {
     const svg = d3.select(svgRef.current)
     const zoom = svg.node()?.zoomBehavior
+    const simulation = svg.node()?.simulationRef
+    const initialPositions = svg.node()?.initialPositions
+    const nodes = svg.node()?.nodesData
+    
+    // Reset zoom/pan
     if (zoom) {
       svg.transition().duration(300).call(zoom.transform, d3.zoomIdentity)
     }
+    
+    // Reset node positions to initial positions
+    if (simulation && initialPositions && nodes) {
+      nodes.forEach(d => {
+        const initial = initialPositions.get(d.id)
+        if (initial) {
+          d.x = initial.x
+          d.y = initial.y
+          d.fx = null
+          d.fy = null
+        }
+      })
+      // Restart simulation briefly to update positions
+      simulation.alpha(0.3).restart()
+      setTimeout(() => {
+        simulation.stop()
+      }, 300)
+    }
+    
     // Reset minimap position to default
     setMinimapPosition({ bottom: 15, right: 15 })
   }
