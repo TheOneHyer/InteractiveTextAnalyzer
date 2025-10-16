@@ -54,7 +54,7 @@
   position: relative;
   border-radius: 6px;
   overflow: hidden;
-  min-height: 400px;
+  min-height: 500px;
   flex: 1;
   display: flex;
 }
@@ -82,6 +82,9 @@
   color: #666;
   margin-bottom: 4px;
   text-align: center;
+  cursor: move;
+  user-select: none;
+  padding: 2px 0;
 }
 
 .network-graph-minimap svg {

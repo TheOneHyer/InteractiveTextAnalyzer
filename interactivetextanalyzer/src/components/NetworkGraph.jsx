@@ -7,6 +7,7 @@ export default function NetworkGraph({ nodes=[], edges=[], width=600, height=400
   const containerRef = useRef(null)
   const svgRef = useRef(null)
   const minimapRef = useRef(null)
+  const [minimapPosition, setMinimapPosition] = useState({ bottom: 15, right: 15 })
   
   useEffect(() => {
     const container = containerRef.current
@@ -228,7 +229,9 @@ export default function NetworkGraph({ nodes=[], edges=[], width=600, height=400
         const newX = -(mx / minimapScale - width / 2) * scale
         const newY = -(my / minimapScale - height / 2) * scale
         
-        svg.call(zoom.transform, d3.zoomIdentity.translate(newX, newY).scale(scale))
+        const newTransform = d3.zoomIdentity.translate(newX, newY).scale(scale)
+        g.attr('transform', newTransform)
+        updateMinimap(newTransform)
       })
       .on('end', function() {
         // Clear isDragging on next event loop to prevent click event reliably
@@ -262,6 +265,8 @@ export default function NetworkGraph({ nodes=[], edges=[], width=600, height=400
     if (zoom) {
       svg.transition().duration(300).call(zoom.transform, d3.zoomIdentity)
     }
+    // Reset minimap position to default
+    setMinimapPosition({ bottom: 15, right: 15 })
   }
   
   const handleFitView = () => {
@@ -299,6 +304,43 @@ export default function NetworkGraph({ nodes=[], edges=[], width=600, height=400
     return <div ref={containerRef} />
   }
   
+  // Handle minimap container dragging
+  const handleMinimapMouseDown = (e) => {
+    // Only allow dragging from the label or container, not the SVG
+    if (
+      e.target.tagName.toLowerCase() === 'svg' ||
+      e.target.tagName.toLowerCase() === 'rect' ||
+      e.target.tagName.toLowerCase() === 'line' ||
+      e.target.tagName.toLowerCase() === 'circle'
+    ) {
+      return
+    }
+    
+    e.preventDefault()
+    const startX = e.clientX
+    const startY = e.clientY
+    const startBottom = minimapPosition.bottom
+    const startRight = minimapPosition.right
+    
+    const handleMouseMove = (moveEvent) => {
+      const deltaX = startX - moveEvent.clientX
+      const deltaY = moveEvent.clientY - startY
+      
+      setMinimapPosition({
+        bottom: Math.max(10, startBottom + deltaY),
+        right: Math.max(10, startRight + deltaX)
+      })
+    }
+    
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
+    
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+  }
+  
   return (
     <div className="network-graph-container">
       <div className="network-graph-controls">
@@ -316,7 +358,11 @@ export default function NetworkGraph({ nodes=[], edges=[], width=600, height=400
         </button>
       </div>
       <div ref={containerRef} className="network-graph-svg" />
-      <div className="network-graph-minimap">
+      <div 
+        className="network-graph-minimap"
+        style={{ bottom: `${minimapPosition.bottom}px`, right: `${minimapPosition.right}px` }}
+        onMouseDown={handleMinimapMouseDown}
+      >
         <div className="minimap-label">Minimap</div>
         <div ref={minimapRef} />
       </div>
