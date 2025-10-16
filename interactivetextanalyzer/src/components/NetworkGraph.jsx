@@ -22,12 +22,17 @@ export default function NetworkGraph({ nodes=[], edges=[], width=600, height=400
       .attr('stroke-opacity', 0.6)
       .attr('stroke-width', d => weightedLines ? Math.sqrt(d.value || 1) : 1.5)
 
+    const nodeRadius = 20 // Padding to account for node size and labels
     const node = svg.append('g').selectAll('circle').data(nodes).enter().append('circle')
       .attr('r', d => 6 + Math.log(d.value || 1))
       .attr('fill', d => color(d.id))
       .call(d3.drag()
         .on('start', (event, d) => { if(!event.active) simulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y })
-        .on('drag', (event, d) => { d.fx = event.x; d.fy = event.y })
+        .on('drag', (event, d) => { 
+          // Constrain dragged position to stay within boundaries
+          d.fx = Math.max(nodeRadius, Math.min(width - nodeRadius, event.x))
+          d.fy = Math.max(nodeRadius, Math.min(height - nodeRadius, event.y))
+        })
         .on('end', (event, d) => { if(!event.active) simulation.alphaTarget(0); d.fx = null; d.fy = null }))
 
     const labels = svg.append('g').selectAll('text').data(nodes).enter().append('text')
@@ -40,6 +45,12 @@ export default function NetworkGraph({ nodes=[], edges=[], width=600, height=400
       .attr('paint-order', 'stroke')
 
     simulation.on('tick', () => {
+      // Constrain nodes to stay within SVG boundaries
+      nodes.forEach(d => {
+        d.x = Math.max(nodeRadius, Math.min(width - nodeRadius, d.x))
+        d.y = Math.max(nodeRadius, Math.min(height - nodeRadius, d.y))
+      })
+      
       link.attr('x1', d=>d.source.x).attr('y1', d=>d.source.y).attr('x2', d=>d.target.x).attr('y2', d=>d.target.y)
       node.attr('cx', d=>d.x).attr('cy', d=>d.y)
       labels.attr('x', d=>d.x).attr('y', d=>d.y - 10)
