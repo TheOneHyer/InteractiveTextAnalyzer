@@ -123,4 +123,8 @@ The **Report** tab provides a comprehensive all-in-one analysis report that auto
 - Responsive design adapts to all screen sizes
 - Print-friendly CSS for report generation
 
-See [REPORT_FEATURE_SUMMARY.md](REPORT_FEATURE_SUMMARY.md) for detailed implementation documentation.
+See [REPORT_FEATURE_SUMMARY.md](docs/implementation-guides/REPORT_FEATURE_SUMMARY.md) for detailed implementation documentation.
+
+## Additional Documentation
+
+Additional implementation guides and visual documentation can be found in the [docs/implementation-guides](docs/implementation-guides/) directory.

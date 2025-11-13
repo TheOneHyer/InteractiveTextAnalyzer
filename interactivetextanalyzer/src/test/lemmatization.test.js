@@ -3,11 +3,6 @@ import { analyzeLemmatization } from '../utils/textAnalysis'
 
 describe('Lemmatization Analysis', () => {
   describe('analyzeLemmatization', () => {
-    const sampleTexts = [
-      'The cats are running quickly in the garden.',
-      'The children were playing happily with their toys.',
-      'She writes better stories than her friends.'
-    ]
 
     describe('rules-based method', () => {
       it('should lemmatize plural nouns to singular', () => {
@@ -164,9 +159,9 @@ describe('Lemmatization Analysis', () => {
         const texts = ['test']
         const result = analyzeLemmatization(texts, { method: 'compromise', top: 10, nlpLib: null, stopwords: new Set() })
         
-        expect(result.every(r => r.hasOwnProperty('lemma'))).toBe(true)
-        expect(result.every(r => r.hasOwnProperty('count'))).toBe(true)
-        expect(result.every(r => r.hasOwnProperty('originals'))).toBe(true)
+        expect(result.every(r => Object.prototype.hasOwnProperty.call(r, 'lemma'))).toBe(true)
+        expect(result.every(r => Object.prototype.hasOwnProperty.call(r, 'count'))).toBe(true)
+        expect(result.every(r => Object.prototype.hasOwnProperty.call(r, 'originals'))).toBe(true)
       })
     })
 
