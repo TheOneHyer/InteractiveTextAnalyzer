@@ -7,6 +7,7 @@ export default function NetworkGraph({ nodes=[], edges=[], width=600, height=400
   const containerRef = useRef(null)
   const svgRef = useRef(null)
   const minimapRef = useRef(null)
+  const [minimapPosition, setMinimapPosition] = useState({ bottom: 15, right: 15 })
   
   useEffect(() => {
     const container = containerRef.current
@@ -19,11 +20,16 @@ export default function NetworkGraph({ nodes=[], edges=[], width=600, height=400
     
     const color = d3.scaleOrdinal(d3.schemeCategory10)
     
+    // Store initial positions for reset functionality
+    const initialPositions = new Map()
+    
     // Create main SVG with zoom capability
     const svg = d3.select(container)
       .append('svg')
-      .attr('width', width)
-      .attr('height', height)
+      .attr('width', '100%')
+      .attr('height', '100%')
+      .attr('viewBox', `0 0 ${width} ${height}`)
+      .attr('preserveAspectRatio', 'xMidYMid meet')
       .style('border', '1px solid #e0e0e0')
       .style('background', '#fafafa')
     
@@ -35,19 +41,64 @@ export default function NetworkGraph({ nodes=[], edges=[], width=600, height=400
     // Variables to hold minimap elements (will be initialized later)
     let viewportRect = null
     let minimapG = null
+    let minimapSvgElement = null
     
-    // Update minimap viewport indicator
-    function updateMinimap(transform) {
-      if (!viewportRect || !minimapG) return
+    // Calculate minimap bounds dynamically based on all node positions
+    function getMinimapBounds() {
+      if (nodes.length === 0) return { minX: 0, minY: 0, maxX: width, maxY: height }
       
-      const minimapScale = Math.min(150 / width, 100 / height)
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+      let hasValidPositions = false
+      
+      nodes.forEach(d => {
+        if (d.x !== undefined && d.y !== undefined) {
+          hasValidPositions = true
+          if (d.x < minX) minX = d.x
+          if (d.x > maxX) maxX = d.x
+          if (d.y < minY) minY = d.y
+          if (d.y > maxY) maxY = d.y
+        }
+      })
+      
+      // If no valid positions yet, use default bounds
+      if (!hasValidPositions) {
+        return { minX: 0, minY: 0, maxX: width, maxY: height }
+      }
+      
+      // Add padding around bounds
+      const padding = 50
+      return {
+        minX: minX - padding,
+        minY: minY - padding,
+        maxX: maxX + padding,
+        maxY: maxY + padding
+      }
+    }
+    
+    // Update minimap viewport indicator and scale
+    function updateMinimap(transform) {
+      if (!viewportRect || !minimapG || !minimapSvgElement) return
+      
+      // Calculate bounds to fit all nodes
+      const bounds = getMinimapBounds()
+      const boundsWidth = bounds.maxX - bounds.minX
+      const boundsHeight = bounds.maxY - bounds.minY
+      
+      // Calculate minimap scale to fit all nodes
+      const minimapWidth = 150
+      const minimapHeight = 100
+      const minimapScale = Math.min(minimapWidth / boundsWidth, minimapHeight / boundsHeight)
+      
+      // Update minimap group transform with dynamic scale and translation
+      minimapG.attr('transform', `translate(${-bounds.minX * minimapScale}, ${-bounds.minY * minimapScale}) scale(${minimapScale})`)
+      
       const scale = transform.k
       const x = -transform.x / scale
       const y = -transform.y / scale
       
       viewportRect
-        .attr('x', x * minimapScale)
-        .attr('y', y * minimapScale)
+        .attr('x', (x - bounds.minX) * minimapScale)
+        .attr('y', (y - bounds.minY) * minimapScale)
         .attr('width', (width / scale) * minimapScale)
         .attr('height', (height / scale) * minimapScale)
       
@@ -73,8 +124,8 @@ export default function NetworkGraph({ nodes=[], edges=[], width=600, height=400
     
     svg.call(zoom)
     
-    // Store zoom behavior for control buttons
-    svg.zoomBehavior = zoom
+    // Store zoom behavior for control buttons (store on DOM node, not D3 selection)
+    svg.node().zoomBehavior = zoom
     
     // Create force simulation
     const simulation = d3.forceSimulation(nodes)
@@ -110,6 +161,8 @@ export default function NetworkGraph({ nodes=[], edges=[], width=600, height=400
         .on('drag', (event, d) => { 
           d.fx = event.x
           d.fy = event.y
+          // Update minimap during drag
+          updateMinimap(d3.zoomTransform(svg.node()))
         })
         .on('end', (event, d) => { 
           if(!event.active) simulation.alphaTarget(0)
@@ -146,12 +199,24 @@ export default function NetworkGraph({ nodes=[], edges=[], width=600, height=400
       labels
         .attr('x', d=>d.x)
         .attr('y', d=>d.y - 10)
+      
+      // Update minimap when nodes move
+      updateMinimap(d3.zoomTransform(svg.node()))
     })
+    
+    // Store initial positions after simulation stabilizes (after ~500ms)
+    simulation.on('end', () => {
+      nodes.forEach(d => {
+        if (!initialPositions.has(d.id)) {
+          initialPositions.set(d.id, { x: d.x, y: d.y })
+        }
+      })
+    })
+    
     
     // Create minimap
     const minimapWidth = 150
     const minimapHeight = 100
-    const minimapScale = Math.min(minimapWidth / width, minimapHeight / height)
     
     const minimapSvg = d3.select(minimapContainer)
       .append('svg')
@@ -160,9 +225,10 @@ export default function NetworkGraph({ nodes=[], edges=[], width=600, height=400
       .style('border', '1px solid #999')
       .style('background', '#f0f0f0')
     
+    minimapSvgElement = minimapSvg
+    
     // Add minimap content
     minimapG = minimapSvg.append('g')
-      .attr('transform', `scale(${minimapScale})`)
     
     // Minimap links
     minimapG.append('g')
@@ -189,38 +255,146 @@ export default function NetworkGraph({ nodes=[], edges=[], width=600, height=400
       .attr('stroke', '#2196F3')
       .attr('stroke-width', 2)
       .attr('rx', 2)
+      .style('cursor', 'move')
     
-    // Initialize minimap
+    // Initialize minimap - will be updated as simulation runs
     updateMinimap(d3.zoomIdentity)
     
-    // Minimap click to navigate
+    // Update minimap smoothly during initial simulation using requestAnimationFrame
+    let minimapStartTime = performance.now();
+    function minimapUpdateLoop() {
+      updateMinimap(d3.zoomTransform(svg.node()));
+      if (performance.now() - minimapStartTime < 2000) {
+        requestAnimationFrame(minimapUpdateLoop);
+      } else {
+        // Final update after simulation stabilizes
+        updateMinimap(d3.zoomTransform(svg.node()));
+      }
+    }
+    minimapUpdateLoop();
+    
+    // Track if we're dragging to prevent click after drag
+    let isDragging = false
+    
+    // Minimap click to navigate - centers viewport around click location
     minimapSvg.on('click', function(event) {
+      if (isDragging) {
+        isDragging = false
+        return
+      }
       const [mx, my] = d3.pointer(event)
       const scale = d3.zoomTransform(svg.node()).k
-      const newX = -(mx / minimapScale - width / 2) * scale
-      const newY = -(my / minimapScale - height / 2) * scale
+      
+      // Get current minimap bounds
+      const bounds = getMinimapBounds()
+      const boundsWidth = bounds.maxX - bounds.minX
+      const boundsHeight = bounds.maxY - bounds.minY
+      const minimapScale = Math.min(150 / boundsWidth, 100 / boundsHeight)
+      
+      // Convert minimap coordinates to main graph coordinates
+      const graphX = mx / minimapScale + bounds.minX
+      const graphY = my / minimapScale + bounds.minY
+      
+      // Center the viewport on the clicked point
+      const newX = -(graphX - width / 2) * scale
+      const newY = -(graphY - height / 2) * scale
       
       svg.transition()
         .duration(300)
         .call(zoom.transform, d3.zoomIdentity.translate(newX, newY).scale(scale))
     })
     
+    // Add drag behavior to viewport rectangle for click-and-drag navigation
+    const viewportDrag = d3.drag()
+      .on('start', function(event) {
+        event.sourceEvent.stopPropagation()
+        isDragging = false
+      })
+      .on('drag', function(event) {
+        isDragging = true
+        const [mx, my] = d3.pointer(event.sourceEvent, minimapSvg.node())
+        const scale = d3.zoomTransform(svg.node()).k
+        
+        // Get current minimap bounds
+        const bounds = getMinimapBounds()
+        const boundsWidth = bounds.maxX - bounds.minX
+        const boundsHeight = bounds.maxY - bounds.minY
+        const minimapScale = Math.min(150 / boundsWidth, 100 / boundsHeight)
+        
+        // Convert minimap coordinates to main graph coordinates
+        const graphX = mx / minimapScale + bounds.minX
+        const graphY = my / minimapScale + bounds.minY
+        
+        // Center the viewport on the dragged position
+        const newX = -(graphX - width / 2) * scale
+        const newY = -(graphY - height / 2) * scale
+        
+        const newTransform = d3.zoomIdentity.translate(newX, newY).scale(scale)
+        svg.call(zoom.transform, newTransform)
+      })
+      .on('end', function() {
+        // Clear isDragging on next event loop to prevent click event reliably
+        setTimeout(() => { isDragging = false }, 0)
+      })
+    
+    viewportRect.call(viewportDrag)
+    
+    // Store simulation and other needed references on svg.node() for reset functionality
+    svg.node().simulationRef = simulation
+    svg.node().initialPositions = initialPositions
+    svg.node().nodesData = nodes
+    
   }, [nodes, edges, width, height, weightedLines])
   
   // Control button handlers
   const handleZoomIn = () => {
     const svg = d3.select(svgRef.current)
-    svg.transition().duration(300).call(svg.zoomBehavior.scaleBy, 1.3)
+    const zoom = svg.node()?.zoomBehavior
+    if (zoom) {
+      svg.transition().duration(300).call(zoom.scaleBy, 1.3)
+    }
   }
   
   const handleZoomOut = () => {
     const svg = d3.select(svgRef.current)
-    svg.transition().duration(300).call(svg.zoomBehavior.scaleBy, 0.7)
+    const zoom = svg.node()?.zoomBehavior
+    if (zoom) {
+      svg.transition().duration(300).call(zoom.scaleBy, 0.7)
+    }
   }
   
   const handleReset = () => {
     const svg = d3.select(svgRef.current)
-    svg.transition().duration(300).call(svg.zoomBehavior.transform, d3.zoomIdentity)
+    const zoom = svg.node()?.zoomBehavior
+    const simulation = svg.node()?.simulationRef
+    const initialPositions = svg.node()?.initialPositions
+    const nodes = svg.node()?.nodesData
+    
+    // Reset zoom/pan
+    if (zoom) {
+      svg.transition().duration(300).call(zoom.transform, d3.zoomIdentity)
+    }
+    
+    // Reset node positions to initial positions
+    if (simulation && initialPositions && nodes) {
+      nodes.forEach(d => {
+        const initial = initialPositions.get(d.id)
+        if (initial) {
+          d.x = initial.x
+          d.y = initial.y
+          d.fx = null
+          d.fy = null
+        }
+      })
+      // Restart simulation briefly to update positions
+      simulation.alpha(0.3).restart()
+      setTimeout(() => {
+        simulation.stop()
+      }, 300)
+    }
+    
+    // Reset minimap position to default
+    setMinimapPosition({ bottom: 15, right: 15 })
   }
   
   const handleFitView = () => {
@@ -246,13 +420,72 @@ export default function NetworkGraph({ nodes=[], edges=[], width=600, height=400
     const translateY = height / 2 - centerY * scale
     
     const svg = d3.select(svgRef.current)
-    svg.transition()
-      .duration(500)
-      .call(svg.zoomBehavior.transform, d3.zoomIdentity.translate(translateX, translateY).scale(scale))
+    const zoom = svg.node()?.zoomBehavior
+    if (zoom) {
+      svg.transition()
+        .duration(500)
+        .call(zoom.transform, d3.zoomIdentity.translate(translateX, translateY).scale(scale))
+    }
   }
   
   if(!nodes.length) {
     return <div ref={containerRef} />
+  }
+  
+  // Handle minimap container dragging
+  const handleMinimapMouseDown = (e) => {
+    // Only allow dragging from the label or container, not the SVG
+    if (
+      e.target.tagName.toLowerCase() === 'svg' ||
+      e.target.tagName.toLowerCase() === 'rect' ||
+      e.target.tagName.toLowerCase() === 'line' ||
+      e.target.tagName.toLowerCase() === 'circle'
+    ) {
+      return
+    }
+    
+    e.preventDefault()
+    const startX = e.clientX
+    const startY = e.clientY
+    const startBottom = minimapPosition.bottom
+    const startRight = minimapPosition.right
+    
+    // Mouse move handler: get refs inside handler to ensure they're up-to-date and non-null
+    const handleMouseMove = (moveEvent) => {
+      const svgContainer = containerRef.current
+      const minimap = minimapRef.current?.parentElement
+      const deltaX = startX - moveEvent.clientX
+      const deltaY = startY - moveEvent.clientY
+      
+      let newBottom = startBottom + deltaY
+      let newRight = startRight + deltaX
+      
+      // Apply constraints: keep minimap within network-graph-svg with 10px buffer
+      if (svgContainer && minimap) {
+        const svgRect = svgContainer.getBoundingClientRect()
+        const minimapRect = minimap.getBoundingClientRect()
+        
+        const buffer = 10
+        const maxBottom = svgRect.height - minimapRect.height - buffer
+        const maxRight = svgRect.width - minimapRect.width - buffer
+        
+        newBottom = Math.max(buffer, Math.min(newBottom, maxBottom))
+        newRight = Math.max(buffer, Math.min(newRight, maxRight))
+      }
+      
+      setMinimapPosition({
+        bottom: newBottom,
+        right: newRight
+      })
+    }
+    
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
+    
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
   }
   
   return (
@@ -272,7 +505,11 @@ export default function NetworkGraph({ nodes=[], edges=[], width=600, height=400
         </button>
       </div>
       <div ref={containerRef} className="network-graph-svg" />
-      <div className="network-graph-minimap">
+      <div 
+        className="network-graph-minimap"
+        style={{ bottom: `${minimapPosition.bottom}px`, right: `${minimapPosition.right}px` }}
+        onMouseDown={handleMinimapMouseDown}
+      >
         <div className="minimap-label">Minimap</div>
         <div ref={minimapRef} />
       </div>

@@ -60,7 +60,7 @@ const COUNTER_INDICATORS = [
 /**
  * Calculate claim likelihood score for a sentence
  */
-const calculateClaimScore = (sentenceDoc, doc) => {
+const calculateClaimScore = (sentenceDoc) => {
   let score = 0.3  // Baseline score for declarative sentences
   const text = sentenceDoc.text().toLowerCase()
   
@@ -168,7 +168,7 @@ export const ruleBasedArgumentMining = async (textSamples) => {
     const sentenceArray = []
     sentences.forEach(s => sentenceArray.push(s))
     
-    sentenceArray.forEach((sentence, idx) => {
+    sentenceArray.forEach((sentence) => {
       const sentenceText = sentence.text()
       const claimScore = calculateClaimScore(sentence, doc)
       const premiseScore = calculatePremiseScore(sentence, lastClaim)
@@ -309,7 +309,6 @@ export const patternBasedArgumentMining = async (textSamples) => {
   const premises = []
   const argumentsList = []
   let componentId = 0
-  let argumentId = 0
   
   // Argumentation patterns
   const patterns = [

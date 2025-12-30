@@ -321,7 +321,6 @@ export const analyzeLemmatization = (texts, { method = 'rules', top = 80, nlpLib
         'believing': 'believe', 'believed': 'believe', 'believes': 'believe',
         'bringing': 'bring', 'brought': 'bring', 'brings': 'bring',
         'happening': 'happen', 'happened': 'happen', 'happens': 'happen',
-        'writing': 'write', 'wrote': 'write', 'writes': 'write', 'written': 'write',
         'providing': 'provide', 'provided': 'provide', 'provides': 'provide',
         'sitting': 'sit', 'sat': 'sit', 'sits': 'sit',
         'standing': 'stand', 'stood': 'stand', 'stands': 'stand',
@@ -381,10 +380,9 @@ export const analyzeLemmatization = (texts, { method = 'rules', top = 80, nlpLib
         'cities': 'city', 'countries': 'country', 'companies': 'company', 'parties': 'party',
         'stories': 'story', 'studies': 'study', 'families': 'family', 'babies': 'baby',
         'ladies': 'lady', 'pennies': 'penny', 'puppies': 'puppy', 'berries': 'berry',
-        'boxes': 'box', 'churches': 'church', 'watches': 'watch', 'classes': 'class',
+        'boxes': 'box', 'churches': 'church', 'classes': 'class',
         'glasses': 'glass', 'dishes': 'dish', 'wishes': 'wish', 'bushes': 'bush',
-        'knives': 'knife', 'wives': 'wife', 'lives': 'life', 'leaves': 'leaf',
-        'calves': 'calf', 'halves': 'half', 'wolves': 'wolf', 'thieves': 'thief',
+        'knives': 'knife', 'wives': 'wife', 'calves': 'calf', 'halves': 'half', 'wolves': 'wolf', 'thieves': 'thief',
         
         // Adjectives - comparative/superlative to base
         'better': 'good', 'best': 'good', 'worse': 'bad', 'worst': 'bad',
@@ -1396,7 +1394,6 @@ export const analyzeSentiment = (texts, { method = 'lexicon', stopwords = new Se
       for (let i = 0; i < tokens.length; i++) {
         const token = tokens[i]
         const prevToken = i > 0 ? tokens[i - 1] : null
-        const nextToken = i < tokens.length - 1 ? tokens[i + 1] : null
         
         let tokenScore = 0
         

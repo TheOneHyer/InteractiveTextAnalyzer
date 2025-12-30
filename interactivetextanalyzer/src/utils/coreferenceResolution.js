@@ -27,7 +27,7 @@ const loadCompromise = async () => {
 /**
  * Extract mentions (noun phrases, pronouns, named entities) from text
  */
-const extractMentions = (doc, nlp) => {
+const extractMentions = (doc) => {
   const mentions = []
   
   // Get all nouns and pronouns
