@@ -25,7 +25,7 @@ export function parseFlexibleDate(dateStr, currentYear = new Date().getFullYear(
   // Clean the string - remove spaces and replace common separators with a standard separator
   const cleaned = String(dateStr).trim()
     .replace(/\s+/g, '') // Remove all whitespace first
-    .replace(/[\/\-_\.]/g, '-') // Then normalize separators
+    .replace(/[/\-_.]/g, '-') // Then normalize separators
   
   // Try to parse as ISO format first (YYYY-MM-DD)
   const isoMatch = cleaned.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/)

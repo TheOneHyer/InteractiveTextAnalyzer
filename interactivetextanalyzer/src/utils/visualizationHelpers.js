@@ -57,7 +57,7 @@ export function getWordCloudData({
       if (partsOfSpeech) {
         // Create word cloud from POS examples
         const allWords = []
-        Object.entries(partsOfSpeech.posExamples).forEach(([pos, words]) => {
+        Object.entries(partsOfSpeech.posExamples).forEach(([, words]) => {
           words.forEach(({ word, count }) => {
             allWords.push({ text: word, value: count })
           })
@@ -126,7 +126,7 @@ export function getBarData({
     case 'pos':
       if (partsOfSpeech) {
         return Object.entries(partsOfSpeech.posCounts)
-          .filter(([_, count]) => count > 0)
+          .filter(([, count]) => count > 0)
           .map(([pos, count]) => ({ name: pos, count, percentage: Number(partsOfSpeech.percentages[pos]) }))
           .sort((a, b) => b.count - a.count)
       }

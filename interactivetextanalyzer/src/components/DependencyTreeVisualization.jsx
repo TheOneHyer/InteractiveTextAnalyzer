@@ -335,7 +335,7 @@ export default function DependencyTreeVisualization({ sentences = [], width = 80
       
       viewportRect.call(viewportDrag)
     }
-
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSentence, width, height])
 
   // Handle sentence selection

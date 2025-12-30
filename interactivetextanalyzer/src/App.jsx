@@ -30,7 +30,7 @@ import {
   generateReport,
   DEFAULT_STOPWORDS 
 } from './utils/textAnalysis'
-import { normalizeValue, getCategoricalValues } from './utils/categoricalUtils'
+import { getCategoricalValues } from './utils/categoricalUtils'
 import { loadDimReductionLibs, applyDimensionalityReduction } from './utils/dimensionalityReduction'
 import { autoDetectSheetsForAnalysis } from './utils/sheetUtils'
 import { parseCsv, parseWorksheet } from './utils/fileHandlers'
@@ -268,6 +268,7 @@ export default function App(){
     if (viewMode !== 'list' && !isVisualizationAvailable(analysisType, viewMode)) {
       setViewMode('list')
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [analysisType, viewMode])
 
   /**
@@ -294,6 +295,7 @@ export default function App(){
       
       return changed ? updated : prev
     })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [analysisType])
 
   /**
@@ -2675,7 +2677,7 @@ export default function App(){
                         <p><strong>Part of Speech Categories:</strong></p>
                         <ul style={{marginTop:8,paddingLeft:20}}>
                           {Object.entries(partsOfSpeech.posCounts)
-                            .filter(([_, count]) => count > 0)
+                            .filter(([, count]) => count > 0)
                             .sort((a, b) => b[1] - a[1])
                             .map(([pos, count]) => (
                               <li key={pos}>
@@ -2778,7 +2780,7 @@ export default function App(){
                       <h3>Example Words by POS</h3>
                       <div style={{maxHeight:400,overflowY:'auto'}}>
                         {Object.entries(partsOfSpeech.posExamples)
-                          .filter(([_, words]) => words.length > 0)
+                          .filter(([, words]) => words.length > 0)
                           .sort((a, b) => partsOfSpeech.posCounts[b[0]] - partsOfSpeech.posCounts[a[0]])
                           .map(([pos, words]) => (
                             <div key={pos} style={{marginBottom:16}}>
